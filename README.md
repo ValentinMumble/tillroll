@@ -40,7 +40,7 @@ You need an Enable Banking account (free), a Vercel account (free) and about 15 
 2. **Register an Enable Banking application** in the [Control Panel](https://enablebanking.com/cp/applications):
    - environment: Production;
    - let the page generate the key: it downloads `<application id>.pem`, keep it safe;
-   - redirect URL: `https://<your site>/api/callback`;
+   - redirect URL: `https://<your site>/api/callback` (Enable Banking refuses `http://` and local addresses);
    - the privacy and terms links and the email are not checked in restricted mode.
 3. **Activate it by linking your accounts**: "Activate by linking accounts" in the Control Panel, log in to Revolut and
    link every account you want to see. The application can then read those accounts, and only those.
@@ -49,7 +49,9 @@ You need an Enable Banking account (free), a Vercel account (free) and about 15 
    - `ENABLE_BANKING_APP_ID`: the application id;
    - `ENABLE_BANKING_PRIVATE_KEY`: the content of the `.pem` file;
    - `BANK_COUNTRY`: the country Enable Banking lists your Revolut under, like `FR` (default) or `SE`. Another bank
-     works too: set `BANK_NAME` to its name as Enable Banking lists it.
+     works too: set `BANK_NAME` to its name as Enable Banking lists it;
+   - `ENABLE_BANKING_REDIRECT_URL`: `https://<your site>/api/callback`. Production would find it alone, but with it
+     set, a local copy pulled with `vercel env pull` sends the bank back to the site too.
 5. **Connect**: redeploy, open `https://<your site>/#owner=<OWNER_KEY>` once (the key stays in that browser) and click
    Connect Revolut. Revolut asks you to approve in its app, then sends you back.
 
@@ -81,5 +83,8 @@ npm install
 npm run dev   # http://127.0.0.1:5192, serves api/ too (local-api.ts)
 ```
 
-The visitor side needs nothing else. For the owner side, pull the variables with `vercel env pull .env.local`.
+The visitor side needs nothing else. For the owner side, pull the variables with
+`vercel env pull .env.local --environment=production` and open `http://127.0.0.1:5192/#owner=<OWNER_KEY>`. Local and
+production share the Redis store, so they show the same data. Enable Banking only sends the bank's answer to an https
+address: Connect Revolut from local goes through the production callback and lands on the site.
 Before a commit: `npm run format`, `npm run lint` and `npm run build`.
