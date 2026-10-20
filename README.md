@@ -1,6 +1,6 @@
 # 💸 Tillroll
 
-Your Revolut spending week by week and month by month, by store and by category. Tillroll compares each period with
+Your Revolut spending by week, month, year or all time, by store and by category. Tillroll compares each period with
 your usual one (or, for the current period, with the previous one at the same point) and points out what changed:
 the categories that moved, your top store, new stores, the biggest payment, your big spending day and the payments
 that come back every month.
@@ -14,7 +14,8 @@ that come back every month.
 - **A live connection to Revolut**, for the site owner. Revolut has no API for personal accounts, so Tillroll goes
   through Open Banking with [Enable Banking](https://enablebanking.com). Its free "restricted" mode only reads the
   accounts the application's owner linked themself, so on a public site the live sync is the owner's. Anyone can run
-  their own copy to sync their own account (see below).
+  their own copy to sync their own account (see below). Revolut shares the last two years through Open Banking: for
+  older history, import statements as the owner too.
 
 ## What counts as spending
 
@@ -30,6 +31,17 @@ category, in this order:
 
 Transfers, savings and money in are not spending: the summary shows them apart. Refunds lower the spending of their
 category. Pending payments count, with a tag.
+
+**Edit categories** renames a category, changes its icon or whether it counts as spending, and adds new ones (also
+from a payment's category list, which then files that store there). **Merge stores** joins stores that are the same
+place under one name, which keeps that store's category; a merge can be undone. The owner's choices are kept in the
+site store, so they follow to every device; a visitor's stay in their browser.
+
+## On the iPhone
+
+In Safari, Share, then Add to Home Screen: Tillroll opens full screen like an app, with a tab bar for its four
+sections (Overview, Categories, Stores, Payments). A home-screen app keeps its own storage, apart from Safari's: the
+owner enters their key once there, through the Owner key link at the bottom of the page.
 
 ## Run your own
 
@@ -67,11 +79,12 @@ few background syncs a day (often 4); syncs you start from the page do not count
 
 - `api/`: Vercel functions. `connect` starts the bank authorization, `callback` takes the bank's answer and runs the
   first sync, `sync` runs a sync (the daily cron or the owner's page), `data` returns the owner's transactions, `rules`
-  saves a category picked by hand, `import` saves the owner's statement rows, `disconnect` ends the access.
+  saves a category picked for a store, `categories` saves the categories changed or added, `merges` merges or
+  separates stores, `import` saves the owner's statement rows, `disconnect` ends the access.
   `_lib/bank.ts` talks to Enable Banking: requests are signed with the application's key (an RS256 token made with
   `node:crypto`, no library).
 - Redis keys, all `tillroll:*`: the bank session, the booked transactions by id, the pending ones from the last sync,
-  the categories picked by hand and the time of the last sync.
+  the category picked per store, the categories changed or added, the stores merged and the time of the last sync.
 - `src/`: the React page. `statement.ts` reads the Revolut files, `stores.ts` and `categories.ts` name and sort the
   payments, `report.ts` builds the totals, the chart series and the insights, `sample.ts` makes the sample data.
 - Visitors' data never reaches the server: no route accepts it without the owner key.

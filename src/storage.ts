@@ -1,11 +1,14 @@
-import type { Rules, Transaction } from './types'
+import type { Grain } from './periods'
+import type { CategoryEdit, Merges, Rules, Transaction } from './types'
 
 /**
  * A visitor's data lives in their browser only: the statement rows they imported (or just the choice of the
- * sample data, which is rebuilt each time) and the categories they picked by hand.
+ * sample data, which is rebuilt each time), the categories they picked or changed and the stores they merged.
  */
 const DATA = 'tillroll.data'
 const RULES = 'tillroll.rules'
+const CATEGORIES = 'tillroll.categories'
+const MERGES = 'tillroll.merges'
 const GRAIN = 'tillroll.grain'
 
 export type LocalData = { source: 'sample' } | { source: 'statement'; transactions: Transaction[] }
@@ -32,7 +35,28 @@ function write(key: string, value: unknown) {
 
 export const loadLocalData = () => read<LocalData>(DATA)
 export const saveLocalData = (data: LocalData | null) => write(DATA, data)
-export const loadLocalRules = () => read<Rules>(RULES) ?? {}
-export const saveLocalRules = (rules: Rules) => write(RULES, rules)
-export const loadGrain = () => (read<string>(GRAIN) === 'week' ? 'week' : 'month')
-export const saveGrain = (grain: 'week' | 'month') => write(GRAIN, grain)
+
+/** How the visitor sorts their payments: categories picked per store, categories changed, stores merged. */
+export function loadLocalSorting() {
+  return {
+    rules: read<Rules>(RULES) ?? {},
+    categories: read<CategoryEdit[]>(CATEGORIES) ?? [],
+    merges: read<Merges>(MERGES) ?? {},
+  }
+}
+
+export function saveLocalSorting(sorting: { rules?: Rules; categories?: CategoryEdit[]; merges?: Merges } | null) {
+  if (sorting === null) {
+    for (const key of [RULES, CATEGORIES, MERGES]) write(key, null)
+    return
+  }
+  if (sorting.rules) write(RULES, sorting.rules)
+  if (sorting.categories) write(CATEGORIES, sorting.categories)
+  if (sorting.merges) write(MERGES, sorting.merges)
+}
+
+export const loadGrain = (): Grain => {
+  const saved = read<string>(GRAIN)
+  return saved === 'week' || saved === 'year' || saved === 'all' ? saved : 'month'
+}
+export const saveGrain = (grain: Grain) => write(GRAIN, grain)

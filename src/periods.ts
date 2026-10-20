@@ -1,8 +1,9 @@
 /**
- * Days are "YYYY-MM-DD" strings and periods are "YYYY-MM" (a month) or the Monday "YYYY-MM-DD" (a week). The math
- * runs in UTC on those strings, so a time zone never moves a payment to another day.
+ * Days are "YYYY-MM-DD" strings and periods are the Monday "YYYY-MM-DD" (a week), "YYYY-MM" (a month), "YYYY" (a
+ * year) or "all" (all time, one period wider than any data). The math runs in UTC on those strings, so a time zone
+ * never moves a payment to another day.
  */
-export type Grain = 'week' | 'month'
+export type Grain = 'week' | 'month' | 'year' | 'all'
 
 const DAY = 86_400_000
 
@@ -31,10 +32,14 @@ export function weekdayOf(date: string) {
 }
 
 export function periodOf(date: string, grain: Grain) {
+  if (grain === 'all') return 'all'
+  if (grain === 'year') return date.slice(0, 4)
   return grain === 'month' ? date.slice(0, 7) : addDays(date, -weekdayOf(date))
 }
 
 export function shiftPeriod(period: string, grain: Grain, steps: number) {
+  if (grain === 'all') return 'all'
+  if (grain === 'year') return String(Number(period) + steps)
   if (grain === 'week') return addDays(period, steps * 7)
   const [year, month] = period.split('-').map(Number)
   const index = year * 12 + month - 1 + steps
@@ -42,16 +47,21 @@ export function shiftPeriod(period: string, grain: Grain, steps: number) {
 }
 
 export function periodStart(period: string, grain: Grain) {
+  if (grain === 'all') return '0000-01-01'
+  if (grain === 'year') return `${period}-01-01`
   return grain === 'month' ? `${period}-01` : period
 }
 
 /** The last day of the period. */
 export function periodEnd(period: string, grain: Grain) {
+  if (grain === 'all') return '9999-12-31'
   return addDays(periodStart(shiftPeriod(period, grain, 1), grain), -1)
 }
 
-/** "October 2026" or "Week of 12 Oct"; short: "Oct" (with the year in January) or "12 Oct". */
+/** "October 2026", "Week of 12 Oct", "2026" or "All time"; short: "Oct" (with the year in January) or "12 Oct". */
 export function periodLabel(period: string, grain: Grain, short = false) {
+  if (grain === 'all') return 'All time'
+  if (grain === 'year') return period
   const date = new Date(timeOf(periodStart(period, grain)))
   if (grain === 'month') {
     if (!short) return date.toLocaleDateString('en-GB', { month: 'long', year: 'numeric', timeZone: 'UTC' })
@@ -62,9 +72,14 @@ export function periodLabel(period: string, grain: Grain, short = false) {
   return short ? day : `Week of ${day}`
 }
 
-/** "12 Oct". */
-export function dayLabel(date: string) {
-  return new Date(timeOf(date)).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' })
+/** "12 Oct", or "12 Oct 2025" with the year. */
+export function dayLabel(date: string, withYear = false) {
+  return new Date(timeOf(date)).toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: withYear ? 'numeric' : undefined,
+    timeZone: 'UTC',
+  })
 }
 
 export const WEEKDAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']

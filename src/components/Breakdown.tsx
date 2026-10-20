@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { CATEGORY } from '../categories'
+import type { Categories } from '../categories'
 import { money } from '../format'
 import type { Report } from '../report'
 import type { CategoryKey } from '../types'
@@ -10,6 +10,7 @@ export type Focus = { type: 'category'; key: CategoryKey } | { type: 'store'; ke
 
 interface Props {
   report: Report
+  categories: Categories
   currency: string
   focus: Focus | null
   onFocus: (focus: Focus | null) => void
@@ -22,7 +23,14 @@ function share(part: number, whole: number) {
 }
 
 /** Spending by category, with the change against the baseline. One color for every bar: the length is the value. */
-export function CategoryBreakdown({ report, currency, focus, onFocus }: Props) {
+export function CategoryBreakdown({
+  report,
+  categories,
+  currency,
+  focus,
+  onFocus,
+  onEdit,
+}: Props & { onEdit: () => void }) {
   const { current, baseline } = report
   const items = [...current.categories]
     .filter(([, value]) => value >= 0.5)
@@ -33,13 +41,16 @@ export function CategoryBreakdown({ report, currency, focus, onFocus }: Props) {
       <header className="card-head">
         <h2>Categories</h2>
         {baseline && <span className="hint">change vs {baseline.label}</span>}
+        <button type="button" className="link-button" onClick={onEdit}>
+          Edit categories
+        </button>
       </header>
       {items.length === 0 ? (
         <p className="empty">No spending in this period.</p>
       ) : (
         <ul className="bars">
           {items.map(([key, value]) => {
-            const category = CATEGORY[key]
+            const category = categories.byKey[key]
             const active = focus?.type === 'category' && focus.key === key
             return (
               <li key={key}>
@@ -77,7 +88,14 @@ export function CategoryBreakdown({ report, currency, focus, onFocus }: Props) {
 }
 
 /** The stores where the money went, biggest first. */
-export function StoreBreakdown({ report, currency, focus, onFocus }: Props) {
+export function StoreBreakdown({
+  report,
+  categories,
+  currency,
+  focus,
+  onFocus,
+  onMerge,
+}: Props & { onMerge: () => void }) {
   const [showAll, setShowAll] = useState(false)
   const stores = [...report.current.stores.values()]
     .filter((store) => store.total >= 0.5)
@@ -89,6 +107,9 @@ export function StoreBreakdown({ report, currency, focus, onFocus }: Props) {
       <header className="card-head">
         <h2>Stores</h2>
         <span className="hint">{stores.length} this period</span>
+        <button type="button" className="link-button" onClick={onMerge}>
+          Merge stores
+        </button>
       </header>
       {stores.length === 0 ? (
         <p className="empty">No spending in this period.</p>
@@ -106,7 +127,7 @@ export function StoreBreakdown({ report, currency, focus, onFocus }: Props) {
                 >
                   <span className="bar-label">
                     <span className="bar-icon" aria-hidden="true">
-                      {CATEGORY[store.category].icon}
+                      {categories.byKey[store.category].icon}
                     </span>
                     <span className="bar-name">{store.name}</span>
                   </span>

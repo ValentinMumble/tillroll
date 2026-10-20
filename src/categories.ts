@@ -1,36 +1,71 @@
-import type { CategoryKey, Rules, Transaction } from './types'
+import type { BuiltInCategory, CategoryEdit, CategoryKey, Rules, Transaction } from './types'
 
-export interface Category {
-  key: CategoryKey
-  label: string
-  icon: string
-  /** False for money that only moves (transfers, savings) or comes in: it is not counted as spending. */
-  spending: boolean
+export interface Category extends CategoryEdit {
+  /** Added by hand: it can be deleted. */
+  custom: boolean
 }
 
-export const CATEGORIES: Category[] = [
-  { key: 'groceries', label: 'Groceries', icon: '🛒', spending: true },
-  { key: 'eating-out', label: 'Eating out', icon: '🍽️', spending: true },
-  { key: 'transport', label: 'Transport', icon: '🚆', spending: true },
-  { key: 'shopping', label: 'Shopping', icon: '🛍️', spending: true },
-  { key: 'bills', label: 'Bills and subscriptions', icon: '🧾', spending: true },
-  { key: 'fun', label: 'Going out and fun', icon: '🎟️', spending: true },
-  { key: 'travel', label: 'Travel', icon: '✈️', spending: true },
-  { key: 'health', label: 'Health and sport', icon: '💊', spending: true },
-  { key: 'home', label: 'Home and rent', icon: '🏠', spending: true },
-  { key: 'cash', label: 'Cash', icon: '🏧', spending: true },
-  { key: 'other', label: 'Other', icon: '📦', spending: true },
-  { key: 'transfers', label: 'Transfers and savings', icon: '↔️', spending: false },
-  { key: 'income', label: 'Money in', icon: '💶', spending: false },
+export const BUILT_IN: Category[] = [
+  { key: 'groceries', label: 'Groceries', icon: '🛒', spending: true, custom: false },
+  { key: 'eating-out', label: 'Eating out', icon: '🍽️', spending: true, custom: false },
+  { key: 'transport', label: 'Transport', icon: '🚆', spending: true, custom: false },
+  { key: 'shopping', label: 'Shopping', icon: '🛍️', spending: true, custom: false },
+  { key: 'bills', label: 'Bills and subscriptions', icon: '🧾', spending: true, custom: false },
+  { key: 'fun', label: 'Going out and fun', icon: '🎟️', spending: true, custom: false },
+  { key: 'travel', label: 'Travel', icon: '✈️', spending: true, custom: false },
+  { key: 'health', label: 'Health and sport', icon: '💊', spending: true, custom: false },
+  { key: 'home', label: 'Home and rent', icon: '🏠', spending: true, custom: false },
+  { key: 'cash', label: 'Cash', icon: '🏧', spending: true, custom: false },
+  { key: 'other', label: 'Other', icon: '📦', spending: true, custom: false },
+  { key: 'transfers', label: 'Transfers and savings', icon: '↔️', spending: false, custom: false },
+  { key: 'income', label: 'Money in', icon: '💶', spending: false, custom: false },
 ]
 
-export const CATEGORY = Object.fromEntries(CATEGORIES.map((category) => [category.key, category])) as Record<
-  CategoryKey,
-  Category
->
+/** The categories in use: the built-in ones as changed by hand, and the new ones (before Other). */
+export interface Categories {
+  list: Category[]
+  byKey: Record<CategoryKey, Category>
+}
+
+export function categoriesFrom(edits: CategoryEdit[]): Categories {
+  const edited = new Map(edits.map((edit) => [edit.key, edit]))
+  const builtIn = BUILT_IN.map((category) => ({ ...category, ...edited.get(category.key), custom: false }))
+  const added = edits
+    .filter((edit) => !BUILT_IN.some((category) => category.key === edit.key))
+    .map((edit) => ({ ...edit, custom: true }))
+  const other = builtIn.findIndex((category) => category.key === 'other')
+  const list = [...builtIn.slice(0, other), ...added, ...builtIn.slice(other)]
+  return { list, byKey: Object.fromEntries(list.map((category) => [category.key, category])) }
+}
+
+/** What to save: the new categories and the built-in ones that differ from their defaults. */
+export function editsFrom(list: Category[]): CategoryEdit[] {
+  return list
+    .filter((category) => {
+      const original = BUILT_IN.find((item) => item.key === category.key)
+      return (
+        !original ||
+        original.label !== category.label ||
+        original.icon !== category.icon ||
+        original.spending !== category.spending
+      )
+    })
+    .map(({ key, label, icon, spending }) => ({ key, label, icon, spending }))
+}
+
+export function newCategoryKey(label: string) {
+  const slug = label
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 20)
+  return `custom-${slug || 'category'}-${Date.now().toString(36)}`
+}
 
 /** Store names that give the category away. Checked in this order: "Uber Eats" is eating out, not transport. */
-const KEYWORDS: [CategoryKey, RegExp][] = [
+const KEYWORDS: [BuiltInCategory, RegExp][] = [
   [
     'eating-out',
     /uber\s*\*?\s*eats|deliveroo|just ?eat|foodora|wolt|restaurant|resto\b|brasserie|bistro|cafe|café|coffee|starbucks|mcdonald|burger|kfc|pizza|sushi|kebab|\bbar\b|\bpub\b|cantine|crêperie|creperie|traiteur|trattoria|osteria|taberna|tapas|gelat/i,
@@ -70,7 +105,7 @@ const KEYWORDS: [CategoryKey, RegExp][] = [
 ]
 
 /** Merchant category codes (ISO 18245), first matching range wins: the broad retail range comes last. */
-const MCC_RANGES: [number, number, CategoryKey][] = [
+const MCC_RANGES: [number, number, BuiltInCategory][] = [
   [3000, 3350, 'travel'],
   [3351, 3500, 'transport'],
   [3501, 3999, 'travel'],
@@ -108,7 +143,7 @@ const MCC_RANGES: [number, number, CategoryKey][] = [
 ]
 
 /** The category Tillroll guesses, from the kind of movement, the store name and the merchant code. */
-export function guessCategory(transaction: Transaction): CategoryKey {
+export function guessCategory(transaction: Transaction): BuiltInCategory {
   const { kind, description, mcc } = transaction
   if (kind === 'income') return 'income'
   if (kind === 'topup' || kind === 'exchange') return 'transfers'
@@ -122,8 +157,8 @@ export function guessCategory(transaction: Transaction): CategoryKey {
   return range?.[2] ?? 'other'
 }
 
-/** The category picked by hand for the store, or the guess. */
-export function categoryOf(transaction: Transaction, key: string, rules: Rules): CategoryKey {
+/** The category picked by hand for the store, if it still exists, or the guess. */
+export function categoryOf(transaction: Transaction, key: string, rules: Rules, categories: Categories): CategoryKey {
   const picked = rules[key]
-  return picked && picked in CATEGORY ? picked : guessCategory(transaction)
+  return picked && categories.byKey[picked] ? picked : guessCategory(transaction)
 }

@@ -20,6 +20,19 @@ export function forgetOwnerKey() {
   }
 }
 
+/**
+ * Keeps a key typed by hand. An iPhone home-screen app has its own storage, apart from Safari's, and no address bar
+ * for a #owner=... link: the footer asks for the key there.
+ */
+export function rememberOwnerKey(key: string) {
+  try {
+    localStorage.setItem(KEY, key)
+    return true
+  } catch {
+    return false
+  }
+}
+
 /** Keeps the key from a #owner=... address and takes it out of the address bar. */
 export function captureOwnerKey() {
   const match = /^#owner=(.+)$/.exec(window.location.hash)

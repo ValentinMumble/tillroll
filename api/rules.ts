@@ -10,7 +10,7 @@ export function PUT(request: Request) {
     if (typeof storeKey !== 'string' || !storeKey || storeKey.length > 200) throw new HttpError(400, 'Expected a store')
     const store = redis()
     if (category === null) await store.hdel(RULES, storeKey)
-    else if (typeof category === 'string' && /^[a-z-]{2,20}$/.test(category)) {
+    else if (typeof category === 'string' && /^[a-z0-9-]{2,60}$/.test(category)) {
       await store.hset(RULES, { [storeKey]: category })
     } else throw new HttpError(400, 'Expected a category')
     return json({ ok: true })

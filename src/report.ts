@@ -1,4 +1,4 @@
-import { CATEGORY, categoryOf, guessCategory } from './categories'
+import { type Categories, categoryOf, guessCategory } from './categories'
 import { money } from './format'
 import {
   addDays,
@@ -13,27 +13,48 @@ import {
   weekdayOf,
 } from './periods'
 import { storeKey, storeName } from './stores'
-import type { CategoryKey, Rules, Transaction } from './types'
+import type { CategoryKey, Merges, Rules, Transaction } from './types'
 
 /** A transaction with its store and category, and what it adds to the spending. */
 export interface Row extends Transaction {
   store: string
   storeKey: string
+  /** The store's own key, before any merge. */
+  ownStoreKey: string
+  ownStore: string
   category: CategoryKey
   /** The category Tillroll guesses, shown as the "Automatic" choice. */
   guessed: CategoryKey
+  /** The category counts as spending. */
+  counts: boolean
   /** What the row adds to the spending: the amount turned positive, negative for a refund, 0 when not spending. */
   spend: number
 }
 
-export function toRows(transactions: Transaction[], rules: Rules): Row[] {
+/** How payments are sorted: categories picked per store, the categories themselves, stores merged. */
+export interface Sorting {
+  rules: Rules
+  categories: Categories
+  merges: Merges
+}
+
+export function toRows(transactions: Transaction[], { rules, categories, merges }: Sorting): Row[] {
   return transactions
     .map((transaction) => {
-      const store = storeName(transaction.description)
-      const key = storeKey(store)
-      const category = categoryOf(transaction, key, rules)
-      const spend = CATEGORY[category].spending ? -transaction.amount : 0
-      return { ...transaction, store, storeKey: key, category, guessed: guessCategory(transaction), spend }
+      const ownStore = storeName(transaction.description)
+      const ownStoreKey = storeKey(ownStore)
+      let store = ownStore
+      let key = ownStoreKey
+      // A merged store takes the name of the one it is part of (a few steps at most: A into B into C).
+      for (let step = 0; step < 5 && merges[key] && storeKey(merges[key]) !== key; step += 1) {
+        store = merges[key]
+        key = storeKey(store)
+      }
+      const category = categoryOf(transaction, key, rules, categories)
+      const counts = categories.byKey[category].spending
+      const spend = counts ? -transaction.amount : 0
+      const guessed = guessCategory(transaction)
+      return { ...transaction, store, storeKey: key, ownStore, ownStoreKey, category, guessed, counts, spend }
     })
     .sort((first, second) => (first.date < second.date ? 1 : first.date > second.date ? -1 : 0))
 }
@@ -60,7 +81,7 @@ export interface Totals {
 function totalsOf(rows: Row[]): Totals {
   const totals: Totals = { total: 0, payments: 0, categories: new Map(), stores: new Map(), movedOut: 0, moneyIn: 0 }
   for (const row of rows) {
-    if (!CATEGORY[row.category].spending) {
+    if (!row.counts) {
       if (row.amount < 0) totals.movedOut -= row.amount
       else totals.moneyIn += row.amount
       continue
@@ -106,12 +127,23 @@ export interface Report {
   /** What the period is compared with: the previous one cut at the same point, or the usual period. */
   baseline: { total: number; categories: Map<CategoryKey, number>; label: string } | null
   series: { period: string; total: number; payments: number }[]
+  /** The chart's periods: years for all time, else the chosen grain. */
+  chartGrain: Grain
   usual: number | null
   insights: Insight[]
   subscriptions: Subscription[]
 }
 
-const GRAIN_WORD: Record<Grain, string> = { week: 'week', month: 'month' }
+/** How the insights name the period. */
+const WORDING: Record<Grain, { word: string; scope: string; spending: string }> = {
+  week: { word: 'week', scope: 'this week', spending: "this week's spending" },
+  month: { word: 'month', scope: 'this month', spending: "this month's spending" },
+  year: { word: 'year', scope: 'this year', spending: "this year's spending" },
+  all: { word: 'period', scope: 'overall', spending: 'all your spending' },
+}
+
+/** Columns in the chart. */
+const CHART_LENGTH: Record<Grain, number> = { week: 16, month: 12, year: 10, all: 10 }
 
 function percent(part: number, whole: number) {
   return Math.round((part / whole) * 100)
@@ -140,21 +172,26 @@ function findSubscriptions(rows: Row[], month: string): Subscription[] {
   return found.sort((first, second) => second.monthly - first.monthly)
 }
 
-export function buildReport(rows: Row[], period: string, grain: Grain, now: string): Report {
-  const from = periodStart(period, grain)
-  const to = periodEnd(period, grain)
-  const firstDay = rows.at(-1)?.date ?? from
-  const lastDay = rows[0]?.date ?? to
-  const ongoing = now >= from && now <= to
+export function buildReport(rows: Row[], period: string, grain: Grain, now: string, categories: Categories): Report {
+  const firstDay = rows.at(-1)?.date ?? now
+  const lastDay = rows[0]?.date ?? now
+  // All time runs from the first payment to the last one.
+  const from = grain === 'all' ? firstDay : periodStart(period, grain)
+  const to = grain === 'all' ? lastDay : periodEnd(period, grain)
+  const ongoing = grain !== 'all' && now >= from && now <= to
   const current = totalsOf(rowsBetween(rows, from, to))
-  const word = GRAIN_WORD[grain]
+  const { word, scope, spending: spendingWords } = WORDING[grain]
+  // A period the data only partly covers (the first one) would make a poor comparison.
+  const fullyCovered = (item: string) => periodStart(item, grain) >= firstDay
 
-  // The usual period: the mean of up to six periods before this one, from the first period with data.
-  const firstPeriod = periodOf(firstDay, grain)
-  const earlier = [1, 2, 3, 4, 5, 6]
-    .map((step) => shiftPeriod(period, grain, -step))
-    .filter((item) => item >= firstPeriod)
-    .map((item) => totalsOf(rowsBetween(rows, periodStart(item, grain), periodEnd(item, grain))))
+  // The usual period: the mean of up to six full periods before this one.
+  const earlier =
+    grain === 'all'
+      ? []
+      : [1, 2, 3, 4, 5, 6]
+          .map((step) => shiftPeriod(period, grain, -step))
+          .filter(fullyCovered)
+          .map((item) => totalsOf(rowsBetween(rows, periodStart(item, grain), periodEnd(item, grain))))
   const usualCategories = new Map<CategoryKey, number>()
   for (const totals of earlier) {
     for (const [key, value] of totals.categories) {
@@ -166,7 +203,7 @@ export function buildReport(rows: Row[], period: string, grain: Grain, now: stri
   let baseline: Report['baseline'] = null
   if (ongoing) {
     const previous = shiftPeriod(period, grain, -1)
-    if (previous >= firstPeriod) {
+    if (fullyCovered(previous)) {
       const previousFrom = periodStart(previous, grain)
       // The same number of days into the previous period (a 31st falls back to the 30th, or the 28th).
       const cut = addDays(previousFrom, daysBetween(from, now) - 1)
@@ -178,20 +215,23 @@ export function buildReport(rows: Row[], period: string, grain: Grain, now: stri
     baseline = { total: usual, categories: usualCategories, label: `your usual ${word}` }
   }
 
-  // The chart: 12 months or 16 weeks, ending with the latest period unless the chosen one is older.
-  const count = grain === 'month' ? 12 : 16
-  let last = periodOf(lastDay, grain)
-  if (period > last) last = period
-  else if (shiftPeriod(last, grain, -(count - 1)) > period) last = shiftPeriod(period, grain, count - 1)
+  // The chart ends with the latest period unless the chosen one is older. All time shows the years.
+  const chartGrain: Grain = grain === 'all' ? 'year' : grain
+  const count = CHART_LENGTH[grain]
+  const anchor = grain === 'all' ? periodOf(lastDay, chartGrain) : period
+  let last = periodOf(lastDay, chartGrain)
+  if (anchor > last) last = anchor
+  else if (shiftPeriod(last, chartGrain, -(count - 1)) > anchor) last = shiftPeriod(anchor, chartGrain, count - 1)
   const series: Report['series'] = []
   for (let step = count - 1; step >= 0; step -= 1) {
-    const item = shiftPeriod(last, grain, -step)
-    if (periodEnd(item, grain) < firstDay) continue
-    const totals = totalsOf(rowsBetween(rows, periodStart(item, grain), periodEnd(item, grain)))
+    const item = shiftPeriod(last, chartGrain, -step)
+    if (periodEnd(item, chartGrain) < firstDay) continue
+    const totals = totalsOf(rowsBetween(rows, periodStart(item, chartGrain), periodEnd(item, chartGrain)))
     series.push({ period: item, total: totals.total, payments: totals.payments })
   }
 
-  const subscriptions = grain === 'month' ? findSubscriptions(rows, period) : []
+  // Regular payments, as of the last month of the period that has data.
+  const subscriptions = grain === 'week' ? [] : findSubscriptions(rows, periodOf(to < lastDay ? to : lastDay, 'month'))
   const currency = rows[0]?.currency ?? 'EUR'
   const amount = (value: number) => money(value, currency)
   const insights: Insight[] = []
@@ -220,11 +260,11 @@ export function buildReport(rows: Row[], period: string, grain: Grain, now: stri
     const down = moves.at(-1)
     const against = ongoing ? `compared with ${baseline.label}` : `on ${baseline.label}`
     if (up && up.change > 0) {
-      const category = CATEGORY[up.key]
+      const category = categories.byKey[up.key]
       insights.push({ icon: category.icon, text: `${category.label} is up ${amount(up.change)} ${against}.` })
     }
     if (down && down.change < 0) {
-      const category = CATEGORY[down.key]
+      const category = categories.byKey[down.key]
       insights.push({ icon: category.icon, text: `${category.label} is down ${amount(-down.change)} ${against}.` })
     }
   }
@@ -235,18 +275,18 @@ export function buildReport(rows: Row[], period: string, grain: Grain, now: stri
   const top = stores[0]
   if (top && top.total > 0) {
     const visits = top.visits === 1 ? '1 payment' : `${top.visits} payments`
-    insights.push({ icon: '🏪', text: `${top.name} is your top store this ${word}: ${visits}, ${amount(top.total)}.` })
+    insights.push({ icon: '🏪', text: `${top.name} is your top store ${scope}: ${visits}, ${amount(top.total)}.` })
   }
 
   const before = new Set(rows.filter((row) => row.date < from).map((row) => row.storeKey))
   if (before.size) {
     const fresh = stores.filter((store) => !before.has(store.key) && store.total > 0)
     if (fresh.length === 1) {
-      insights.push({ icon: '✨', text: `One new store this ${word}: ${fresh[0].name} (${amount(fresh[0].total)}).` })
+      insights.push({ icon: '✨', text: `One new store ${scope}: ${fresh[0].name} (${amount(fresh[0].total)}).` })
     } else if (fresh.length > 1) {
       insights.push({
         icon: '✨',
-        text: `${fresh.length} new stores this ${word}, the biggest is ${fresh[0].name} (${amount(fresh[0].total)}).`,
+        text: `${fresh.length} new stores ${scope}, the biggest is ${fresh[0].name} (${amount(fresh[0].total)}).`,
       })
     }
   }
@@ -256,17 +296,17 @@ export function buildReport(rows: Row[], period: string, grain: Grain, now: stri
   if (biggest && spending.length > 1) {
     insights.push({
       icon: '🧾',
-      text: `Biggest payment: ${biggest.store}, ${amount(biggest.spend)} on ${dayLabel(biggest.date)}.`,
+      text: `Biggest payment: ${biggest.store}, ${amount(biggest.spend)} on ${dayLabel(biggest.date, grain === 'all')}.`,
     })
   }
 
-  if (grain === 'month' && spending.length >= 12 && current.total > 0) {
+  if (grain !== 'week' && spending.length >= 12 && current.total > 0) {
     const byWeekday = Array.from({ length: 7 }, () => 0)
     for (const row of spending) byWeekday[weekdayOf(row.date)] += row.spend
     const busiest = byWeekday.indexOf(Math.max(...byWeekday))
     const share = percent(byWeekday[busiest], current.total)
     if (share >= 22) {
-      insights.push({ icon: '📅', text: `${WEEKDAYS[busiest]} is your big day: ${share}% of this month's spending.` })
+      insights.push({ icon: '📅', text: `${WEEKDAYS[busiest]} is your big day: ${share}% of ${spendingWords}.` })
     }
   }
 
@@ -280,5 +320,5 @@ export function buildReport(rows: Row[], period: string, grain: Grain, now: stri
     })
   }
 
-  return { from, to, ongoing, current, baseline, series, usual, insights, subscriptions }
+  return { from, to, ongoing, current, baseline, series, chartGrain, usual, insights, subscriptions }
 }

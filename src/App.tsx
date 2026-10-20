@@ -4,33 +4,45 @@ import {
   fetchOwnerData,
   importStatement,
   RequestError,
+  saveCategories,
+  saveMerge,
   saveRule,
   startBankConnection,
   syncBank,
 } from './api'
+import { type Category, categoriesFrom, editsFrom } from './categories'
 import { CategoryBreakdown, type Focus, StoreBreakdown } from './components/Breakdown'
+import { CategoryEditor } from './components/CategoryEditor'
 import { ImportButton } from './components/ImportButton'
 import { Insights } from './components/Insights'
 import { Landing } from './components/Landing'
+import { MergeStores } from './components/MergeStores'
 import { Payments } from './components/Payments'
 import { PeriodChart } from './components/PeriodChart'
 import { Summary } from './components/Summary'
+import { type Tab, TabBar } from './components/TabBar'
 import { Toolbar } from './components/Toolbar'
 import { timeAgo } from './format'
-import { forgetOwnerKey, ownerKey } from './owner'
+import { forgetOwnerKey, ownerKey, rememberOwnerKey } from './owner'
 import { type Grain, periodEnd, periodOf, shiftPeriod, today } from './periods'
 import { buildReport, rowsBetween, toRows } from './report'
 import { sampleTransactions } from './sample'
 import { readStatement } from './statement'
-import { loadGrain, loadLocalData, loadLocalRules, saveGrain, saveLocalData, saveLocalRules } from './storage'
-import type { CategoryKey, Connection, Rules, Transaction } from './types'
+import { loadGrain, loadLocalData, loadLocalSorting, saveGrain, saveLocalData, saveLocalSorting } from './storage'
+import type { CategoryEdit, CategoryKey, Connection, Merges, Rules, Transaction } from './types'
 
 interface Data {
   source: 'sample' | 'statement' | 'owner'
   transactions: Transaction[]
   rules: Rules
+  categories: CategoryEdit[]
+  merges: Merges
   connection: Connection | null
 }
+
+/** The open dialog, with the store it was opened for. */
+type Dialog =
+  { type: 'categories'; store: { key: string; name: string } | null } | { type: 'merge'; store: string | null }
 
 interface Notice {
   tone: 'info' | 'error'
@@ -44,7 +56,7 @@ function localData(): Data | null {
   const saved = loadLocalData()
   if (!saved) return null
   const transactions = saved.source === 'sample' ? sampleTransactions() : saved.transactions
-  return { source: saved.source, transactions, rules: loadLocalRules(), connection: null }
+  return { source: saved.source, transactions, ...loadLocalSorting(), connection: null }
 }
 
 /** The owner's statement rows stop where the bank's history starts, per currency, so nothing counts twice. */
@@ -83,6 +95,9 @@ export default function App() {
   const [chosenPeriod, setChosenPeriod] = useState<string | null>(null)
   const [chosenCurrency, setChosenCurrency] = useState<string | null>(null)
   const [focus, setFocus] = useState<Focus | null>(null)
+  const [dialog, setDialog] = useState<Dialog | null>(null)
+  // The phone layout shows one section at a time (see the tab bar); wider screens show them all.
+  const [tab, setTab] = useState<Tab>('overview')
 
   const loadOwner = useCallback(async () => {
     try {
@@ -130,10 +145,12 @@ export default function App() {
     void start()
   }, [isOwner, loadOwner, sync])
 
+  const categories = useMemo(() => categoriesFrom(data?.categories ?? []), [data?.categories])
   const rows = useMemo(() => {
     if (!data) return []
-    return toRows(data.source === 'owner' ? withoutOverlap(data.transactions) : data.transactions, data.rules)
-  }, [data])
+    const transactions = data.source === 'owner' ? withoutOverlap(data.transactions) : data.transactions
+    return toRows(transactions, { rules: data.rules, categories, merges: data.merges })
+  }, [data, categories])
 
   // Currencies by number of payments: the main account first.
   const currencies = useMemo(() => {
@@ -150,7 +167,10 @@ export default function App() {
   const firstPeriod = periodOf(firstDay, grain)
   const period =
     chosenPeriod && chosenPeriod >= firstPeriod && chosenPeriod <= latestPeriod ? chosenPeriod : latestPeriod
-  const report = useMemo(() => buildReport(currencyRows, period, grain, today()), [currencyRows, period, grain])
+  const report = useMemo(
+    () => buildReport(currencyRows, period, grain, today(), categories),
+    [currencyRows, period, grain, categories],
+  )
   const periodRows = useMemo(() => rowsBetween(currencyRows, report.from, report.to), [currencyRows, report])
 
   function changeGrain(next: Grain) {
@@ -166,21 +186,64 @@ export default function App() {
     setFocus(null)
   }
 
+  /** Narrows the payment list; on a phone, the list is its own tab, so it opens it. */
+  function focusOn(next: Focus | null) {
+    setFocus(next)
+    if (next && window.matchMedia('(max-width: 720px)').matches) setTab('payments')
+  }
+
+  /** A chart column: in the all-time view the columns are years, so a click opens that year. */
+  function selectChartPeriod(next: string) {
+    if (grain === 'all') {
+      setGrain('year')
+      saveGrain('year')
+    }
+    changePeriod(next)
+  }
+
+  /** Shows a change at once, then saves it: in the store for the owner, in the browser for a visitor. */
+  async function change(update: Partial<Data>, saveOnServer: () => Promise<unknown>) {
+    if (!data) return
+    setData((previous) => previous && { ...previous, ...update })
+    if (data.source !== 'owner') {
+      saveLocalSorting(update)
+      return
+    }
+    try {
+      await saveOnServer()
+    } catch (error) {
+      setNotice({ tone: 'error', text: messageOf(error) })
+    }
+  }
+
   async function changeCategory(storeKey: string, category: CategoryKey | null) {
     if (!data) return
     const rules = { ...data.rules }
     if (category) rules[storeKey] = category
     else delete rules[storeKey]
-    setData({ ...data, rules })
-    if (data.source !== 'owner') {
-      saveLocalRules(rules)
-      return
-    }
-    try {
-      await saveRule(storeKey, category)
-    } catch (error) {
-      setNotice({ tone: 'error', text: messageOf(error) })
-    }
+    await change({ rules }, () => saveRule(storeKey, category))
+  }
+
+  async function saveCategoryList(list: Category[], added: CategoryKey | null) {
+    const edits = editsFrom(list)
+    await change({ categories: edits }, () => saveCategories(edits))
+    // A category added from a payment's list is picked for that store.
+    if (added && dialog?.type === 'categories' && dialog.store) await changeCategory(dialog.store.key, added)
+  }
+
+  async function mergeStores(storeKeys: string[], into: string) {
+    if (!data) return
+    const merges = { ...data.merges }
+    for (const key of storeKeys) merges[key] = into
+    if (focus?.type === 'store' && storeKeys.includes(focus.key)) setFocus(null)
+    await change({ merges }, () => Promise.all(storeKeys.map((key) => saveMerge(key, into))))
+  }
+
+  async function separateStore(storeKey: string) {
+    if (!data) return
+    const merges = { ...data.merges }
+    delete merges[storeKey]
+    await change({ merges }, () => saveMerge(storeKey, null))
   }
 
   async function importFile(file: File) {
@@ -196,7 +259,10 @@ export default function App() {
         const earlier = data?.source === 'statement' ? data.transactions : []
         const merged = [...new Map([...earlier, ...transactions].map((item) => [item.id, item])).values()]
         kept = saveLocalData({ source: 'statement', transactions: merged })
-        setData({ source: 'statement', transactions: merged, rules: data?.rules ?? loadLocalRules(), connection: null })
+        const sorting = data
+          ? { rules: data.rules, categories: data.categories, merges: data.merges }
+          : loadLocalSorting()
+        setData({ source: 'statement', transactions: merged, ...sorting, connection: null })
       }
       setChosenPeriod(null)
       setFocus(null)
@@ -213,7 +279,7 @@ export default function App() {
 
   function showSample() {
     saveLocalData({ source: 'sample' })
-    setData({ source: 'sample', transactions: sampleTransactions(), rules: loadLocalRules(), connection: null })
+    setData({ source: 'sample', transactions: sampleTransactions(), ...loadLocalSorting(), connection: null })
     setChosenPeriod(null)
     setNotice(null)
   }
@@ -221,11 +287,11 @@ export default function App() {
   function clearLocal() {
     const question =
       data?.source === 'statement'
-        ? 'Remove the imported statements and your category choices from this browser?'
+        ? 'Remove the imported statements, your categories and merged stores from this browser?'
         : 'Leave the sample data?'
     if (!window.confirm(question)) return
     saveLocalData(null)
-    if (data?.source === 'statement') saveLocalRules({})
+    if (data?.source === 'statement') saveLocalSorting(null)
     setData(null)
     setFocus(null)
     setChosenPeriod(null)
@@ -239,6 +305,13 @@ export default function App() {
       setNotice({ tone: 'error', text: messageOf(error) })
       setBusy(null)
     }
+  }
+
+  function enterOwnerKey() {
+    const key = window.prompt('Owner key')?.trim()
+    if (!key) return
+    if (rememberOwnerKey(key)) window.location.reload()
+    else setNotice({ tone: 'error', text: 'This browser does not let Tillroll keep the key.' })
   }
 
   async function disconnect() {
@@ -314,7 +387,7 @@ export default function App() {
         ) : !hasData ? (
           <Landing isOwner={isOwner} busy={busy} onSample={showSample} onImport={importFile} onConnect={connect} />
         ) : (
-          <>
+          <div className="dashboard" data-tab={tab}>
             <Toolbar
               grain={grain}
               onGrain={changeGrain}
@@ -330,32 +403,73 @@ export default function App() {
                 setFocus(null)
               }}
             />
-            <div className="overview">
+            <div className="overview" data-section="overview">
               <section className="receipt">
                 <Summary report={report} period={period} grain={grain} currency={currency} />
                 <PeriodChart
                   series={report.series}
-                  selected={period}
-                  grain={grain}
+                  selected={grain === 'all' ? '' : period}
+                  grain={report.chartGrain}
                   currency={currency}
                   usual={report.usual}
-                  onSelect={changePeriod}
+                  onSelect={selectChartPeriod}
                 />
               </section>
               <Insights insights={report.insights} />
             </div>
             <div className="columns">
-              <CategoryBreakdown report={report} currency={currency} focus={focus} onFocus={setFocus} />
-              <StoreBreakdown report={report} currency={currency} focus={focus} onFocus={setFocus} />
+              <div data-section="categories">
+                <CategoryBreakdown
+                  report={report}
+                  categories={categories}
+                  currency={currency}
+                  focus={focus}
+                  onFocus={focusOn}
+                  onEdit={() => setDialog({ type: 'categories', store: null })}
+                />
+              </div>
+              <div data-section="stores">
+                <StoreBreakdown
+                  report={report}
+                  categories={categories}
+                  currency={currency}
+                  focus={focus}
+                  onFocus={focusOn}
+                  onMerge={() => setDialog({ type: 'merge', store: focus?.type === 'store' ? focus.key : null })}
+                />
+              </div>
             </div>
-            <Payments
-              rows={periodRows}
-              rules={data?.rules ?? {}}
-              focus={focus}
-              onClearFocus={() => setFocus(null)}
-              onCategory={(storeKey, category) => void changeCategory(storeKey, category)}
-            />
-          </>
+            <div data-section="payments">
+              <Payments
+                rows={periodRows}
+                rules={data?.rules ?? {}}
+                categories={categories}
+                focus={focus}
+                onClearFocus={() => setFocus(null)}
+                onCategory={(storeKey, category) => void changeCategory(storeKey, category)}
+                onNewCategory={(key, name) => setDialog({ type: 'categories', store: { key, name } })}
+              />
+            </div>
+            <TabBar tab={tab} onTab={setTab} />
+          </div>
+        )}
+        {dialog?.type === 'categories' && (
+          <CategoryEditor
+            categories={categories}
+            forStore={dialog.store?.name ?? null}
+            onSave={(list, added) => void saveCategoryList(list, added)}
+            onClose={() => setDialog(null)}
+          />
+        )}
+        {dialog?.type === 'merge' && (
+          <MergeStores
+            rows={rows}
+            merges={data?.merges ?? {}}
+            preselected={dialog.store}
+            onMerge={(storeKeys, into) => void mergeStores(storeKeys, into)}
+            onSeparate={(storeKey) => void separateStore(storeKey)}
+            onClose={() => setDialog(null)}
+          />
         )}
       </main>
 
@@ -365,6 +479,14 @@ export default function App() {
             ? 'Owner view: your synced account and statements, kept in the site store.'
             : 'Tillroll reads Revolut statements in your browser. Nothing you import leaves it.'}{' '}
           <a href="https://github.com/ValentinMumble/tillroll">Source on GitHub</a>
+          {!isOwner && (
+            <>
+              {' · '}
+              <button type="button" className="link-button" onClick={enterOwnerKey}>
+                Owner key
+              </button>
+            </>
+          )}
           {isOwner && connection && (
             <>
               {' · '}

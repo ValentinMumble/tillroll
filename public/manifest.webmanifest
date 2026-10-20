@@ -1,0 +1,21 @@
+{
+  "name": "Tillroll",
+  "short_name": "Tillroll",
+  "description": "Your Revolut spending week by week and month by month, by store and by category",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f6f4ef",
+  "theme_color": "#f6f4ef",
+  "icons": [
+    {
+      "src": "/icon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ]
+}

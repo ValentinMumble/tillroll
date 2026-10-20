@@ -10,6 +10,10 @@ export const TRANSACTIONS = 'tillroll:transactions'
 export const PENDING = 'tillroll:pending'
 /** Categories picked by hand, by store key. */
 export const RULES = 'tillroll:rules'
+/** Categories changed or added by hand (a list of CategoryEdit). */
+export const CATEGORIES = 'tillroll:categories'
+/** Stores merged into another, by store key: the name of the store they are part of. */
+export const MERGES = 'tillroll:merges'
 /** When the last sync ran (ISO date-time). */
 export const SYNCED_AT = 'tillroll:synced-at'
 /** A bank authorization in progress, by its random state: proves the callback answers a request of the owner. */

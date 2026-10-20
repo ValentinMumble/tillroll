@@ -1,5 +1,5 @@
 import { ownerKey } from './owner'
-import type { CategoryKey, Connection, Rules, Transaction } from './types'
+import type { CategoryEdit, CategoryKey, Connection, Merges, Rules, Transaction } from './types'
 
 export class RequestError extends Error {
   readonly status: number
@@ -27,6 +27,8 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 export interface OwnerData {
   transactions: Transaction[]
   rules: Rules
+  categories: CategoryEdit[]
+  merges: Merges
   connection: Connection | null
 }
 
@@ -50,6 +52,15 @@ export function disconnectBank() {
 
 export function saveRule(store: string, category: CategoryKey | null) {
   return request<{ ok: true }>('/api/rules', { method: 'PUT', body: JSON.stringify({ store, category }) })
+}
+
+export function saveCategories(categories: CategoryEdit[]) {
+  return request<{ ok: true }>('/api/categories', { method: 'PUT', body: JSON.stringify({ categories }) })
+}
+
+/** Merges a store into another (by its name), or separates it again with null. */
+export function saveMerge(store: string, into: string | null) {
+  return request<{ ok: true }>('/api/merges', { method: 'PUT', body: JSON.stringify({ store, into }) })
 }
 
 export function importStatement(transactions: Transaction[]) {

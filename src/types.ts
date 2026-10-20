@@ -18,7 +18,10 @@ export interface Transaction {
   source: 'bank' | 'statement' | 'sample'
 }
 
-export type CategoryKey =
+/** A built-in category's key, or "custom-..." for one added by hand. */
+export type CategoryKey = string
+
+export type BuiltInCategory =
   | 'groceries'
   | 'eating-out'
   | 'transport'
@@ -35,6 +38,18 @@ export type CategoryKey =
 
 /** The category picked by hand for a store or payee, by store key (see src/stores.ts). */
 export type Rules = Record<string, CategoryKey>
+
+/** Stores merged into another, by store key: the name of the store they are now part of. */
+export type Merges = Record<string, string>
+
+/** A category as set by hand: a built-in one changed, or a new one. Only those are saved. */
+export interface CategoryEdit {
+  key: CategoryKey
+  label: string
+  icon: string
+  /** False for money that only moves or comes in: it is not counted as spending. */
+  spending: boolean
+}
 
 /** The owner's bank connection, as the page sees it. */
 export interface Connection {

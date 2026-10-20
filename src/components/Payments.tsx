@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { CATEGORIES, CATEGORY } from '../categories'
+import type { Categories } from '../categories'
 import { money } from '../format'
 import { dayLabel } from '../periods'
 import type { Row } from '../report'
@@ -9,25 +9,33 @@ import type { Focus } from './Breakdown'
 interface Props {
   rows: Row[]
   rules: Rules
+  categories: Categories
   focus: Focus | null
   onClearFocus: () => void
   onCategory: (storeKey: string, category: CategoryKey | null) => void
+  /** Opens the category editor to add a category for this store. */
+  onNewCategory: (storeKey: string, storeName: string) => void
 }
+
+/** The select's last choice, which opens the category editor instead. */
+const NEW_CATEGORY = 'new'
 
 const PAGE = 60
 
 /** The period's payments, newest first. A category picked here applies to every payment at that store. */
-export function Payments({ rows, rules, focus, onClearFocus, onCategory }: Props) {
+export function Payments({ rows, rules, categories, focus, onClearFocus, onCategory, onNewCategory }: Props) {
   const [everything, setEverything] = useState(false)
   const [limit, setLimit] = useState(PAGE)
   const visible = rows.filter((row) => {
-    if (!everything && !CATEGORY[row.category].spending) return false
+    if (!everything && !row.counts) return false
     if (focus?.type === 'category') return row.category === focus.key
     if (focus?.type === 'store') return row.storeKey === focus.key
     return true
   })
   const focusLabel =
-    focus?.type === 'category' ? `${CATEGORY[focus.key].icon} ${CATEGORY[focus.key].label}` : focus?.name
+    focus?.type === 'category'
+      ? `${categories.byKey[focus.key]?.icon} ${categories.byKey[focus.key]?.label}`
+      : focus?.name
   return (
     <section className="card payments">
       <header className="card-head">
@@ -56,7 +64,7 @@ export function Payments({ rows, rules, focus, onClearFocus, onCategory }: Props
           </thead>
           <tbody>
             {visible.slice(0, limit).map((row) => (
-              <tr key={row.id} className={CATEGORY[row.category].spending ? undefined : 'is-muted'}>
+              <tr key={row.id} className={row.counts ? undefined : 'is-muted'}>
                 <td className="payment-day">{dayLabel(row.date)}</td>
                 <td className="payment-store">
                   <span title={row.description}>{row.store}</span>
@@ -66,17 +74,22 @@ export function Payments({ rows, rules, focus, onClearFocus, onCategory }: Props
                   <select
                     className="select"
                     aria-label={`Category of ${row.store}`}
-                    value={rules[row.storeKey] ?? ''}
-                    onChange={(event) => onCategory(row.storeKey, (event.target.value || null) as CategoryKey | null)}
+                    value={categories.byKey[rules[row.storeKey]] ? rules[row.storeKey] : ''}
+                    onChange={(event) => {
+                      const value = event.target.value
+                      if (value === NEW_CATEGORY) onNewCategory(row.storeKey, row.store)
+                      else onCategory(row.storeKey, value || null)
+                    }}
                   >
                     <option value="">
-                      {CATEGORY[row.guessed].icon} {CATEGORY[row.guessed].label} (auto)
+                      {categories.byKey[row.guessed].icon} {categories.byKey[row.guessed].label} (auto)
                     </option>
-                    {CATEGORIES.map((category) => (
+                    {categories.list.map((category) => (
                       <option key={category.key} value={category.key}>
                         {category.icon} {category.label}
                       </option>
                     ))}
+                    <option value={NEW_CATEGORY}>＋ New category…</option>
                   </select>
                 </td>
                 <td className={`payment-amount${row.amount > 0 ? ' is-in' : ''}`}>
