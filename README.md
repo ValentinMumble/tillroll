@@ -1,0 +1,85 @@
+# 💸 Tillroll
+
+Your Revolut spending week by week and month by month, by store and by category. Tillroll compares each period with
+your usual one (or, for the current period, with the previous one at the same point) and points out what changed:
+the categories that moved, your top store, new stores, the biggest payment, your big spending day and the payments
+that come back every month.
+
+## Two ways in
+
+- **A Revolut statement**, for anyone. In the Revolut app: open the account, tap ···, then Statement, and pick Excel
+  (or CSV) and the months you want. The page reads the file (CSV or `.xlsx`) in the browser and keeps it in
+  localStorage. Nothing is uploaded. Importing more statements adds to the earlier ones without counting a payment
+  twice. There is also a sample data set (made up, built in the browser) to try the site.
+- **A live connection to Revolut**, for the site owner. Revolut has no API for personal accounts, so Tillroll goes
+  through Open Banking with [Enable Banking](https://enablebanking.com). Its free "restricted" mode only reads the
+  accounts the application's owner linked themself, so on a public site the live sync is the owner's. Anyone can run
+  their own copy to sync their own account (see below).
+
+## What counts as spending
+
+Each payment gets a store name (cleaned from the bank text: `SUMUP *CAFE DU COIN 75011` becomes `Cafe Du Coin`) and a
+category, in this order:
+
+1. the category you picked by hand for that store (it applies to all its payments);
+2. the kind of movement: money in, top-ups, exchanges and cash withdrawals;
+3. keywords in the store name (`src/categories.ts`), so rent paid by transfer still counts as Home and rent;
+4. other transfers go to Transfers and savings;
+5. the merchant category code (MCC), when the bank sync gives one;
+6. Other.
+
+Transfers, savings and money in are not spending: the summary shows them apart. Refunds lower the spending of their
+category. Pending payments count, with a tag.
+
+## Run your own
+
+You need an Enable Banking account (free), a Vercel account (free) and about 15 minutes.
+
+1. **Fork this repository** and import it in Vercel. In the project's Storage tab, add an Upstash Redis store: Vercel
+   adds `KV_REST_API_URL` and `KV_REST_API_TOKEN`.
+2. **Register an Enable Banking application** in the [Control Panel](https://enablebanking.com/cp/applications):
+   - environment: Production;
+   - let the page generate the key: it downloads `<application id>.pem`, keep it safe;
+   - redirect URL: `https://<your site>/api/callback`;
+   - the privacy and terms links and the email are not checked in restricted mode.
+3. **Activate it by linking your accounts**: "Activate by linking accounts" in the Control Panel, log in to Revolut and
+   link every account you want to see. The application can then read those accounts, and only those.
+4. **Set the variables** in Vercel (see `.env.example`):
+   - `OWNER_KEY` and `CRON_SECRET`: two long random strings (`openssl rand -hex 32`);
+   - `ENABLE_BANKING_APP_ID`: the application id;
+   - `ENABLE_BANKING_PRIVATE_KEY`: the content of the `.pem` file;
+   - `BANK_COUNTRY`: the country Enable Banking lists your Revolut under, like `FR` (default) or `SE`. Another bank
+     works too: set `BANK_NAME` to its name as Enable Banking lists it.
+5. **Connect**: redeploy, open `https://<your site>/#owner=<OWNER_KEY>` once (the key stays in that browser) and click
+   Connect Revolut. Revolut asks you to approve in its app, then sends you back.
+
+The first sync runs right after you connect and fetches as far back as Revolut allows: many banks give the full
+history only in that first hour. Then a sync runs every day at 05:00 UTC (Vercel Cron, `vercel.json`) and each time
+you open the page, when the last one is more than 6 hours old. For older history, import statements: where they
+overlap the bank's history, the bank's rows win.
+
+The access lasts as long as the bank allows (often 180 days). After that the page offers to reconnect. Banks allow a
+few background syncs a day (often 4); syncs you start from the page do not count against that.
+
+## How it works
+
+- `api/`: Vercel functions. `connect` starts the bank authorization, `callback` takes the bank's answer and runs the
+  first sync, `sync` runs a sync (the daily cron or the owner's page), `data` returns the owner's transactions, `rules`
+  saves a category picked by hand, `import` saves the owner's statement rows, `disconnect` ends the access.
+  `_lib/bank.ts` talks to Enable Banking: requests are signed with the application's key (an RS256 token made with
+  `node:crypto`, no library).
+- Redis keys, all `tillroll:*`: the bank session, the booked transactions by id, the pending ones from the last sync,
+  the categories picked by hand and the time of the last sync.
+- `src/`: the React page. `statement.ts` reads the Revolut files, `stores.ts` and `categories.ts` name and sort the
+  payments, `report.ts` builds the totals, the chart series and the insights, `sample.ts` makes the sample data.
+- Visitors' data never reaches the server: no route accepts it without the owner key.
+
+## Develop
+
+```sh
+npm install
+npm run dev   # http://127.0.0.1:5192, serves api/ too (local-api.ts)
+```
+
+The visitor side needs nothing else. For the owner side, pull the variables with `vercel env pull .env.local`.
+Before a commit: `npm run format`, `npm run lint` and `npm run build`.

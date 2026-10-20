@@ -1,0 +1,890 @@
+/* Colors as roles. The chart colors are one blue (a single series), stepped for each theme; up and down use the
+   fixed status colors and always come with an arrow. */
+:root {
+  color-scheme: light;
+  --page: #f6f4ef;
+  --surface: #fcfcfb;
+  --surface-sunk: #f0efea;
+  --ink: #0b0b0b;
+  --ink-soft: #52514e;
+  --muted: #7a7873;
+  --line: #e1e0d9;
+  --axis: #c3c2b7;
+  --ring: rgba(11, 11, 11, 0.1);
+  --bar: #86b6ef;
+  --bar-strong: #2a78d6;
+  --accent: #2a78d6;
+  --on-accent: #ffffff;
+  --up: #d03b3b;
+  --down: #006300;
+  --shadow: 0 1px 2px rgba(11, 11, 11, 0.05), 0 8px 24px rgba(11, 11, 11, 0.05);
+  --font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+  --radius: 14px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --page: #0f0f0e;
+    --surface: #1a1a19;
+    --surface-sunk: #232321;
+    --ink: #f0efec;
+    --ink-soft: #c3c2b7;
+    --muted: #898781;
+    --line: #2c2c2a;
+    --axis: #383835;
+    --ring: rgba(255, 255, 255, 0.1);
+    --bar: #184f95;
+    --bar-strong: #3987e5;
+    --accent: #3987e5;
+    --on-accent: #0b0b0b;
+    --up: #e66767;
+    --down: #0ca30c;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.3);
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+h1,
+h2,
+p {
+  margin: 0;
+}
+
+a {
+  color: var(--accent);
+}
+
+button,
+input,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.page {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 16px 48px;
+}
+
+main {
+  display: grid;
+  gap: 16px;
+}
+
+/* Header */
+
+.top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 0;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 17px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  text-decoration: none;
+}
+
+.brand-mark {
+  font-size: 24px;
+  letter-spacing: 0;
+}
+
+.top-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.status {
+  color: var(--muted);
+  font-size: 13px;
+  margin-right: 4px;
+}
+
+/* Buttons and controls */
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  padding: 0 16px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  font-weight: 500;
+  font-size: 14px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.button:hover:not(:disabled) {
+  border-color: var(--axis);
+}
+
+.button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.button.is-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+
+.button.is-quiet {
+  background: transparent;
+  border-color: transparent;
+  color: var(--ink-soft);
+}
+
+.link-button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.select {
+  min-height: 38px;
+  max-width: 100%;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+.notice {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow:
+    inset 4px 0 0 var(--accent),
+    var(--shadow);
+}
+
+.notice.is-error {
+  box-shadow:
+    inset 4px 0 0 var(--up),
+    var(--shadow);
+}
+
+.notice button {
+  border: 0;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.loading {
+  padding: 64px 0;
+  color: var(--muted);
+  text-align: center;
+}
+
+/* Toolbar: one row of filters above everything they change */
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.segmented {
+  display: inline-flex;
+  padding: 3px;
+  border-radius: 999px;
+  background: var(--surface-sunk);
+}
+
+.segmented button {
+  min-height: 32px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink-soft);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.segmented button[aria-pressed='true'] {
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: 0 1px 3px var(--ring);
+}
+
+.stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.stepper button {
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--surface);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.stepper button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.stepper-label {
+  min-width: 150px;
+  text-align: center;
+  font-weight: 600;
+}
+
+/* Cards */
+
+.card {
+  padding: 20px;
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.card-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px 12px;
+  margin-bottom: 14px;
+}
+
+.card h2 {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.hint,
+.muted {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.empty {
+  color: var(--muted);
+}
+
+.eyebrow {
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Overview: the receipt (total and chart) beside the insights */
+
+.overview {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.receipt {
+  position: relative;
+  padding: 24px 24px 36px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  border-radius: var(--radius) var(--radius) 0 0;
+  /* The torn bottom edge of a till roll. */
+  --tooth: 8px;
+  mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) 50% / calc(2 * var(--tooth)) 100%;
+}
+
+.summary {
+  display: grid;
+  gap: 6px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--line);
+}
+
+.hero {
+  font-size: clamp(44px, 8vw, 60px);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+}
+
+.summary-delta {
+  color: var(--ink-soft);
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin: 12px 0 0;
+}
+
+.facts div {
+  min-width: 0;
+}
+
+.facts dt {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.facts dd {
+  margin: 0;
+  font-weight: 600;
+}
+
+.delta {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.delta.is-up {
+  color: var(--up);
+}
+
+.delta.is-down {
+  color: var(--down);
+}
+
+.delta.is-flat {
+  color: var(--muted);
+}
+
+/* Chart: columns from one baseline, hairline grid, the chosen period strong */
+
+.chart {
+  margin: 20px 0 0;
+  --gutter: 48px;
+}
+
+.chart-plot {
+  position: relative;
+  height: 190px;
+  margin: 10px 0 0 var(--gutter);
+}
+
+.chart-gridline {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-top: 1px solid var(--line);
+}
+
+.chart-gridline:first-child {
+  border-top-color: var(--axis);
+}
+
+.chart-gridline span {
+  position: absolute;
+  right: calc(100% + 8px);
+  transform: translateY(-50%);
+  color: var(--muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.chart-usual {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-top: 1px solid var(--ink-soft);
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.chart-usual span {
+  position: absolute;
+  right: 0;
+  bottom: 2px;
+  padding: 0 4px;
+  background: var(--surface);
+  color: var(--ink-soft);
+  font-size: 11px;
+}
+
+.chart-columns {
+  position: absolute;
+  inset: 0;
+  display: flex;
+}
+
+.chart-column {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.chart-column:hover {
+  background: linear-gradient(var(--surface-sunk), var(--surface-sunk)) bottom / 100% 100% no-repeat;
+  border-radius: 6px 6px 0 0;
+}
+
+.chart-bar {
+  width: min(24px, 62%);
+  min-height: 2px;
+  border-radius: 4px 4px 0 0;
+  background: var(--bar);
+}
+
+.chart-column.is-selected .chart-bar {
+  background: var(--bar-strong);
+}
+
+.chart-tip {
+  position: absolute;
+  left: 50%;
+  z-index: 2;
+  display: grid;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--ink);
+  color: var(--page);
+  font-size: 12px;
+  text-align: left;
+  white-space: nowrap;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.chart-tip.is-start {
+  left: 0;
+  transform: none;
+}
+
+.chart-tip.is-end {
+  left: auto;
+  right: 0;
+  transform: none;
+}
+
+.chart-axis {
+  display: flex;
+  margin: 6px 0 0 var(--gutter);
+}
+
+.chart-axis span {
+  flex: 1;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 11px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.chart-axis span.is-selected {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+/* Insights */
+
+.insights ul {
+  display: grid;
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.insights li {
+  display: grid;
+  grid-template-columns: 24px 1fr;
+  gap: 10px;
+  align-items: start;
+}
+
+.insight-icon {
+  font-size: 18px;
+  line-height: 1.3;
+}
+
+/* Breakdowns: one bar color, the length is the value */
+
+.columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  align-items: start;
+}
+
+.bars {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bar-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 84px;
+  align-items: center;
+  gap: 4px 12px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+.bar-row:hover {
+  background: var(--surface-sunk);
+}
+
+.bar-row.is-active {
+  background: var(--surface-sunk);
+  box-shadow: inset 0 0 0 1px var(--axis);
+}
+
+.bar-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-weight: 500;
+}
+
+.bar-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bar-icon {
+  flex: none;
+}
+
+.bar-value {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.bar-value small {
+  color: var(--muted);
+  font-weight: 400;
+  font-size: 12px;
+}
+
+.bar-change {
+  font-size: 13px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.bar-track {
+  grid-column: 1 / -1;
+  height: 6px;
+}
+
+.bar-fill {
+  display: block;
+  height: 100%;
+  min-width: 2px;
+  border-radius: 0 4px 4px 0;
+  background: var(--bar-strong);
+}
+
+/* Payments */
+
+.payments .toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  color: var(--ink-soft);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 0 12px;
+  border: 1px solid var(--axis);
+  border-radius: 999px;
+  background: var(--surface-sunk);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.payments table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.payments td {
+  padding: 8px 6px;
+  border-top: 1px solid var(--line);
+  vertical-align: middle;
+}
+
+.payments tr.is-muted td {
+  color: var(--muted);
+}
+
+.payment-day {
+  width: 72px;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.payment-store {
+  font-weight: 500;
+}
+
+.payment-category {
+  width: 250px;
+}
+
+.payment-category .select {
+  width: 100%;
+  min-height: 32px;
+  font-size: 13px;
+}
+
+.payment-amount {
+  width: 110px;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.payment-amount.is-in {
+  color: var(--down);
+}
+
+.tag {
+  margin-left: 8px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--surface-sunk);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.payments > .link-button {
+  margin-top: 12px;
+}
+
+/* Landing */
+
+.landing {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+  gap: 32px;
+  align-items: start;
+  padding: 40px 0 16px;
+}
+
+.landing-copy {
+  display: grid;
+  gap: 18px;
+}
+
+.landing h1 {
+  font-size: clamp(32px, 5vw, 48px);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.lede {
+  color: var(--ink-soft);
+  font-size: 17px;
+  max-width: 34em;
+}
+
+.landing-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.fine {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.landing-side {
+  display: grid;
+  gap: 16px;
+}
+
+.landing-side h2 {
+  margin-bottom: 10px;
+}
+
+.landing-side p {
+  color: var(--ink-soft);
+  margin-bottom: 10px;
+}
+
+.steps {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding-left: 20px;
+  color: var(--ink-soft);
+}
+
+/* Footer */
+
+.foot {
+  margin-top: 32px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/* Narrow screens */
+
+@media (max-width: 860px) {
+  .overview,
+  .columns,
+  .landing {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 560px) {
+  .facts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .receipt {
+    padding: 20px 16px 32px;
+  }
+
+  .chart {
+    --gutter: 40px;
+  }
+
+  .chart.is-dense .chart-axis span:nth-child(even) {
+    visibility: hidden;
+  }
+
+  .stepper-label {
+    min-width: 120px;
+  }
+
+  .payments table,
+  .payments tbody {
+    display: block;
+  }
+
+  .payments tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 4px 8px;
+    padding: 10px 0;
+    border-top: 1px solid var(--line);
+  }
+
+  .payments td {
+    padding: 0;
+    border: 0;
+  }
+
+  .payment-day {
+    grid-column: 1 / -1;
+    width: auto;
+  }
+
+  .payment-store {
+    grid-column: 1;
+  }
+
+  .payment-amount {
+    grid-column: 2;
+    grid-row: 2;
+    width: auto;
+  }
+
+  .payment-category {
+    grid-column: 1 / -1;
+    width: auto;
+  }
+}
