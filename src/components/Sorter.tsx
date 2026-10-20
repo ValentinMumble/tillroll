@@ -114,7 +114,7 @@ export function Sorter({ queue, categories, rules, onPick, onNewCategory, onRena
             </p>
           </div>
           <div className="chip-grid" role="group" aria-label="Category">
-            {categories.list.map((category) => {
+            {categories.alphabetical.map((category) => {
               const current = (picked ?? store.category) === category.key
               return (
                 <button

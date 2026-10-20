@@ -3,6 +3,7 @@ import type { Categories } from '../categories'
 import { money } from '../format'
 import { dayLabel } from '../periods'
 import type { Row } from '../report'
+import { loadPaymentSort, type PaymentSort, savePaymentSort } from '../storage'
 import type { CategoryKey, Rules } from '../types'
 import type { Focus } from './Breakdown'
 
@@ -26,7 +27,26 @@ const NEW_CATEGORY = 'new'
 
 const PAGE = 60
 
-/** The period's payments, newest first. A category picked here applies to every payment at that store. */
+/** The sort buttons, with the way each one starts: newest, biggest, A to Z. */
+const SORTS: { key: PaymentSort['key']; label: string; descending: boolean }[] = [
+  { key: 'date', label: 'Date', descending: true },
+  { key: 'amount', label: 'Amount', descending: true },
+  { key: 'store', label: 'Store', descending: false },
+]
+
+function compare(first: Row, second: Row, { key, descending }: PaymentSort) {
+  const byDate = first.date < second.date ? -1 : first.date > second.date ? 1 : 0
+  const order =
+    key === 'amount'
+      ? Math.abs(first.amount) - Math.abs(second.amount)
+      : key === 'store'
+        ? first.store.localeCompare(second.store, 'en', { sensitivity: 'base' })
+        : byDate
+  // Ties (same store, same amount) stay newest first.
+  return (descending ? -order : order) || -byDate
+}
+
+/** The period's payments, by date, amount or store. A category picked here applies to every payment at that store. */
 export function Payments({
   rows,
   rules,
@@ -40,12 +60,23 @@ export function Payments({
 }: Props) {
   const [everything, setEverything] = useState(false)
   const [limit, setLimit] = useState(PAGE)
-  const visible = rows.filter((row) => {
-    if (!everything && !row.counts) return false
-    if (focus?.type === 'category') return row.category === focus.key
-    if (focus?.type === 'store') return row.storeKey === focus.key
-    return true
-  })
+  const [sort, setSort] = useState<PaymentSort>(loadPaymentSort)
+  const visible = rows
+    .filter((row) => {
+      if (!everything && !row.counts) return false
+      if (focus?.type === 'category') return row.category === focus.key
+      if (focus?.type === 'store') return row.storeKey === focus.key
+      return true
+    })
+    .sort((first, second) => compare(first, second, sort))
+
+  /** A new sort starts its own way; the same one again turns it around. */
+  function sortBy(key: PaymentSort['key']) {
+    const start = SORTS.find((item) => item.key === key)!
+    const next = { key, descending: key === sort.key ? !sort.descending : start.descending }
+    setSort(next)
+    savePaymentSort(next)
+  }
   const focusLabel =
     focus?.type === 'category'
       ? `${categories.byKey[focus.key]?.icon} ${categories.byKey[focus.key]?.label}`
@@ -64,6 +95,24 @@ export function Payments({
             Rename or merge
           </button>
         )}
+        <div className="segmented is-small" role="group" aria-label="Sort payments by">
+          {SORTS.map((item) => {
+            const active = sort.key === item.key
+            const way = item.key === 'store' ? (sort.descending ? 'Z to A' : 'A to Z') : sort.descending ? 'down' : 'up'
+            return (
+              <button
+                key={item.key}
+                type="button"
+                aria-pressed={active}
+                aria-label={active ? `${item.label}, ${way}` : item.label}
+                onClick={() => sortBy(item.key)}
+              >
+                {item.label}
+                {active && <span aria-hidden="true">{sort.descending ? ' ↓' : ' ↑'}</span>}
+              </button>
+            )
+          })}
+        </div>
         <label className="toggle">
           <input type="checkbox" checked={everything} onChange={(event) => setEverything(event.target.checked)} />
           Show transfers and money in

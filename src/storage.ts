@@ -10,6 +10,7 @@ const RULES = 'tillroll.rules'
 const CATEGORIES = 'tillroll.categories'
 const MERGES = 'tillroll.merges'
 const GRAIN = 'tillroll.grain'
+const PAYMENT_SORT = 'tillroll.payment-sort'
 
 export type LocalData = { source: 'sample' } | { source: 'statement'; transactions: Transaction[] }
 
@@ -60,3 +61,16 @@ export const loadGrain = (): Grain => {
   return saved === 'week' || saved === 'year' || saved === 'all' ? saved : 'month'
 }
 export const saveGrain = (grain: Grain) => write(GRAIN, grain)
+
+/** How the payment list is sorted, remembered in each browser. */
+export interface PaymentSort {
+  key: 'date' | 'amount' | 'store'
+  descending: boolean
+}
+
+export function loadPaymentSort(): PaymentSort {
+  const saved = read<PaymentSort>(PAYMENT_SORT)
+  return saved && ['date', 'amount', 'store'].includes(saved.key) ? saved : { key: 'date', descending: true }
+}
+
+export const savePaymentSort = (sort: PaymentSort) => write(PAYMENT_SORT, sort)

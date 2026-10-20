@@ -1129,6 +1129,20 @@ main {
   margin-left: 0;
 }
 
+.segmented.is-small button {
+  min-height: 28px;
+  padding: 0 12px;
+  font-size: 13px;
+}
+
+.payments .card-head > .segmented {
+  margin-left: auto;
+}
+
+.payments .card-head > .segmented + .toggle {
+  margin-left: 0;
+}
+
 .payment-store-name {
   cursor: default;
   user-select: none;
