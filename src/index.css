@@ -1129,6 +1129,39 @@ main {
   margin-left: 0;
 }
 
+.payment-store-name {
+  cursor: default;
+  user-select: none;
+}
+
+/* One store's dialog: name and category */
+
+.store-dialog {
+  width: min(440px, calc(100vw - 32px));
+}
+
+.store-dialog-form {
+  display: grid;
+  gap: 12px;
+}
+
+.store-dialog .field {
+  display: grid;
+  gap: 6px;
+  margin: 0 20px;
+  color: var(--ink-soft);
+  font-size: 13px;
+}
+
+.store-dialog .field .select {
+  width: 100%;
+}
+
+.store-dialog-more {
+  margin-right: auto;
+  font-size: 13px;
+}
+
 .keep-name {
   display: flex;
   align-items: center;

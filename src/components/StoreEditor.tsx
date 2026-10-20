@@ -181,7 +181,7 @@ export function StoreEditor(props: Props) {
                 <option value="">
                   {auto?.icon} {auto?.label} (auto)
                 </option>
-                {categories.list.map((category) => (
+                {categories.alphabetical.map((category) => (
                   <option key={category.key} value={category.key}>
                     {category.icon} {category.label}
                   </option>

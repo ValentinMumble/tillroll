@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import type { Basis, Categories } from '../categories'
+import { type Basis, type Categories, DEFAULT_ICON, oneIcon } from '../categories'
 import { money } from '../format'
 import { dayLabel } from '../periods'
 import type { StoreToSort } from '../report'
@@ -17,8 +17,6 @@ interface Props {
   onClose: () => void
 }
 
-const DEFAULT_ICON = '🏷️'
-
 const REASON: Partial<Record<Basis, string>> = {
   none: 'no clue from the bank',
   'broad-code': 'guessed from a broad shop code',
@@ -30,7 +28,7 @@ export function Sorter({ queue, categories, rules, onPick, onNewCategory, onRena
   const dialog = useRef<HTMLDialogElement>(null)
   const [position, setPosition] = useState(0)
   const [newName, setNewName] = useState('')
-  const [newIcon, setNewIcon] = useState(DEFAULT_ICON)
+  const [newIcon, setNewIcon] = useState('')
   // Names given during this session: the queue holds the names it was opened with.
   const [renamed, setRenamed] = useState<Record<string, string>>({})
 
@@ -54,9 +52,9 @@ export function Sorter({ queue, categories, rules, onPick, onNewCategory, onRena
   function addCategory() {
     const label = newName.trim()
     if (!store || !label) return
-    onNewCategory(key, label, newIcon.trim() || DEFAULT_ICON)
+    onNewCategory(key, label, newIcon || DEFAULT_ICON)
     setNewName('')
-    setNewIcon(DEFAULT_ICON)
+    setNewIcon('')
     next()
   }
 
@@ -143,8 +141,8 @@ export function Sorter({ queue, categories, rules, onPick, onNewCategory, onRena
               className="icon-input"
               aria-label="Icon of the new category"
               value={newIcon}
-              maxLength={8}
-              onChange={(event) => setNewIcon(event.target.value)}
+              placeholder={DEFAULT_ICON}
+              onChange={(event) => setNewIcon(oneIcon(event.target.value, newIcon))}
             />
             <input
               className="text-input"

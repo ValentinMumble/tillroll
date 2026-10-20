@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { BUILT_IN, type Categories, type Category, newCategoryKey } from '../categories'
+import { BUILT_IN, type Categories, type Category, DEFAULT_ICON, newCategoryKey, oneIcon } from '../categories'
 import type { CategoryKey } from '../types'
 
 interface Props {
@@ -9,8 +9,6 @@ interface Props {
   onSave: (list: Category[], added: CategoryKey | null) => void
   onClose: () => void
 }
-
-const DEFAULT_ICON = '🏷️'
 
 function differs(category: Category) {
   const original = BUILT_IN.find((item) => item.key === category.key)
@@ -26,7 +24,7 @@ export function CategoryEditor({ categories, forStore, onSave, onClose }: Props)
   const [draft, setDraft] = useState<Category[]>(categories.list)
   const [added, setAdded] = useState<CategoryKey | null>(null)
   const [name, setName] = useState('')
-  const [icon, setIcon] = useState(DEFAULT_ICON)
+  const [icon, setIcon] = useState('')
 
   useEffect(() => {
     dialog.current?.showModal()
@@ -41,7 +39,7 @@ export function CategoryEditor({ categories, forStore, onSave, onClose }: Props)
     const category: Category = {
       key: newCategoryKey(label),
       label,
-      icon: icon.trim() || DEFAULT_ICON,
+      icon: icon || DEFAULT_ICON,
       spending: true,
       custom: true,
     }
@@ -49,7 +47,7 @@ export function CategoryEditor({ categories, forStore, onSave, onClose }: Props)
     setDraft([...draft.slice(0, other), category, ...draft.slice(other)])
     setAdded(category.key)
     setName('')
-    setIcon(DEFAULT_ICON)
+    setIcon('')
   }
 
   function save() {
@@ -83,8 +81,8 @@ export function CategoryEditor({ categories, forStore, onSave, onClose }: Props)
           className="icon-input"
           aria-label="Icon of the new category"
           value={icon}
-          maxLength={8}
-          onChange={(event) => setIcon(event.target.value)}
+          placeholder={DEFAULT_ICON}
+          onChange={(event) => setIcon(oneIcon(event.target.value, icon))}
         />
         <input
           className="text-input"
@@ -106,8 +104,7 @@ export function CategoryEditor({ categories, forStore, onSave, onClose }: Props)
               className="icon-input"
               aria-label={`Icon of ${category.label}`}
               value={category.icon}
-              maxLength={8}
-              onChange={(event) => update(category.key, { icon: event.target.value })}
+              onChange={(event) => update(category.key, { icon: oneIcon(event.target.value, category.icon) })}
             />
             <input
               className="text-input"

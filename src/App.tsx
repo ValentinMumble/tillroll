@@ -20,6 +20,7 @@ import { Insights } from './components/Insights'
 import { Landing } from './components/Landing'
 import { Payments } from './components/Payments'
 import { Sorter } from './components/Sorter'
+import { StoreDialog } from './components/StoreDialog'
 import { StoreEditor } from './components/StoreEditor'
 import { PeriodChart } from './components/PeriodChart'
 import { Summary } from './components/Summary'
@@ -48,6 +49,8 @@ interface Data {
 type Dialog =
   | { type: 'categories'; store: { key: string; name: string } | null }
   | { type: 'stores'; store: string | null }
+  /** One store, opened with a double-click. */
+  | { type: 'store'; store: { key: string; name: string } }
   /** The sorting deck keeps the list of stores it opened with. */
   | { type: 'sort'; queue: StoreToSort[] }
 
@@ -293,6 +296,22 @@ export default function App() {
     })
   }
 
+  /** The store dialog's Save: a new name (a merge into it, see renameStore) and the category, in one change. */
+  async function editStore(storeKey: string, name: string, newName: string, category: CategoryKey | null) {
+    if (!data) return
+    const renamed = newName !== name
+    const newKey = renamed ? keyOfStore(newName) : storeKey
+    const merges = renamed ? { ...data.merges, [storeKey]: newName } : data.merges
+    const rules = { ...data.rules }
+    if (category) rules[newKey] = category
+    else delete rules[newKey]
+    if (focus?.type === 'store' && focus.key === storeKey) setFocus({ type: 'store', key: newKey, name: newName })
+    await change({ merges, rules }, async () => {
+      if (renamed) await saveMerge(storeKey, newName)
+      await saveRule(newKey, category)
+    })
+  }
+
   /** A category made from the sorting deck, picked at once for the store. */
   async function addCategoryFor(storeKey: string, label: string, icon: string) {
     if (!data) return
@@ -506,6 +525,7 @@ export default function App() {
                   focus={focus}
                   onFocus={focusOn}
                   onEdit={() => setDialog({ type: 'stores', store: focus?.type === 'store' ? focus.key : null })}
+                  onOpenStore={(store) => setDialog({ type: 'store', store })}
                 />
               </div>
             </div>
@@ -519,6 +539,7 @@ export default function App() {
                 onCategory={(storeKey, category) => void changeCategory(storeKey, category)}
                 onNewCategory={(key, name) => setDialog({ type: 'categories', store: { key, name } })}
                 onEditStore={(key) => setDialog({ type: 'stores', store: key })}
+                onOpenStore={(store) => setDialog({ type: 'store', store })}
               />
             </div>
             <TabBar tab={tab} onTab={setTab} />
@@ -543,6 +564,17 @@ export default function App() {
             onCategory={(storeKey, category) => void changeCategory(storeKey, category)}
             onMerge={(storeKeys, into) => void mergeStores(storeKeys, into)}
             onSeparate={(storeKey) => void separateStore(storeKey)}
+            onClose={() => setDialog(null)}
+          />
+        )}
+        {dialog?.type === 'store' && (
+          <StoreDialog
+            store={dialog.store}
+            rows={rows}
+            rules={data?.rules ?? {}}
+            categories={categories}
+            onSave={(newName, category) => void editStore(dialog.store.key, dialog.store.name, newName, category)}
+            onMore={() => setDialog({ type: 'stores', store: dialog.store.key })}
             onClose={() => setDialog(null)}
           />
         )}

@@ -95,7 +95,8 @@ export function StoreBreakdown({
   focus,
   onFocus,
   onEdit,
-}: Props & { onEdit: () => void }) {
+  onOpenStore,
+}: Props & { onEdit: () => void; onOpenStore: (store: { key: string; name: string }) => void }) {
   const [showAll, setShowAll] = useState(false)
   const stores = [...report.current.stores.values()]
     .filter((store) => store.total >= 0.5)
@@ -123,7 +124,9 @@ export function StoreBreakdown({
                   type="button"
                   className={`bar-row${active ? ' is-active' : ''}`}
                   aria-pressed={active}
+                  title="Double-click to rename it or change its category"
                   onClick={() => onFocus(active ? null : { type: 'store', key: store.key, name: store.name })}
+                  onDoubleClick={() => onOpenStore({ key: store.key, name: store.name })}
                 >
                   <span className="bar-label">
                     <span className="bar-icon" aria-hidden="true">

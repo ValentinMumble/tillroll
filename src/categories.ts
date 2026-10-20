@@ -21,9 +21,26 @@ export const BUILT_IN: Category[] = [
   { key: 'income', label: 'Money in', icon: '💶', spending: false, custom: false },
 ]
 
+/** The icon a new category gets when none is picked. */
+export const DEFAULT_ICON = '🏷️'
+
+/**
+ * What an icon field keeps when it changes: the emoji just typed or picked, so it replaces the old one instead of
+ * joining it, wherever the cursor was. An emoji made of several characters (a flag, 👨‍👩‍👧) counts as one.
+ */
+export function oneIcon(next: string, previous: string) {
+  const emoji = [...new Intl.Segmenter(undefined, { granularity: 'grapheme' }).segment(next.trim())].map(
+    (part) => part.segment,
+  )
+  if (emoji.length <= 1) return emoji[0] ?? ''
+  return emoji.find((item) => item !== previous) ?? emoji[emoji.length - 1]
+}
+
 /** The categories in use: the built-in ones as changed by hand, and the new ones (before Other). */
 export interface Categories {
   list: Category[]
+  /** The same, by name, for the dropdowns. */
+  alphabetical: Category[]
   byKey: Record<CategoryKey, Category>
 }
 
@@ -35,7 +52,13 @@ export function categoriesFrom(edits: CategoryEdit[]): Categories {
     .map((edit) => ({ ...edit, custom: true }))
   const other = builtIn.findIndex((category) => category.key === 'other')
   const list = [...builtIn.slice(0, other), ...added, ...builtIn.slice(other)]
-  return { list, byKey: Object.fromEntries(list.map((category) => [category.key, category])) }
+  return {
+    list,
+    alphabetical: [...list].sort((first, second) =>
+      first.label.localeCompare(second.label, 'en', { sensitivity: 'base' }),
+    ),
+    byKey: Object.fromEntries(list.map((category) => [category.key, category])),
+  }
 }
 
 /** What to save: the new categories and the built-in ones that differ from their defaults. */

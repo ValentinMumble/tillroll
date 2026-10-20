@@ -17,6 +17,8 @@ interface Props {
   onNewCategory: (storeKey: string, storeName: string) => void
   /** Opens the store editor on this store. */
   onEditStore: (storeKey: string) => void
+  /** Opens one store's dialog (name and category), on a double-click. */
+  onOpenStore: (store: { key: string; name: string }) => void
 }
 
 /** The select's last choice, which opens the category editor instead. */
@@ -34,6 +36,7 @@ export function Payments({
   onCategory,
   onNewCategory,
   onEditStore,
+  onOpenStore,
 }: Props) {
   const [everything, setEverything] = useState(false)
   const [limit, setLimit] = useState(PAGE)
@@ -83,7 +86,13 @@ export function Payments({
               <tr key={row.id} className={row.counts ? undefined : 'is-muted'}>
                 <td className="payment-day">{dayLabel(row.date)}</td>
                 <td className="payment-store">
-                  <span title={row.description}>{row.store}</span>
+                  <span
+                    className="payment-store-name"
+                    title={`${row.description}\nDouble-click to rename it or change its category`}
+                    onDoubleClick={() => onOpenStore({ key: row.storeKey, name: row.store })}
+                  >
+                    {row.store}
+                  </span>
                   {row.pending && <span className="tag">pending</span>}
                 </td>
                 <td className="payment-category">
@@ -100,7 +109,7 @@ export function Payments({
                     <option value="">
                       {categories.byKey[row.guessed].icon} {categories.byKey[row.guessed].label} (auto)
                     </option>
-                    {categories.list.map((category) => (
+                    {categories.alphabetical.map((category) => (
                       <option key={category.key} value={category.key}>
                         {category.icon} {category.label}
                       </option>
