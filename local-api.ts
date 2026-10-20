@@ -57,7 +57,12 @@ export function localApi(mode: string): Plugin {
         const answer = async () => {
           const result = await route(server, request, url)
           response.statusCode = result.status
-          result.headers.forEach((value, key) => response.setHeader(key, value))
+          result.headers.forEach((value, key) => {
+            if (key !== 'set-cookie') response.setHeader(key, value)
+          })
+          // Each cookie is its own header: setHeader with one value per cookie would keep only the last.
+          const cookies = result.headers.getSetCookie()
+          if (cookies.length) response.setHeader('Set-Cookie', cookies)
           response.end(Buffer.from(await result.arrayBuffer()))
         }
         answer().catch(next)

@@ -10,6 +10,9 @@ interface Props {
   currencies: string[]
   currency: string
   onCurrency: (currency: string) => void
+  /** Stores with an unsure category. */
+  toSort: number
+  onSort: () => void
 }
 
 const GRAINS: [Grain, string][] = [
@@ -21,7 +24,8 @@ const GRAINS: [Grain, string][] = [
 
 /** The one row of controls: the length of the period, which one, and the currency when there are several. */
 export function Toolbar(props: Props) {
-  const { grain, onGrain, period, onStep, canGoBack, canGoForward, currencies, currency, onCurrency } = props
+  const { grain, onGrain, period, onStep, canGoBack, canGoForward, currencies, currency, onCurrency, toSort, onSort } =
+    props
   return (
     <div className="toolbar">
       <div className="segmented" role="group" aria-label="Period">
@@ -57,6 +61,11 @@ export function Toolbar(props: Props) {
             </option>
           ))}
         </select>
+      )}
+      {toSort > 0 && (
+        <button type="button" className="sort-pill" onClick={onSort}>
+          <span aria-hidden="true">🗂️</span> {toSort === 1 ? '1 store to sort' : `${toSort} stores to sort`}
+        </button>
       )}
     </div>
   )

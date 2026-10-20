@@ -7,27 +7,31 @@ import {
   saveCategories,
   saveMerge,
   saveRule,
+  signIn,
+  signOut,
   startBankConnection,
   syncBank,
 } from './api'
-import { type Category, categoriesFrom, editsFrom } from './categories'
+import { type Category, categoriesFrom, editsFrom, newCategoryKey } from './categories'
 import { CategoryBreakdown, type Focus, StoreBreakdown } from './components/Breakdown'
 import { CategoryEditor } from './components/CategoryEditor'
 import { ImportButton } from './components/ImportButton'
 import { Insights } from './components/Insights'
 import { Landing } from './components/Landing'
-import { MergeStores } from './components/MergeStores'
 import { Payments } from './components/Payments'
+import { Sorter } from './components/Sorter'
+import { StoreEditor } from './components/StoreEditor'
 import { PeriodChart } from './components/PeriodChart'
 import { Summary } from './components/Summary'
 import { type Tab, TabBar } from './components/TabBar'
 import { Toolbar } from './components/Toolbar'
 import { timeAgo } from './format'
-import { forgetOwnerKey, ownerKey, rememberOwnerKey } from './owner'
+import { forgetOwnerKey, isOwnerBrowser, keepOwnerKey, pendingOwnerKey } from './owner'
 import { type Grain, periodEnd, periodOf, shiftPeriod, today } from './periods'
-import { buildReport, rowsBetween, toRows } from './report'
+import { buildReport, rowsBetween, type StoreToSort, storesToSort, toRows } from './report'
 import { sampleTransactions } from './sample'
 import { readStatement } from './statement'
+import { storeKey as keyOfStore } from './stores'
 import { loadGrain, loadLocalData, loadLocalSorting, saveGrain, saveLocalData, saveLocalSorting } from './storage'
 import type { CategoryEdit, CategoryKey, Connection, Merges, Rules, Transaction } from './types'
 
@@ -42,7 +46,10 @@ interface Data {
 
 /** The open dialog, with the store it was opened for. */
 type Dialog =
-  { type: 'categories'; store: { key: string; name: string } | null } | { type: 'merge'; store: string | null }
+  | { type: 'categories'; store: { key: string; name: string } | null }
+  | { type: 'stores'; store: string | null }
+  /** The sorting deck keeps the list of stores it opened with. */
+  | { type: 'sort'; queue: StoreToSort[] }
 
 interface Notice {
   tone: 'info' | 'error'
@@ -86,8 +93,8 @@ function noticeFromAddress(): Notice | null {
 const messageOf = (error: unknown) => (error instanceof Error ? error.message : 'Something went wrong')
 
 export default function App() {
-  const [isOwner, setIsOwner] = useState(() => Boolean(ownerKey()))
-  const [data, setData] = useState<Data | null>(() => (ownerKey() ? null : localData()))
+  const [isOwner, setIsOwner] = useState(isOwnerBrowser)
+  const [data, setData] = useState<Data | null>(() => (isOwnerBrowser() ? null : localData()))
   const [loading, setLoading] = useState(isOwner)
   const [notice, setNotice] = useState<Notice | null>(noticeFromAddress)
   const [busy, setBusy] = useState<string | null>(null)
@@ -99,23 +106,30 @@ export default function App() {
   // The phone layout shows one section at a time (see the tab bar); wider screens show them all.
   const [tab, setTab] = useState<Tab>('overview')
 
+  /** Back to the public version, for instance after the owner key changed. */
+  const leaveOwnerMode = useCallback((message: string) => {
+    forgetOwnerKey()
+    void signOut().catch(() => undefined)
+    setIsOwner(false)
+    setData(localData())
+    setLoading(false)
+    setNotice({ tone: 'error', text: message })
+  }, [])
+
   const loadOwner = useCallback(async () => {
     try {
       const owner = await fetchOwnerData()
       setData({ source: 'owner', ...owner })
       return owner
     } catch (error) {
-      if (error instanceof RequestError && error.status === 403) {
-        forgetOwnerKey()
-        setIsOwner(false)
-        setData(localData())
-        setNotice({ tone: 'error', text: 'This owner key is not valid: you see the public version.' })
-      } else setNotice({ tone: 'error', text: messageOf(error) })
+      if (error instanceof RequestError && error.status === 403)
+        leaveOwnerMode('This owner key is not valid: you see the public version.')
+      else setNotice({ tone: 'error', text: messageOf(error) })
       return null
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [leaveOwnerMode])
 
   const sync = useCallback(async () => {
     setBusy('sync')
@@ -137,13 +151,26 @@ export default function App() {
     if (!isOwner || started.current) return
     started.current = true
     const start = async () => {
+      // A key from a #owner= address or the footer becomes the year-long cookie, then leaves the page's storage.
+      const key = pendingOwnerKey()
+      if (key) {
+        try {
+          await signIn(key)
+          forgetOwnerKey()
+        } catch (error) {
+          if (error instanceof RequestError && error.status === 403) {
+            leaveOwnerMode('This owner key is not valid: you see the public version.')
+            return
+          }
+        }
+      }
       const owner = await loadOwner()
       const connection = owner?.connection
       const stale = !connection?.syncedAt || Date.now() - Date.parse(connection.syncedAt) > SYNC_AFTER
       if (connection && !connection.expired && stale) await sync()
     }
     void start()
-  }, [isOwner, loadOwner, sync])
+  }, [isOwner, leaveOwnerMode, loadOwner, sync])
 
   const categories = useMemo(() => categoriesFrom(data?.categories ?? []), [data?.categories])
   const rows = useMemo(() => {
@@ -167,6 +194,8 @@ export default function App() {
   const firstPeriod = periodOf(firstDay, grain)
   const period =
     chosenPeriod && chosenPeriod >= firstPeriod && chosenPeriod <= latestPeriod ? chosenPeriod : latestPeriod
+  // Stores with an unsure category, in every currency: categories are per store.
+  const toSort = useMemo(() => storesToSort(rows), [rows])
   const report = useMemo(
     () => buildReport(currencyRows, period, grain, today(), categories),
     [currencyRows, period, grain, categories],
@@ -246,6 +275,33 @@ export default function App() {
     await change({ merges }, () => saveMerge(storeKey, null))
   }
 
+  /**
+   * A new name is a merge into that name. The category picked for the store moves to the new name, unless that name
+   * is another store's that has its own (then it is a merge into that store).
+   */
+  async function renameStore(storeKey: string, name: string, newName: string) {
+    if (!data || !newName.trim() || newName === name) return
+    const newKey = keyOfStore(newName)
+    const merges = { ...data.merges, [storeKey]: newName }
+    const category = data.rules[storeKey]
+    const moveCategory = Boolean(category) && newKey !== storeKey && !data.rules[newKey]
+    const rules = moveCategory ? { ...data.rules, [newKey]: category } : data.rules
+    if (focus?.type === 'store' && focus.key === storeKey) setFocus({ type: 'store', key: newKey, name: newName })
+    await change({ merges, rules }, async () => {
+      await saveMerge(storeKey, newName)
+      if (moveCategory) await saveRule(newKey, category)
+    })
+  }
+
+  /** A category made from the sorting deck, picked at once for the store. */
+  async function addCategoryFor(storeKey: string, label: string, icon: string) {
+    if (!data) return
+    const key = newCategoryKey(label)
+    const edits = [...data.categories, { key, label, icon, spending: true }]
+    await change({ categories: edits }, () => saveCategories(edits))
+    await changeCategory(storeKey, key)
+  }
+
   async function importFile(file: File) {
     setBusy('import')
     try {
@@ -307,11 +363,23 @@ export default function App() {
     }
   }
 
-  function enterOwnerKey() {
+  async function enterOwnerKey() {
     const key = window.prompt('Owner key')?.trim()
     if (!key) return
-    if (rememberOwnerKey(key)) window.location.reload()
-    else setNotice({ tone: 'error', text: 'This browser does not let Tillroll keep the key.' })
+    try {
+      await signIn(key)
+      window.location.reload()
+    } catch (error) {
+      // Cookies blocked: the key can still wait in the page's storage, the start signs in again with it.
+      if (!(error instanceof RequestError) && keepOwnerKey(key)) window.location.reload()
+      else setNotice({ tone: 'error', text: messageOf(error) })
+    }
+  }
+
+  async function leaveOwnerView() {
+    await signOut().catch(() => undefined)
+    forgetOwnerKey()
+    window.location.reload()
   }
 
   async function disconnect() {
@@ -402,6 +470,8 @@ export default function App() {
                 setChosenPeriod(null)
                 setFocus(null)
               }}
+              toSort={toSort.length}
+              onSort={() => setDialog({ type: 'sort', queue: toSort })}
             />
             <div className="overview" data-section="overview">
               <section className="receipt">
@@ -435,7 +505,7 @@ export default function App() {
                   currency={currency}
                   focus={focus}
                   onFocus={focusOn}
-                  onMerge={() => setDialog({ type: 'merge', store: focus?.type === 'store' ? focus.key : null })}
+                  onEdit={() => setDialog({ type: 'stores', store: focus?.type === 'store' ? focus.key : null })}
                 />
               </div>
             </div>
@@ -448,6 +518,7 @@ export default function App() {
                 onClearFocus={() => setFocus(null)}
                 onCategory={(storeKey, category) => void changeCategory(storeKey, category)}
                 onNewCategory={(key, name) => setDialog({ type: 'categories', store: { key, name } })}
+                onEditStore={(key) => setDialog({ type: 'stores', store: key })}
               />
             </div>
             <TabBar tab={tab} onTab={setTab} />
@@ -461,13 +532,28 @@ export default function App() {
             onClose={() => setDialog(null)}
           />
         )}
-        {dialog?.type === 'merge' && (
-          <MergeStores
+        {dialog?.type === 'stores' && (
+          <StoreEditor
             rows={rows}
+            rules={data?.rules ?? {}}
+            categories={categories}
             merges={data?.merges ?? {}}
             preselected={dialog.store}
+            onRename={(storeKey, name, newName) => void renameStore(storeKey, name, newName)}
+            onCategory={(storeKey, category) => void changeCategory(storeKey, category)}
             onMerge={(storeKeys, into) => void mergeStores(storeKeys, into)}
             onSeparate={(storeKey) => void separateStore(storeKey)}
+            onClose={() => setDialog(null)}
+          />
+        )}
+        {dialog?.type === 'sort' && (
+          <Sorter
+            queue={dialog.queue}
+            categories={categories}
+            rules={data?.rules ?? {}}
+            onPick={(storeKey, category) => void changeCategory(storeKey, category)}
+            onNewCategory={(storeKey, label, icon) => void addCategoryFor(storeKey, label, icon)}
+            onRename={(storeKey, name, newName) => void renameStore(storeKey, name, newName)}
             onClose={() => setDialog(null)}
           />
         )}
@@ -482,7 +568,7 @@ export default function App() {
           {!isOwner && (
             <>
               {' · '}
-              <button type="button" className="link-button" onClick={enterOwnerKey}>
+              <button type="button" className="link-button" onClick={() => void enterOwnerKey()}>
                 Owner key
               </button>
             </>
@@ -492,6 +578,14 @@ export default function App() {
               {' · '}
               <button type="button" className="link-button" onClick={() => void disconnect()}>
                 Disconnect Revolut
+              </button>
+            </>
+          )}
+          {isOwner && (
+            <>
+              {' · '}
+              <button type="button" className="link-button" onClick={() => void leaveOwnerView()}>
+                Leave owner view
               </button>
             </>
           )}

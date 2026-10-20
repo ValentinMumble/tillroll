@@ -1,4 +1,4 @@
-import { type Categories, categoryOf, guessCategory } from './categories'
+import { type Basis, type Categories, categoryOf, guessCategory, UNSURE } from './categories'
 import { money } from './format'
 import {
   addDays,
@@ -25,6 +25,8 @@ export interface Row extends Transaction {
   category: CategoryKey
   /** The category Tillroll guesses, shown as the "Automatic" choice. */
   guessed: CategoryKey
+  /** What the category comes from: picked by hand, or how sure the guess is. */
+  basis: Basis
   /** The category counts as spending. */
   counts: boolean
   /** What the row adds to the spending: the amount turned positive, negative for a refund, 0 when not spending. */
@@ -45,16 +47,19 @@ export function toRows(transactions: Transaction[], { rules, categories, merges 
       const ownStoreKey = storeKey(ownStore)
       let store = ownStore
       let key = ownStoreKey
-      // A merged store takes the name of the one it is part of (a few steps at most: A into B into C).
-      for (let step = 0; step < 5 && merges[key] && storeKey(merges[key]) !== key; step += 1) {
+      // A merged store takes the name of the one it is part of (a few steps at most: A into B into C). A store
+      // renamed keeps its key when only the capitals change ("Edf" to "EDF").
+      for (let step = 0; step < 5 && merges[key]; step += 1) {
         store = merges[key]
-        key = storeKey(store)
+        const next = storeKey(store)
+        if (next === key) break
+        key = next
       }
-      const category = categoryOf(transaction, key, rules, categories)
+      const { category, basis } = categoryOf(transaction, key, rules, categories)
       const counts = categories.byKey[category].spending
       const spend = counts ? -transaction.amount : 0
       const guessed = guessCategory(transaction)
-      return { ...transaction, store, storeKey: key, ownStore, ownStoreKey, category, guessed, counts, spend }
+      return { ...transaction, store, storeKey: key, ownStore, ownStoreKey, category, basis, guessed, counts, spend }
     })
     .sort((first, second) => (first.date < second.date ? 1 : first.date > second.date ? -1 : 0))
 }
@@ -321,4 +326,58 @@ export function buildReport(rows: Row[], period: string, grain: Grain, now: stri
   }
 
   return { from, to, ongoing, current, baseline, series, chartGrain, usual, insights, subscriptions }
+}
+
+/** A store whose category is a weak guess, waiting to be sorted by hand. */
+export interface StoreToSort {
+  key: string
+  name: string
+  currency: string
+  payments: number
+  /** Money out at that store, all time. */
+  total: number
+  lastDate: string
+  /** A few of the bank's own texts, to recognise the store. */
+  examples: string[]
+  category: CategoryKey
+  basis: Basis
+}
+
+/**
+ * The stores with no category picked by hand whose guess is unsure (no clue, the broad retail merchant code, a
+ * transfer to someone), money out only, biggest first: sorting those first changes the totals most.
+ */
+export function storesToSort(rows: Row[]): StoreToSort[] {
+  const stores = new Map<string, StoreToSort & { votes: Map<CategoryKey, number> }>()
+  for (const row of rows) {
+    if (row.basis === 'picked' || row.amount >= 0) continue
+    const store = stores.get(row.storeKey) ?? {
+      key: row.storeKey,
+      name: row.store,
+      currency: row.currency,
+      payments: 0,
+      total: 0,
+      lastDate: row.date,
+      examples: [] as string[],
+      category: row.category,
+      basis: row.basis,
+      votes: new Map(),
+    }
+    store.payments += 1
+    store.total -= row.amount
+    if (row.date > store.lastDate) store.lastDate = row.date
+    if (store.examples.length < 3 && !store.examples.includes(row.description)) store.examples.push(row.description)
+    const votes = (store.votes.get(row.category) ?? 0) + 1
+    store.votes.set(row.category, votes)
+    // The store's category is the one most of its payments get, with what that guess comes from.
+    if (votes > (store.votes.get(store.category) ?? 0) || store.category === row.category) {
+      store.category = row.category
+      store.basis = row.basis
+    }
+    stores.set(row.storeKey, store)
+  }
+  return [...stores.values()]
+    .filter((store) => UNSURE.includes(store.basis))
+    .map(({ votes: _votes, ...store }) => store)
+    .sort((first, second) => second.total - first.total)
 }

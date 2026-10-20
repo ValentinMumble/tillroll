@@ -15,6 +15,8 @@ interface Props {
   onCategory: (storeKey: string, category: CategoryKey | null) => void
   /** Opens the category editor to add a category for this store. */
   onNewCategory: (storeKey: string, storeName: string) => void
+  /** Opens the store editor on this store. */
+  onEditStore: (storeKey: string) => void
 }
 
 /** The select's last choice, which opens the category editor instead. */
@@ -23,7 +25,16 @@ const NEW_CATEGORY = 'new'
 const PAGE = 60
 
 /** The period's payments, newest first. A category picked here applies to every payment at that store. */
-export function Payments({ rows, rules, categories, focus, onClearFocus, onCategory, onNewCategory }: Props) {
+export function Payments({
+  rows,
+  rules,
+  categories,
+  focus,
+  onClearFocus,
+  onCategory,
+  onNewCategory,
+  onEditStore,
+}: Props) {
   const [everything, setEverything] = useState(false)
   const [limit, setLimit] = useState(PAGE)
   const visible = rows.filter((row) => {
@@ -43,6 +54,11 @@ export function Payments({ rows, rules, categories, focus, onClearFocus, onCateg
         {focus && (
           <button type="button" className="chip" onClick={onClearFocus}>
             {focusLabel} <span aria-label="Show all payments">✕</span>
+          </button>
+        )}
+        {focus?.type === 'store' && (
+          <button type="button" className="link-button" onClick={() => onEditStore(focus.key)}>
+            Rename or merge
           </button>
         )}
         <label className="toggle">

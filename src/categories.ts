@@ -68,15 +68,15 @@ export function newCategoryKey(label: string) {
 const KEYWORDS: [BuiltInCategory, RegExp][] = [
   [
     'eating-out',
-    /uber\s*\*?\s*eats|deliveroo|just ?eat|foodora|wolt|restaurant|resto\b|brasserie|bistro|cafe|café|coffee|starbucks|mcdonald|burger|kfc|pizza|sushi|kebab|\bbar\b|\bpub\b|cantine|crêperie|creperie|traiteur|trattoria|osteria|taberna|tapas|gelat/i,
+    /uber\s*\*?\s*eats|deliveroo|just ?eat|foodora|wolt|restaurant|resto\b|brasserie|bistro|cafe|café|coffee|starbucks|mcdonald|burger|kfc|pizza|sushi|kebab|\bbar\b|\bpub\b|cantine|crêperie|creperie|traiteur|trattoria|osteria|taberna|tapas|gelat|\brest\b|restau|ristorante|restaurang|locanda|cantina|taverna|tavern|ramen|izakaya|\bpoke\b|thai|curry|tandoori|grill|diner|bagel|cr[eê]pe|kaf[eé]|kaffe|konditori|glacier|mcdo|sunday\s*\*|brewery|bi[eè]re|\bbeer|taproom|cocktail/i,
   ],
   [
     'groceries',
-    /carrefour|lidl|aldi|monoprix|franprix|auchan|leclerc|intermarch|super ?u\b|hyper ?u\b|casino|picard|biocoop|naturalia|grand frais|\bg20\b|\bica\b|\bcoop\b|willys|hemköp|tesco|sainsbury|waitrose|\bspar\b|rewe|edeka|albert heijn|mercadona|boulangerie|bakery|primeur|[eé]picerie|supermarch|fromagerie|boucherie/i,
+    /carrefour|lidl|aldi|monoprix|franprix|auchan|leclerc|intermarch|super ?u\b|hyper ?u\b|casino|picard|biocoop|naturalia|grand frais|\bg20\b|\bica\b|\bcoop\b|willys|hemköp|tesco|sainsbury|waitrose|\bspar\b|rewe|edeka|albert heijn|mercadona|boulangerie|bakery|primeur|[eé]picerie|supermarch|fromagerie|boucherie|p[aâ]tisserie|chocolat|march[eé]\b|\bmarket|halles|netto|leader price|\bcora\b|la vie claire|bio c|vival|proxi\b|u express/i,
   ],
   [
     'transport',
-    /\buber\b|\bbolt\b|heetch|free ?now|\bg7\b|taxi|sncf|ratp|navigo|\btan\b|\btcl\b|\bsl\b|\bsj\b|trainline|blablacar|ouigo|\blime\b|\btier\b|dott|velib|vélib|parking|indigo|autoroute|péage|peage|totalenergies|\besso\b|\bshell\b|\bbp\b|circle k/i,
+    /\buber\b|\bbolt\b|heetch|free ?now|\bg7\b|taxi|sncf|ratp|navigo|\btan\b|\btcl\b|\bsl\b|\bsj\b|trainline|blablacar|ouigo|\blime\b|\btier\b|dott|velib|vélib|parking|indigo|autoroute|péage|peage|totalenergies|\besso\b|\bshell\b|\bbp\b|circle k|eurail|interrail|flixbus|altibus|ferr(y|ies)|oc[eé]ane|penn ar bed|trenitalia|renfe|[oö]bb\b|deutsche bahn|\bsbb\b|bibus|korrigo/i,
   ],
   [
     'travel',
@@ -84,7 +84,7 @@ const KEYWORDS: [BuiltInCategory, RegExp][] = [
   ],
   [
     'bills',
-    /netflix|spotify|deezer|disney|canal\+|apple|google|youtube|icloud|amazon prime|prime video|free mobile|\bfree\b|orange|\bsfr\b|bouygues|sosh|\bedf\b|engie|total ?energies? ?(electricit|gaz)|veolia|assurance|insurance|alan\b|mutuelle|openai|anthropic|github|vercel|notion|revolut|impots|impôts/i,
+    /netflix|spotify|deezer|disney|canal\+|apple|google|youtube|icloud|amazon prime|prime video|free mobile|\bfree\b|orange|\bsfr\b|bouygues|sosh|\bedf\b|engie|total ?energies? ?(electricit|gaz)|veolia|assurance|insurance|alan\b|mutuelle|openai|anthropic|github|vercel|notion|revolut|impots|impôts|strava|komoot|patreon|dropbox|proton|1password|syndic|cotisation/i,
   ],
   [
     'home',
@@ -92,15 +92,15 @@ const KEYWORDS: [BuiltInCategory, RegExp][] = [
   ],
   [
     'health',
-    /pharmac|apotek|docteur|\bdr\b|m[ée]decin|dentist|doctolib|optic|opticien|basic.?fit|fitness|\bgym\b|neoness|on air|coiffeur|hair|barber|sephora|nocib|osteo/i,
+    /pharmac|apotek|docteur|\bdr\b|m[ée]decin|dentist|doctolib|optic|opticien|basic.?fit|fitness|\bgym\b|neoness|on air|coiffeur|hair|barber|sephora|nocib|osteo|phcie|clinique|h[oô]pital|kin[eé]|podolog|laborato|piscine|escalade|climbing|yoga|crossfit/i,
   ],
   [
     'fun',
-    /cin[ée]ma|\bugc\b|path[ée]|gaumont|\bmk2\b|steam|playstation|nintendo|xbox|ticketmaster|fnac spectacles|dice\.fm|museum|museo|mus[ée]e|concert|bowling|th[ée][aâ]tre|theatre/i,
+    /cin[ée]ma|\bugc\b|path[ée]|gaumont|\bmk2\b|steam|playstation|nintendo|xbox|ticketmaster|fnac spectacles|dice\.fm|museum|museo|mus[ée]e|concert|bowling|th[ée][aâ]tre|theatre|ticket|billet|weezevent|shotgun|fever|festival|bandcamp|spectacle|\bzoo\b|aquarium|karting|escape game/i,
   ],
   [
     'shopping',
-    /amazon|amzn|fnac|decathlon|zara|h&m|uniqlo|zalando|vinted|ebay|primark|action\b|kiabi|galeries lafayette|printemps|cultura|apple store/i,
+    /amazon|amzn|fnac|decathlon|zara|h&m|uniqlo|zalando|vinted|ebay|primark|action\b|kiabi|galeries lafayette|printemps|cultura|apple store|\bshop|store\b|boutique|librairie|\bbooks?\b|bookshop|cycling|socks|apparel|outdoor|intersport|go sport|brick|print/i,
   ],
 ]
 
@@ -142,23 +142,48 @@ const MCC_RANGES: [number, number, BuiltInCategory][] = [
   [5000, 5999, 'shopping'],
 ]
 
+/**
+ * What a category comes from, from sure to unsure: picked by hand, the kind of movement, a keyword in the store
+ * name, the merchant code, the broad retail range of merchant codes, a transfer to someone, nothing at all.
+ */
+export type Basis = 'picked' | 'kind' | 'keyword' | 'code' | 'broad-code' | 'transfer' | 'none'
+
+/** The guesses worth a look by hand (see the sorting deck). */
+export const UNSURE: Basis[] = ['none', 'broad-code', 'transfer']
+
 /** The category Tillroll guesses, from the kind of movement, the store name and the merchant code. */
-export function guessCategory(transaction: Transaction): BuiltInCategory {
+export function guessWithBasis(transaction: Transaction): { category: BuiltInCategory; basis: Basis } {
   const { kind, description, mcc } = transaction
-  if (kind === 'income') return 'income'
-  if (kind === 'topup' || kind === 'exchange') return 'transfers'
-  if (kind === 'atm') return 'cash'
+  if (kind === 'income') return { category: 'income', basis: 'kind' }
+  if (kind === 'topup' || kind === 'exchange') return { category: 'transfers', basis: 'kind' }
+  if (kind === 'atm') return { category: 'cash', basis: 'kind' }
   const keyword = KEYWORDS.find(([, pattern]) => pattern.test(description))
-  if (keyword) return keyword[0]
-  if (kind === 'transfer') return 'transfers'
-  if (kind === 'fee') return 'bills'
+  if (keyword) return { category: keyword[0], basis: 'keyword' }
+  // Money moved to one's own savings is sure; a transfer to someone may be rent, a gift or a shared bill.
+  if (kind === 'transfer') {
+    return {
+      category: 'transfers',
+      basis: /savings|vault|pocket|coffre|[ée]pargne/i.test(description) ? 'kind' : 'transfer',
+    }
+  }
+  if (kind === 'fee') return { category: 'bills', basis: 'kind' }
   const code = Number(mcc)
   const range = mcc ? MCC_RANGES.find(([from, to]) => code >= from && code <= to) : undefined
-  return range?.[2] ?? 'other'
+  if (!range) return { category: 'other', basis: 'none' }
+  return { category: range[2], basis: range === MCC_RANGES.at(-1) ? 'broad-code' : 'code' }
 }
 
-/** The category picked by hand for the store, if it still exists, or the guess. */
-export function categoryOf(transaction: Transaction, key: string, rules: Rules, categories: Categories): CategoryKey {
+export function guessCategory(transaction: Transaction) {
+  return guessWithBasis(transaction).category
+}
+
+/** The category picked by hand for the store, if it still exists, or the guess; and what it comes from. */
+export function categoryOf(
+  transaction: Transaction,
+  key: string,
+  rules: Rules,
+  categories: Categories,
+): { category: CategoryKey; basis: Basis } {
   const picked = rules[key]
-  return picked && categories.byKey[picked] ? picked : guessCategory(transaction)
+  return picked && categories.byKey[picked] ? { category: picked, basis: 'picked' } : guessWithBasis(transaction)
 }

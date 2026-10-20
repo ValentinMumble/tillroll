@@ -94,8 +94,8 @@ export function StoreBreakdown({
   currency,
   focus,
   onFocus,
-  onMerge,
-}: Props & { onMerge: () => void }) {
+  onEdit,
+}: Props & { onEdit: () => void }) {
   const [showAll, setShowAll] = useState(false)
   const stores = [...report.current.stores.values()]
     .filter((store) => store.total >= 0.5)
@@ -107,8 +107,8 @@ export function StoreBreakdown({
       <header className="card-head">
         <h2>Stores</h2>
         <span className="hint">{stores.length} this period</span>
-        <button type="button" className="link-button" onClick={onMerge}>
-          Merge stores
+        <button type="button" className="link-button" onClick={onEdit}>
+          Edit stores
         </button>
       </header>
       {stores.length === 0 ? (

@@ -1,4 +1,3 @@
-import { ownerKey } from './owner'
 import type { CategoryEdit, CategoryKey, Connection, Merges, Rules, Transaction } from './types'
 
 export class RequestError extends Error {
@@ -13,15 +12,23 @@ export class RequestError extends Error {
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const headers = new Headers(init.headers)
   if (init.body) headers.set('Content-Type', 'application/json')
-  const key = ownerKey()
-  if (key) headers.set('Authorization', `Bearer ${key}`)
-  const response = await fetch(path, { ...init, headers })
+  // Owner mode rides on the session cookie the server set (see signIn).
+  const response = await fetch(path, { ...init, headers, credentials: 'same-origin' })
   const data: unknown = await response.json().catch(() => ({}))
   if (!response.ok) {
     const message = (data as { error?: string }).error
     throw new RequestError(response.status, message ?? `The server answered ${response.status}`)
   }
   return data as T
+}
+
+/** Checks the owner key; the server answers with a cookie that keeps this browser in owner mode for a year. */
+export function signIn(key: string) {
+  return request<{ ok: true }>('/api/login', { method: 'POST', body: JSON.stringify({ key }) })
+}
+
+export function signOut() {
+  return request<{ ok: true }>('/api/logout', { method: 'POST', body: '{}' })
 }
 
 export interface OwnerData {

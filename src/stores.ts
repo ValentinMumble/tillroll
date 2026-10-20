@@ -18,10 +18,17 @@ const BRANDS: [RegExp, string][] = [
   [/sncf/i, 'SNCF'],
   [/ryanair/i, 'Ryanair'],
   [/easyjet/i, 'easyJet'],
+  [/mcdo(nald)?/i, "McDonald's"],
+  [/strava/i, 'Strava'],
+  [/eurail|interrail/i, 'Eurail'],
 ]
 
-/** Payment processors that put their name before the store's. */
-const PROCESSOR = /^(sumup|sq|zettle|izettle|paypal|pp|sp|stripe|lydia|zen|mollie)\s*[*_]+\s*/i
+/**
+ * Payment apps that put their name before the store's: "SUMUP *CAFE DU COIN", "SUM*ADDU MAMMA" (cut by the bank),
+ * "SUNDAY*LA FELICITA" (restaurant bills), "TRIBEE*", and Shopify's "SP " with no star.
+ */
+const PROCESSOR =
+  /^((sumup|sum|sq|zettle|izettle|paypal|pp|sp|stripe|lydia|zen|mollie|sunday|tribee|payplug|lyf)\s*[*_]+|sp\s+(?=\S))\s*/i
 const TRANSFER_WORDS = /^(to|from|payment from|transfer (to|from)|virement (à|a|de|vers)|paiement à)\s+/i
 
 /** Short all-caps names that are acronyms, not words: they stay as they are. */
@@ -47,7 +54,9 @@ export function storeName(description: string) {
     .replace(/\.(com|fr|de|es|it|nl|se|eu|co\.uk)$/i, '')
     .trim()
   const kept = name || text
-  return kept === kept.toUpperCase() && /\p{Lu}/u.test(kept) ? titleCase(kept) : kept
+  const cased = kept === kept.toUpperCase() && /\p{Lu}/u.test(kept) ? titleCase(kept) : kept
+  // "le Narcisse" after "SumUp *": a name starts with a capital.
+  return cased.charAt(0).toUpperCase() + cased.slice(1)
 }
 
 export function storeKey(name: string) {
