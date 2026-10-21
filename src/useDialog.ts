@@ -11,8 +11,10 @@ export function useDialog() {
     const dialog = ref.current
     if (!dialog) return
     dialog.showModal()
-    // On a touch screen, opening must not focus a field (and pop the keyboard): the dialog itself takes the focus.
-    if (window.matchMedia('(pointer: coarse)').matches) {
+    // Opening focuses the first control. A field to type in keeps it, but not on a touch screen (it would pop the
+    // keyboard), and a link or a button does not (it would wear a focus ring for nothing): the dialog takes it.
+    const field = document.activeElement?.matches('input:not([type="checkbox"]):not([type="radio"]), select, textarea')
+    if (!field || window.matchMedia('(pointer: coarse)').matches) {
       dialog.tabIndex = -1
       dialog.focus()
     }

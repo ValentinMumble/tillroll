@@ -3,6 +3,7 @@ import type { Categories } from '../categories'
 import { type Pair, pairKey, type StoreInfo } from '../duplicates'
 import { money } from '../format'
 import { dayLabel } from '../periods'
+import type { CategoryKey } from '../types'
 import { useDialog } from '../useDialog'
 import { WebSearch } from './WebSearch'
 
@@ -13,11 +14,24 @@ interface Props {
   onMerge: (storeKeys: string[], into: string) => void
   /** Marks a pair "not the same": it never comes back. */
   onDistinct: (pair: string) => void
+  /** The category of a store, picked by hand. */
+  onCategory: (storeKey: string, category: CategoryKey) => void
   onClose: () => void
 }
 
-function StoreCard({ store, categories, kept }: { store: StoreInfo; categories: Categories; kept: boolean }) {
-  const category = categories.byKey[store.category]
+function StoreCard({
+  store,
+  categories,
+  kept,
+  category,
+  onCategory,
+}: {
+  store: StoreInfo
+  categories: Categories
+  kept: boolean
+  category: CategoryKey
+  onCategory: (category: CategoryKey) => void
+}) {
   return (
     <div className={`twin${kept ? ' is-kept' : ''}`}>
       <h3>
@@ -27,9 +41,18 @@ function StoreCard({ store, categories, kept }: { store: StoreInfo; categories: 
         {store.payments === 1 ? '1 payment' : `${store.payments} payments`}
         {store.total > 0 && ` · ${money(store.total, store.currency)}`} · last on {dayLabel(store.lastDate, true)}
       </p>
-      <p className="twin-category">
-        {category?.icon} {category?.label}
-      </p>
+      <select
+        className="select twin-category"
+        aria-label={`Category of ${store.name}`}
+        value={category}
+        onChange={(event) => onCategory(event.target.value)}
+      >
+        {categories.alphabetical.map((item) => (
+          <option key={item.key} value={item.key}>
+            {item.icon} {item.label}
+          </option>
+        ))}
+      </select>
       <ul className="sorter-examples" aria-label={`What the bank says for ${store.name}`}>
         {store.examples.map((text) => (
           <li key={text}>{text}</li>
@@ -40,15 +63,29 @@ function StoreCard({ store, categories, kept }: { store: StoreInfo; categories: 
 }
 
 /** Pairs of stores that may be the same place, most payments first: merge them, or say they are not the same. */
-export function DuplicatesDeck({ pairs, categories, onMerge, onDistinct, onClose }: Props) {
+export function DuplicatesDeck({ pairs, categories, onMerge, onDistinct, onCategory, onClose }: Props) {
   const { ref: dialogRef, onKeyDown: onDialogKeyDown, close: closeDialog } = useDialog()
   const [position, setPosition] = useState(0)
+  // Categories picked here, by store: the pairs keep the ones they opened with.
+  const [picked, setPicked] = useState<Record<string, CategoryKey>>({})
   // Which of the two names to keep, by pair; the store with the most payments to start with.
   const [keep, setKeep] = useState<Record<string, 'first' | 'second'>>({})
   const [merged, setMerged] = useState(0)
   const pair = pairs[position]
   const key = pair ? pairKey(pair.first.key, pair.second.key) : ''
   const kept = pair ? (keep[key] ?? 'first') : 'first'
+  const card = (store: StoreInfo, side: 'first' | 'second') => (
+    <StoreCard
+      store={store}
+      categories={categories}
+      kept={kept === side}
+      category={picked[store.key] ?? store.category}
+      onCategory={(category) => {
+        setPicked({ ...picked, [store.key]: category })
+        onCategory(store.key, category)
+      }}
+    />
+  )
 
   function merge() {
     if (!pair) return
@@ -90,8 +127,8 @@ export function DuplicatesDeck({ pairs, categories, onMerge, onDistinct, onClose
             Both have <strong>{pair.shared.join(', ')}</strong>. Are they the same place?
           </p>
           <div className="twins">
-            <StoreCard store={pair.first} categories={categories} kept={kept === 'first'} />
-            <StoreCard store={pair.second} categories={categories} kept={kept === 'second'} />
+            {card(pair.first, 'first')}
+            {card(pair.second, 'second')}
           </div>
           <fieldset className="scopes">
             <legend className="hint">If they are, keep the name</legend>

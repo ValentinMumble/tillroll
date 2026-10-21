@@ -27,7 +27,9 @@ const COMMON = new Set(
     'lorient vannes france fra com www http https restaurant resto cafe bar pub brasserie bistro store shop boutique ' +
     'market marche supermarche hyper super pharmacie boulangerie patisserie station service services sumup paypal ' +
     'payment pay card carte from avec chez saint sainte rue place avenue centre center city ville gare aeroport ' +
-    'online europe international group groupe holding'
+    'online europe international group groupe holding ' +
+    // French bank wording: a direct debit, a transfer, a card payment's date, a cheque, a withdrawal.
+    'prlv vir sepa inst virement vers fact cheque retrait dab depot'
   ).split(' '),
 )
 

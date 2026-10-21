@@ -950,6 +950,7 @@ export default function App() {
           categories={categories}
           onMerge={(storeKeys, into) => void mergeStores(storeKeys, into)}
           onDistinct={(pair) => void markDistinct(pair)}
+          onCategory={(storeKey, category) => void changeCategory(storeKey, category)}
           onClose={() => setDialog(null)}
         />
       )}
