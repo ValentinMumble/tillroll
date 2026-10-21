@@ -124,7 +124,8 @@ const isCardTotal = (item: Transaction) => item.source === 'statement' && / \(dÃ
 
 /**
  * A deferred card's monthly debit leaves once the card's own statement lists the payments it paid: the card lines
- * debited in that month add up to it (to the cent). Another card's debit the same month stays, its sum differs.
+ * debited in that month add up to it (to the cent). Two cards debited the same month leave together when both cards'
+ * lines are in; with one card's lines only, the other card's debit stays.
  */
 function withoutCoveredTotals(transactions: Transaction[]) {
   const debitMonth = (item: Transaction) => {
@@ -140,11 +141,21 @@ function withoutCoveredTotals(transactions: Transaction[]) {
     const key = `${item.bank}|${item.currency}|${debitMonth(item)}`
     cardLines.set(key, (cardLines.get(key) ?? 0) + item.amount)
   }
-  return transactions.filter((item) => {
-    if (!isCardTotal(item)) return true
-    const lines = cardLines.get(`${item.bank}|${item.currency}|${debitMonth(item)}`)
-    return lines === undefined || Math.abs(lines - item.amount) >= 0.01
-  })
+  const totals = new Map<string, Transaction[]>()
+  for (const item of transactions) {
+    if (!isCardTotal(item)) continue
+    const key = `${item.bank}|${item.currency}|${debitMonth(item)}`
+    totals.set(key, [...(totals.get(key) ?? []), item])
+  }
+  const covered = new Set<string>()
+  for (const [key, list] of totals) {
+    const lines = cardLines.get(key)
+    if (lines === undefined) continue
+    const all = list.reduce((sum, item) => sum + item.amount, 0)
+    const paid = Math.abs(lines - all) < 0.01 ? list : list.filter((item) => Math.abs(lines - item.amount) < 0.01)
+    for (const item of paid) covered.add(item.id)
+  }
+  return transactions.filter((item) => !covered.has(item.id))
 }
 
 /** Where the page is: its view, and the filter of the payment list. One step of the browser's history each. */
