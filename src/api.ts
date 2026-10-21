@@ -80,31 +80,34 @@ export function disconnectBank(bank: string) {
 }
 
 export function saveRule(store: string, category: CategoryKey | null) {
-  return request<{ ok: true }>('/api/rules', { method: 'PUT', body: JSON.stringify({ store, category }) })
+  return request<{ ok: true }>('/api/sorting?part=rules', { method: 'PUT', body: JSON.stringify({ store, category }) })
 }
 
 export function saveCategories(categories: CategoryEdit[]) {
-  return request<{ ok: true }>('/api/categories', { method: 'PUT', body: JSON.stringify({ categories }) })
+  return request<{ ok: true }>('/api/sorting?part=categories', { method: 'PUT', body: JSON.stringify({ categories }) })
 }
 
 /** Merges a store into another (by its name), or separates it again with null. */
 export function saveMerge(store: string, into: string | null) {
-  return request<{ ok: true }>('/api/merges', { method: 'PUT', body: JSON.stringify({ store, into }) })
+  return request<{ ok: true }>('/api/sorting?part=merges', { method: 'PUT', body: JSON.stringify({ store, into }) })
 }
 
 /** Categories picked for single payments (null gives a payment back to its store's category). */
 export function savePaymentCategories(categories: Record<string, CategoryKey | null>) {
-  return request<{ ok: true }>('/api/payment-categories', { method: 'PUT', body: JSON.stringify({ categories }) })
+  return request<{ ok: true }>('/api/sorting?part=payment-categories', {
+    method: 'PUT',
+    body: JSON.stringify({ categories }),
+  })
 }
 
 /** Pairs of stores marked "not the same" in the duplicates deck. */
 export function saveDistinct(pairs: string[]) {
-  return request<{ ok: true }>('/api/distinct', { method: 'PUT', body: JSON.stringify({ pairs }) })
+  return request<{ ok: true }>('/api/sorting?part=distinct', { method: 'PUT', body: JSON.stringify({ pairs }) })
 }
 
 /** The labels of some payments, each one's full list (empty takes them off). */
 export function saveLabels(labels: Labels) {
-  return request<{ ok: true }>('/api/labels', { method: 'PUT', body: JSON.stringify({ labels }) })
+  return request<{ ok: true }>('/api/sorting?part=labels', { method: 'PUT', body: JSON.stringify({ labels }) })
 }
 
 export function importStatement(transactions: Transaction[]) {
