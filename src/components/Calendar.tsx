@@ -1,4 +1,4 @@
-import { type MouseEvent, useMemo, useState } from 'react'
+import { type MouseEvent, useEffect, useMemo, useRef, useState } from 'react'
 import type { Categories } from '../categories'
 import { money } from '../format'
 import { tidyLabel, withLabel } from '../labels'
@@ -122,11 +122,19 @@ export function Calendar({ rows, categories, currency, initialYear, onOpenMonth,
     setLabelText('')
   }
 
+  // Many years scroll inside their bar (a phone is too narrow for them all): the one shown stays in view.
+  const yearsRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const bar = yearsRef.current
+    const button = bar?.querySelector<HTMLElement>('[aria-pressed="true"]')
+    if (bar && button) bar.scrollLeft = button.offsetLeft - (bar.clientWidth - button.offsetWidth) / 2
+  }, [year])
+
   return (
     <section className="card calendar">
       <header className="card-head">
         <h2>Calendar</h2>
-        <div className="segmented is-small" role="group" aria-label="Year">
+        <div className="segmented is-small calendar-years" role="group" aria-label="Year" ref={yearsRef}>
           {years.map((item) => (
             <button
               key={item}

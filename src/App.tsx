@@ -105,6 +105,30 @@ function localData(): Data | null {
  * twice. The sync dates a row on the day the bank books it, so a statement's card payment compares by its debit day.
  * Rows with no bank (older ones) are Revolut's.
  */
+/**
+ * Merges stores into one by its name (`into`). The store of that name may itself be merged back into one of them
+ * (Dr Martens Tour into Dr. Martens, then Dr. Martens into Dr Martens Tour): that would loop, so it becomes the store
+ * they end in again. Returns the merges and the store keys that are no longer merged.
+ */
+function mergedInto(merges: Merges, storeKeys: string[], into: string) {
+  const next = { ...merges }
+  const targetKey = keyOfStore(into)
+  const freed: string[] = []
+  let key = targetKey
+  for (let step = 0; step < 10 && next[key]; step += 1) {
+    const after = keyOfStore(next[key])
+    if (after === key) break
+    if (storeKeys.includes(after)) {
+      delete next[targetKey]
+      freed.push(targetKey)
+      break
+    }
+    key = after
+  }
+  for (const storeKey of storeKeys) next[storeKey] = into
+  return { merges: next, freed }
+}
+
 function withoutOverlap(transactions: Transaction[]) {
   const keyOf = (item: Transaction) => `${item.bank ?? 'Revolut'}|${item.currency}`
   const bankStart = new Map<string, string>()
@@ -340,6 +364,13 @@ export default function App() {
     return [...counts].sort((first, second) => second[1] - first[1]).map(([currency]) => currency)
   }, [rows])
   const currency = chosenCurrency && currencies.includes(chosenCurrency) ? chosenCurrency : (currencies[0] ?? 'EUR')
+
+  /** Another currency: its own periods and payments, from its latest period, no filter. */
+  function changeCurrency(next: string) {
+    setChosenCurrency(next)
+    setChosenPeriod(null)
+    setFocus(null)
+  }
   const currencyRows = useMemo(() => rows.filter((row) => row.currency === currency), [rows, currency])
   // With payments from several banks, each payment shows its bank's letter.
   const showBanks = useMemo(() => new Set(rows.map((row) => row.bank ?? 'Revolut')).size > 1, [rows])
@@ -437,14 +468,13 @@ export default function App() {
    */
   async function mergeStores(storeKeys: string[], into: string) {
     if (!data) return
-    const merges = { ...data.merges }
-    for (const key of storeKeys) merges[key] = into
+    const { merges, freed } = mergedInto(data.merges, storeKeys, into)
     const targetKey = keyOfStore(into)
     const inherited = data.rules[targetKey] ? undefined : storeKeys.map((key) => data.rules[key]).find(Boolean)
     const rules = inherited ? { ...data.rules, [targetKey]: inherited } : data.rules
     if (focus?.type === 'store' && storeKeys.includes(focus.key)) setFocus(null)
     await change({ merges, rules }, async () => {
-      await Promise.all(storeKeys.map((key) => saveMerge(key, into)))
+      await Promise.all([...freed.map((key) => saveMerge(key, null)), ...storeKeys.map((key) => saveMerge(key, into))])
       if (inherited) await saveRule(targetKey, inherited)
     })
   }
@@ -551,13 +581,13 @@ export default function App() {
     // Another store already has that name: the rename would merge them.
     const taken = newKey !== storeKey && rows.some((row) => row.storeKey === newKey)
     if (taken && !window.confirm(`${newName} is already a store. Merge ${name} into it?`)) return
-    const merges = { ...data.merges, [storeKey]: newName }
+    const { merges, freed } = mergedInto(data.merges, [storeKey], newName)
     const category = data.rules[storeKey]
     const moveCategory = Boolean(category) && newKey !== storeKey && !data.rules[newKey]
     const rules = moveCategory ? { ...data.rules, [newKey]: category } : data.rules
     if (focus?.type === 'store' && focus.key === storeKey) setFocus({ type: 'store', key: newKey, name: newName })
     await change({ merges, rules }, async () => {
-      await saveMerge(storeKey, newName)
+      await Promise.all([...freed.map((key) => saveMerge(key, null)), saveMerge(storeKey, newName)])
       if (moveCategory) await saveRule(newKey, category)
     })
   }
@@ -567,12 +597,15 @@ export default function App() {
     if (!data) return
     const renamed = newName !== name
     const newKey = renamed ? keyOfStore(newName) : storeKey
-    const merges = renamed ? { ...data.merges, [storeKey]: newName } : data.merges
+    const { merges, freed } = renamed
+      ? mergedInto(data.merges, [storeKey], newName)
+      : { merges: data.merges, freed: [] }
     const rules = { ...data.rules }
     if (category) rules[newKey] = category
     else delete rules[newKey]
     if (focus?.type === 'store' && focus.key === storeKey) setFocus({ type: 'store', key: newKey, name: newName })
     await change({ merges, rules }, async () => {
+      await Promise.all(freed.map((key) => saveMerge(key, null)))
       if (renamed) await saveMerge(storeKey, newName)
       await saveRule(newKey, category)
     })
@@ -705,8 +738,8 @@ export default function App() {
           ? 'Sample data'
           : 'Your statement'
         : null
-  // The owner's bank action stays in view on a phone; the rest goes in the header's ⋯ menu there.
-  const bankAction = (
+  // Reconnecting and syncing stay in view on a phone; adding a bank goes in the header's ⋯ menu there.
+  const syncAction = (
     <>
       {isOwner &&
         expired.map((item) => (
@@ -725,17 +758,17 @@ export default function App() {
           {busy === 'sync' ? 'Syncing…' : 'Sync'}
         </button>
       )}
-      {isOwner && hasData && (
-        <button
-          type="button"
-          className={`button${connections.length ? ' is-quiet' : ' is-primary'}`}
-          disabled={busy !== null}
-          onClick={() => setDialog({ type: 'banks' })}
-        >
-          {connections.length ? 'Add a bank' : 'Connect a bank'}
-        </button>
-      )}
     </>
+  )
+  const addBank = isOwner && hasData && (
+    <button
+      type="button"
+      className={`button${connections.length ? ' is-quiet' : ' is-primary'}`}
+      disabled={busy !== null}
+      onClick={() => setDialog({ type: 'banks' })}
+    >
+      {connections.length ? 'Add a bank' : 'Connect a bank'}
+    </button>
   )
   const dataActions = (
     <>
@@ -784,9 +817,25 @@ export default function App() {
         Tillroll
       </a>
       <div className="top-actions">
-        {status && <span className="status">{status}</span>}
-        {bankAction}
+        {/* The owner's sync status names every bank: too long for a phone's header, it opens the ⋯ menu there. */}
+        {!isOwner && status && <span className="status">{status}</span>}
+        {syncAction}
         <Menu label="More">
+          {isOwner && status && <p className="menu-status">{status}</p>}
+          {currencies.length > 1 && (
+            // A click on the list must not close the menu before a currency is picked.
+            <label className="menu-field" onClick={(event) => event.stopPropagation()}>
+              Currency
+              <select className="select" value={currency} onChange={(event) => changeCurrency(event.target.value)}>
+                {currencies.map((item) => (
+                  <option key={item} value={item}>
+                    {item}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+          {addBank}
           {dataActions}
           {linkList}
         </Menu>
@@ -853,7 +902,8 @@ export default function App() {
       <Sidebar tab={tab} onTab={openTab} toSort={toSort.length} onSort={openSorter}>
         {status && <p className="status">{status}</p>}
         <div className="side-actions">
-          {bankAction}
+          {syncAction}
+          {addBank}
           {dataActions}
         </div>
         <p className="side-links">{links}</p>
@@ -871,11 +921,7 @@ export default function App() {
           canGoForward={period < latestPeriod}
           currencies={currencies}
           currency={currency}
-          onCurrency={(next) => {
-            setChosenCurrency(next)
-            setChosenPeriod(null)
-            setFocus(null)
-          }}
+          onCurrency={changeCurrency}
         />
 
         <main className="view">

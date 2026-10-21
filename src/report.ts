@@ -223,11 +223,25 @@ export function toRows(
     let store = ownStore
     let key = ownStoreKey
     // A merged store takes the name of the one it is part of (a few steps at most: A into B into C). A store
-    // renamed keeps its key when only the capitals change ("Edf" to "EDF").
-    for (let step = 0; step < 5 && merges[key]; step += 1) {
-      store = merges[key]
-      const next = storeKey(store)
-      if (next === key) break
+    // renamed keeps its key when only the capitals change ("Edf" to "EDF"). Stores merged into each other in a loop
+    // all end in the same one, the first by key.
+    const path = [{ key, name: ownStore }]
+    for (let step = 0; step < 10 && merges[key]; step += 1) {
+      const name = merges[key]
+      const next = storeKey(name)
+      if (next === key) {
+        store = name
+        break
+      }
+      const loop = path.findIndex((item) => item.key === next)
+      if (loop >= 0) {
+        const end = path.slice(loop).reduce((first, item) => (item.key < first.key ? item : first))
+        key = end.key
+        store = end.name
+        break
+      }
+      path.push({ key: next, name })
+      store = name
       key = next
     }
     // A category picked for this payment wins over its store's.

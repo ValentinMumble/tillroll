@@ -59,7 +59,7 @@ export function Toolbar(props: Props) {
       )}
       {currencies.length > 1 && (
         <select
-          className="select"
+          className="select toolbar-currency"
           aria-label="Currency"
           value={currency}
           onChange={(event) => onCurrency(event.target.value)}

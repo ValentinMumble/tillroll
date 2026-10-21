@@ -791,6 +791,21 @@ main {
   margin-left: auto;
 }
 
+/* Every year since the first payment: more than a phone's width, so the bar scrolls sideways on its own. */
+.calendar-years {
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.calendar-years::-webkit-scrollbar {
+  display: none;
+}
+
+.calendar-years button {
+  flex: none;
+}
+
 .calendar-summary {
   margin-bottom: 18px;
   color: var(--ink-soft);
@@ -968,10 +983,11 @@ main {
   position: sticky;
   top: 90px;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 10px;
   max-height: calc(100dvh - 120px);
   padding: 14px 16px;
-  overflow: auto;
+  overflow: hidden auto;
   border-radius: 12px;
   background: var(--surface-sunk);
 }
@@ -1514,9 +1530,10 @@ main {
 
 .sheet-body {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 12px;
   padding: 4px 20px;
-  overflow: auto;
+  overflow: hidden auto;
 }
 
 .sheet-body .category-add {
@@ -1785,6 +1802,12 @@ main {
   gap: 8px;
 }
 
+/* A phone gives text fields a minimum width of their own: they take the column's width instead. */
+.category-add .text-input {
+  width: 100%;
+  min-width: 0;
+}
+
 .category-list,
 .store-lines {
   flex: 1;
@@ -1998,11 +2021,14 @@ main {
   transition: width 240ms ease;
 }
 
+/* Scrolls up and down only: one column the dialog's width, so a field's minimum width (a phone's text field) never
+   pushes it wider. */
 .sorter-body {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 14px;
   padding: 8px 20px;
-  overflow: auto;
+  overflow: hidden auto;
 }
 
 .sorter-store {
@@ -2184,6 +2210,32 @@ main {
   display: none;
 }
 
+.menu-panel {
+  max-width: calc(100vw - 32px);
+}
+
+/* The owner's sync status, every bank: at the top of the phone's menu. */
+.menu-status {
+  margin: 0 0 4px;
+  padding: 2px 4px 8px;
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.menu-field {
+  display: grid;
+  gap: 4px;
+  padding: 0 4px 4px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.menu-field .select {
+  width: 100%;
+  color: var(--ink);
+}
+
 .menu-panel .button {
   width: 100%;
 }
@@ -2363,7 +2415,7 @@ main {
 /* The dialog can outgrow a small screen: its content scrolls inside. */
 .store-dialog-form {
   min-height: 0;
-  overflow: auto;
+  overflow: hidden auto;
 }
 
 .store-months {
@@ -2727,6 +2779,26 @@ main {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  /* One row: the brand on the left, Sync and the menu on the right. */
+  .main > .top {
+    flex-wrap: nowrap;
+  }
+
+  .top-actions {
+    flex-wrap: nowrap;
+    min-width: 0;
+  }
+
+  /* The currency picker lives in the ⋯ menu on a phone, so the period bar keeps one row. */
+  .toolbar-currency {
+    display: none;
+  }
+
+  /* Whatever turns out too wide never makes the whole page slide sideways. */
+  .shell {
+    overflow-x: clip;
   }
 
   .tabbar {

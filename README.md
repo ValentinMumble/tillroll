@@ -99,7 +99,8 @@ Payments and the latest payments show each payment's bank as a coloured initial:
 You need an Enable Banking account (free), a Vercel account (free) and about 15 minutes.
 
 1. **Fork this repository** and import it in Vercel. In the project's Storage tab, add an Upstash Redis store: Vercel
-   adds `KV_REST_API_URL` and `KV_REST_API_TOKEN`.
+   adds `KV_REST_API_URL` and `KV_REST_API_TOKEN`. The functions run in Frankfurt (`regions` in `vercel.json`), next
+   to a store in eu-central-1: every page load reads all the payments, so keep them in the same region.
 2. **Register an Enable Banking application** in the [Control Panel](https://enablebanking.com/cp/applications):
    - environment: Production;
    - let the page generate the key: it downloads `<application id>.pem`, keep it safe;
