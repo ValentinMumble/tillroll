@@ -223,7 +223,7 @@ function kindOf(item: BankTransaction, amount: number, text: string): Kind {
   if (/top.?up/i.test(text)) return 'topup'
   if (amount > 0) return /refund|rembours/i.test(text) ? 'refund' : 'income'
   // A card payment has no account on the other side: a payment to an IBAN is a transfer.
-  if (item.creditor_account?.iban || /^(to|transfer to|virement)\b|\b(pocket|vault|savings)\b/i.test(text)) {
+  if (item.creditor_account?.iban || /^(to|transfer to|virement|vir)\b|\b(pocket|vault|savings)\b/i.test(text)) {
     return 'transfer'
   }
   return 'card'

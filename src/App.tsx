@@ -101,18 +101,19 @@ function localData(): Data | null {
 }
 
 /**
- * The owner's statement rows (Revolut's) stop where Revolut's synced history starts, per currency, so nothing counts
- * twice. Synced rows of an older version have no bank: they are Revolut's.
+ * The owner's statement rows of a bank stop where that bank's synced history starts, per currency, so nothing counts
+ * twice. Rows with no bank (older ones) are Revolut's.
  */
 function withoutOverlap(transactions: Transaction[]) {
+  const keyOf = (item: Transaction) => `${item.bank ?? 'Revolut'}|${item.currency}`
   const bankStart = new Map<string, string>()
   for (const item of transactions) {
-    const start = bankStart.get(item.currency)
-    const revolut = !item.bank || item.bank === 'Revolut'
-    if (item.source === 'bank' && revolut && (!start || item.date < start)) bankStart.set(item.currency, item.date)
+    if (item.source !== 'bank') continue
+    const start = bankStart.get(keyOf(item))
+    if (!start || item.date < start) bankStart.set(keyOf(item), item.date)
   }
   return transactions.filter((item) => {
-    const start = bankStart.get(item.currency)
+    const start = bankStart.get(keyOf(item))
     return item.source !== 'statement' || !start || item.date < start
   })
 }

@@ -72,7 +72,14 @@ The owner can connect more than one bank (Add a bank, in the sidebar or the ⋯ 
 come first in the picker, any bank Enable Banking covers in the chosen country works. Each bank keeps its own session,
 access end date and last sync; Sync and the daily run sync them all, and one bank failing does not stop the others.
 In Enable Banking's free mode, link the bank's accounts in the Control Panel (Activate by linking accounts) before
-connecting it here. Statements are Revolut's: where they overlap Revolut's synced history, the synced rows win.
+connecting it here.
+
+Statements fill the history before a bank's sync starts (where they overlap, the synced rows win, bank by bank).
+Import Revolut's (Excel or CSV) or Crédit Coopératif's CSV export. Crédit Coopératif's export uses the bank's own
+category as a clue, and words each line like the sync does ("PRLV BPCE Vie", "VIR SEPA AKENEO"), so stores sorted
+on synced rows stay sorted in the older months. Its deferred debit card does not list card payments one by one: each
+month's debit becomes one payment, "Carte ...7497 (débit différé)", on the last day of the month it pays for. Synced
+card payments keep the day they were made ("FACT 270826"), not the day the card is debited.
 
 ## Run your own
 

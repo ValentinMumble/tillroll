@@ -65,6 +65,17 @@ const REFUND_DAYS = 180
 const TRANSFER_DAYS = 3
 
 const bankOf = (row: Row) => row.bank ?? 'Revolut'
+
+/**
+ * The day a card payment was made. A deferred debit card is booked at the start of the next month, with the day of
+ * the payment in the text: "CB CAFE POP FACT 270826" was paid on 27 Aug 2026.
+ */
+function paidOn({ date, description }: Transaction) {
+  const fact = /\bFACT (\d{2})(\d{2})(\d{2})\b/.exec(description)
+  if (!fact) return date
+  const day = `20${fact[3]}-${fact[2]}-${fact[1]}`
+  return !Number.isNaN(Date.parse(day)) && day <= date && day >= addDays(date, -62) ? day : date
+}
 const cents = (amount: number) => Math.round(Math.abs(amount) * 100)
 
 /**
@@ -101,15 +112,15 @@ function linkOwnTransfers(rows: Row[]) {
 /**
  * Refunds: money back from a store. The bank says it is one, or a category that counts as spending was picked for
  * it; money in of exactly what a card payment at the same store cost counts too. Oldest first, each refund is
- * matched with the payment it gives back: the latest one at that store in the 180 days before, with that much not
- * given back yet, the same amount first. That payment then costs what is left, in its own week and month.
+ * matched with the payment it gives back: the latest one at that store and bank in the 180 days before, with that
+ * much not given back yet, the same amount first. That payment then costs what is left, in its own week and month.
  */
 function matchRefunds(rows: Row[], categories: Categories) {
   const spends = (row: Row) => Boolean(categories.byKey[row.category]?.spending) && !LEFT_OUT.includes(row.category)
   const payments = new Map<string, Row[]>()
   for (const row of rows) {
     if (row.amount >= 0 || row.pending || !spends(row)) continue
-    const key = `${row.currency}|${row.storeKey}`
+    const key = `${bankOf(row)}|${row.currency}|${row.storeKey}`
     const list = payments.get(key) ?? []
     list.push(row)
     payments.set(key, list)
@@ -123,7 +134,7 @@ function matchRefunds(rows: Row[], categories: Categories) {
     if (!sure && credit.kind !== 'income') continue
     const since = addDays(credit.date, -REFUND_DAYS)
     const left = (row: Row) => -row.amount - row.refunded
-    const open = (payments.get(`${credit.currency}|${credit.storeKey}`) ?? []).filter(
+    const open = (payments.get(`${bankOf(credit)}|${credit.currency}|${credit.storeKey}`) ?? []).filter(
       (row) =>
         row.date <= credit.date &&
         row.date >= since &&
@@ -172,6 +183,7 @@ export function toRows(
       : categoryOf(transaction, key, rules, categories, me)
     return {
       ...transaction,
+      date: paidOn(transaction),
       store,
       storeKey: key,
       ownStore,

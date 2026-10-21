@@ -32,10 +32,14 @@ export function POST(request: Request) {
     if (!Array.isArray(transactions) || transactions.length > 20_000 || !transactions.every(isTransaction)) {
       throw new HttpError(400, 'Expected statement transactions')
     }
+    const text = (value: unknown, length: number) =>
+      typeof value === 'string' && value.length > 0 && value.length <= length ? value : undefined
     await saveTransactions(
       transactions.map((item) => ({
         ...item,
         time: typeof item.time === 'string' && /^\d{2}:\d{2}$/.test(item.time) ? item.time : undefined,
+        bank: text(item.bank, 60),
+        bankCategory: text(item.bankCategory, 120),
         mcc: null,
         pending: Boolean(item.pending),
         source: 'statement',

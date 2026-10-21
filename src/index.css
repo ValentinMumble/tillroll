@@ -1132,8 +1132,10 @@ main {
 
 /* The overview's latest payments */
 
+/* The rows share the list's columns, so days, categories and amounts line up from one row to the next. */
 .latest ul {
   display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 180px) auto;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -1141,7 +1143,8 @@ main {
 
 .latest li {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 180px) auto;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
   align-items: center;
   gap: 10px;
   padding: 8px 0;
@@ -1170,7 +1173,7 @@ main {
 }
 
 @media (max-width: 560px) {
-  .latest li {
+  .latest ul {
     grid-template-columns: minmax(0, 1fr) auto auto;
   }
 

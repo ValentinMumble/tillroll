@@ -2,9 +2,9 @@ import type { Kind, Transaction } from './types'
 import { readZip } from './zip'
 
 /**
- * Reads a Revolut account statement (in the app: the account, ···, Statement, Excel or CSV), as CSV or as an Excel
- * workbook. Columns: Type, Product, Started Date, Completed Date, Description, Amount, Fee, Currency, State, Balance.
- * Everything happens in the browser.
+ * Reads a bank statement, in the browser. A Revolut account statement (in the app: the account, ···, Statement,
+ * Excel or CSV), as CSV or as an Excel workbook: Type, Product, Started Date, Completed Date, Description, Amount,
+ * Fee, Currency, State, Balance. Or Crédit Coopératif's CSV export (see fromCreditCooperatif).
  */
 
 const COLUMNS = {
@@ -155,9 +155,103 @@ function hash(text: string) {
   return (4294967296 * (2097151 & second) + (first >>> 0)).toString(36)
 }
 
+/** Crédit Coopératif's columns, and its kinds of operation. */
+const CREDIT_COOPERATIF = {
+  booked: 'date de comptabilisation',
+  label: 'libelle simplifie',
+  operation: 'libelle operation',
+  reference: 'reference',
+  type: 'type operation',
+  category: 'categorie',
+  subcategory: 'sous categorie',
+  debit: 'debit',
+  credit: 'credit',
+  date: 'date operation',
+}
+
+const CREDIT_COOPERATIF_KINDS: Record<string, Kind> = {
+  virement: 'transfer',
+  'virement recu': 'income',
+  prelevement: 'card',
+  cheque: 'card',
+  'frais bancaires': 'fee',
+  "retrait d'especes": 'atm',
+  "depot d'especes": 'income',
+}
+
+/** The last day of the month before a day. */
+function monthBefore(date: string) {
+  return new Date(Date.UTC(Number(date.slice(0, 4)), Number(date.slice(5, 7)) - 1, 0)).toISOString().slice(0, 10)
+}
+
+/**
+ * Crédit Coopératif's CSV export: one line per booked operation, a Debit and a Credit column, and the bank's own
+ * category. Card payments are not listed one by one: a deferred debit at the start of each month pays the card's
+ * payments of the month before, so it becomes one payment on that month's last day ("Carte ...7497 (débit
+ * différé)"). Card refunds do come one by one.
+ */
+function fromCreditCooperatif(rows: string[][], headerIndex: number): Transaction[] {
+  const header = rows[headerIndex].map(plain)
+  const column = Object.fromEntries(
+    Object.entries(CREDIT_COOPERATIF).map(([name, title]) => [name, header.indexOf(title)]),
+  ) as Record<keyof typeof CREDIT_COOPERATIF, number>
+  const cell = (row: string[], name: keyof typeof CREDIT_COOPERATIF) =>
+    column[name] >= 0 ? (row[column[name]] ?? '').trim() : ''
+  const seen = new Map<string, number>()
+  const transactions: Transaction[] = []
+  for (const row of rows.slice(headerIndex + 1)) {
+    const booked = parseDate(cell(row, 'booked'))
+    const amount = Math.round((parseAmount(cell(row, 'debit')) || parseAmount(cell(row, 'credit'))) * 100) / 100
+    if (!booked || !amount) continue
+    const type = plain(cell(row, 'type'))
+    const subcategory = plain(cell(row, 'subcategory'))
+    // The operation's label words it like the bank sync ("PRLV BPCE Vie", "VIR SEPA AKENEO"): rules and merges made on
+    // synced stores then hold for the statement's months too.
+    const label = cell(row, 'operation') || cell(row, 'label') || 'Unknown'
+    const deferred = subcategory === 'transaction differee'
+    let kind: Kind =
+      type === 'carte bancaire' ? (amount < 0 ? 'card' : 'refund') : (CREDIT_COOPERATIF_KINDS[type] ?? 'card')
+    if (subcategory === 'remboursements de soins') kind = 'refund'
+    if (subcategory === 'virement interne') kind = 'transfer'
+    const card = /\.{3}\d+/.exec(cell(row, 'label'))?.[0]
+    const description = deferred ? `Carte ${card ? `${card} ` : ''}(débit différé)` : label
+    const base = [
+      cell(row, 'booked'),
+      cell(row, 'date'),
+      amount,
+      label,
+      cell(row, 'operation'),
+      cell(row, 'reference'),
+    ].join('|')
+    const occurrence = seen.get(base) ?? 0
+    seen.set(base, occurrence + 1)
+    transactions.push({
+      id: `statement:${hash(`creditcoop|${base}|${occurrence}`)}`,
+      date: deferred ? monthBefore(booked) : (parseDate(cell(row, 'date')) ?? booked),
+      amount,
+      currency: 'EUR',
+      description,
+      kind,
+      mcc: null,
+      pending: false,
+      source: 'statement',
+      bank: 'Crédit Coopératif',
+      bankCategory: [cell(row, 'category'), cell(row, 'subcategory')].filter(Boolean).join(' > '),
+    })
+  }
+  if (!transactions.length) throw new Error('No transactions found in this file')
+  return transactions
+}
+
 function fromRows(rows: string[][]): Transaction[] {
+  const creditCooperatif = rows.findIndex((row) => row.some((cell) => plain(cell) === CREDIT_COOPERATIF.label))
+  if (creditCooperatif >= 0) return fromCreditCooperatif(rows, creditCooperatif)
   const headerIndex = rows.findIndex((row) => row.some((cell) => plain(cell) === 'description'))
-  if (headerIndex < 0) throw new Error('This file does not look like a Revolut statement: it has no Description column')
+  if (headerIndex < 0) {
+    throw new Error(
+      'This file does not look like a Revolut or Crédit Coopératif statement: it has no Description column',
+    )
+  }
   const header = rows[headerIndex].map(plain)
   const column = Object.fromEntries(
     Object.entries(COLUMNS).map(([name, aliases]) => [name, header.findIndex((cell) => aliases.includes(cell))]),
@@ -210,7 +304,17 @@ function fromRows(rows: string[][]): Transaction[] {
   return transactions
 }
 
+/** A CSV file's text: UTF-8, or Windows-1252 as French banks export it ("N°", accents). */
+async function readText(file: Blob) {
+  const bytes = await file.arrayBuffer()
+  try {
+    return new TextDecoder('utf-8', { fatal: true }).decode(bytes)
+  } catch {
+    return new TextDecoder('windows-1252').decode(bytes)
+  }
+}
+
 export async function readStatement(file: File) {
   const isWorkbook = /\.xlsx$/i.test(file.name) || file.type.includes('spreadsheetml')
-  return fromRows(isWorkbook ? await xlsxRows(file) : csvRows(await file.text()))
+  return fromRows(isWorkbook ? await xlsxRows(file) : csvRows(await readText(file)))
 }

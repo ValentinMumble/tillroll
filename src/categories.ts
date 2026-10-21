@@ -185,9 +185,12 @@ export const UNSURE: Basis[] = ['none', 'broad-code', 'transfer']
 /** A Revolut account or pocket in another currency, or the same one: "To EUR Sous", "From SEK". */
 const CURRENCY_ACCOUNT = /^(to|from) (EUR|USD|GBP|SEK|NOK|DKK|CHF|PLN|CZK|HUF|RON|JPY|CAD|AUD)\b/i
 
+/** Health costs paid back by the state or a mutual insurer: refunds of health spending. */
+const HEALTH_REFUND = /\bcpam\b|\bameli\b|mutuelle|gerep|groupe europeen retrai|harmonie mutuelle|\bmgen\b/i
+
 /** Savings, pockets, a top-up from one's own card: money that stays one's own. */
 const OWN_TEXT =
-  /\b(pockets?|vault|savings?|coffre|flexible (cash funds|account)|instant access)\b|[ée]pargne|^top-?up by\b/i
+  /\b(pockets?|vault|savings?|coffre|flexible (cash funds|account)|instant access|livret|ldds?|lep)\b|[ée]pargne|^top-?up by\b/i
 
 const wordsOf = (text: string) =>
   text
@@ -196,19 +199,67 @@ const wordsOf = (text: string) =>
     .toLowerCase()
     .match(/[a-z]+/g) ?? []
 
+/** Words around a name in a bank text: "Virement vers M ...", "Payment from ...". */
+const FILLERS = new Set([
+  'virement',
+  'vir',
+  'vers',
+  'de',
+  'du',
+  'from',
+  'to',
+  'payment',
+  'transfer',
+  'sepa',
+  'instantane',
+  'm',
+  'mr',
+  'mme',
+  'monsieur',
+  'madame',
+])
+
 /**
  * The bank text names the account holder: every word of one of their names, in any order, maybe cut short by the
  * bank ("Payment from DIJKSTRA VALENTI", "M DIJKSTRA VALENTIN"). A name needs two words, so "Main" never matches.
+ * One more word is fine (a middle name, "Revolut"); two are someone else's name too, as on a joint account.
  */
 export function namesMe(text: string, me: string[]) {
   const said = wordsOf(text)
   return me.some((name) => {
     const parts = wordsOf(name).filter((part) => part.length >= 3)
-    return (
-      parts.length >= 2 &&
-      parts.every((part) => said.some((word) => word === part || (word.length >= 5 && part.startsWith(word))))
-    )
+    if (parts.length < 2) return false
+    const found = parts.map((part) => said.find((word) => word === part || (word.length >= 5 && part.startsWith(word))))
+    if (found.some((word) => !word)) return false
+    return said.filter((word) => !found.includes(word) && !FILLERS.has(word)).length <= 1
   })
+}
+
+/**
+ * The bank's own categories (Crédit Coopératif's statement), a clue when the store name gives none: the most precise
+ * one first. A broad one leaves the store to sort. Written in plain words, as `wordsOf` gives them.
+ */
+const BANK_CATEGORIES: Record<string, { category: BuiltInCategory; basis: Basis }> = {
+  'virement interne': { category: 'own', basis: 'kind' },
+  'internet et telephonie': { category: 'bills', basis: 'code' },
+  'frais bancaires': { category: 'bills', basis: 'code' },
+  'remboursements de soins': { category: 'health', basis: 'code' },
+  'transports en commun': { category: 'transport', basis: 'code' },
+  'livres magazines': { category: 'fun', basis: 'code' },
+  'video musique et jeux': { category: 'fun', basis: 'code' },
+  salaires: { category: 'income', basis: 'kind' },
+  alimentation: { category: 'groceries', basis: 'code' },
+  sante: { category: 'health', basis: 'code' },
+  transports: { category: 'transport', basis: 'code' },
+  'shopping et services': { category: 'shopping', basis: 'broad-code' },
+  'loisirs et vacances': { category: 'fun', basis: 'broad-code' },
+  'logement maison': { category: 'home', basis: 'broad-code' },
+  'banque et assurances': { category: 'bills', basis: 'broad-code' },
+}
+
+function bankHint({ bankCategory }: Transaction) {
+  const names = bankCategory?.split(' > ').reverse() ?? []
+  return names.map((name) => BANK_CATEGORIES[wordsOf(name).join(' ')]).find(Boolean)
 }
 
 /**
@@ -219,7 +270,9 @@ export function guessWithBasis(
   transaction: Transaction,
   me: string[] = [],
 ): { category: BuiltInCategory; basis: Basis } {
-  const { kind, description, mcc } = transaction
+  const { description, mcc } = transaction
+  // Some banks give a transfer out no account on the other side, so it reads as a card payment: "VIR SEPA ...".
+  const kind = transaction.kind === 'card' && /^vir(ement)?\b/i.test(description) ? 'transfer' : transaction.kind
   if (kind === 'topup' || kind === 'exchange') return { category: 'own', basis: 'kind' }
   // Interest paid on savings is money in, even when the savings name it.
   const own =
@@ -227,10 +280,15 @@ export function guessWithBasis(
     CURRENCY_ACCOUNT.test(description) ||
     namesMe(description, me)
   if (kind !== 'card' && kind !== 'refund' && own) return { category: 'own', basis: 'kind' }
+  const hint = bankHint(transaction)
+  if (hint?.category === 'own') return hint
+  if (transaction.amount > 0 && HEALTH_REFUND.test(description)) return { category: 'health', basis: 'keyword' }
   if (kind === 'income') return { category: 'income', basis: 'kind' }
   if (kind === 'atm') return { category: 'cash', basis: 'kind' }
   const keyword = KEYWORDS.find(([, pattern]) => pattern.test(description))
-  if (keyword) return { category: keyword[0], basis: 'keyword' }
+  // A store's word in a transfer may be a person's name (Leclerc): worth a look.
+  if (keyword) return { category: keyword[0], basis: kind === 'transfer' ? 'transfer' : 'keyword' }
+  if (hint) return hint
   // A transfer to someone may be rent, a gift or a shared bill.
   if (kind === 'transfer') return { category: 'transfers', basis: 'transfer' }
   if (kind === 'fee') return { category: 'bills', basis: 'kind' }
@@ -254,6 +312,10 @@ export function categoryOf(
 ): { category: CategoryKey; basis: Basis } {
   const picked = rules[key]
   if (!picked || !categories.byKey[picked]) return guessWithBasis(transaction, me)
+  // Money in that is no refund (a salary, a sale) stays money in, from a store filed under spending too.
+  if (categories.byKey[picked].spending && transaction.amount > 0 && transaction.kind === 'income') {
+    return guessWithBasis(transaction, me)
+  }
   // Transfers picked by hand are to other people: one between one's own accounts (a pocket, oneself) stays apart.
   if (picked === 'transfers' && guessWithBasis(transaction, me).category === 'own') {
     return { category: 'own', basis: 'picked' }

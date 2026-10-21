@@ -18,8 +18,10 @@ export interface Transaction {
   mcc: string | null
   pending: boolean
   source: 'bank' | 'statement' | 'sample'
-  /** The bank a synced payment comes from (Revolut, Crédit Coopératif...); older synced rows have none: Revolut. */
+  /** The bank a payment comes from (Revolut, Crédit Coopératif...); older rows have none: Revolut. */
   bank?: string
+  /** The bank's own category, from most general to most precise ("Logement - maison > Internet et telephonie"). */
+  bankCategory?: string
 }
 
 /** A built-in category's key, or "custom-..." for one added by hand. */
