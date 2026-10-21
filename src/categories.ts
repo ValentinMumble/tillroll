@@ -17,9 +17,17 @@ export const BUILT_IN: Category[] = [
   { key: 'home', label: 'Home and rent', icon: '🏠', spending: true, custom: false },
   { key: 'cash', label: 'Cash', icon: '🏧', spending: true, custom: false },
   { key: 'other', label: 'Other', icon: '📦', spending: true, custom: false },
-  { key: 'transfers', label: 'Transfers and savings', icon: '↔️', spending: false, custom: false },
+  { key: 'transfers', label: 'Transfers', icon: '↔️', spending: false, custom: false },
+  { key: 'own', label: 'Between my accounts', icon: '🔁', spending: false, custom: false },
   { key: 'income', label: 'Money in', icon: '💶', spending: false, custom: false },
+  { key: 'ignored', label: 'Ignored', icon: '🙈', spending: false, custom: false },
 ]
+
+/**
+ * Left out of every total, spending and money in or out alike: money moved between one's own accounts (savings,
+ * pockets, top-ups, another bank), and payments ignored by hand.
+ */
+export const LEFT_OUT: CategoryKey[] = ['own', 'ignored']
 
 /** The icon a new category gets when none is picked. */
 export const DEFAULT_ICON = '🏷️'
@@ -174,21 +182,57 @@ export type Basis = 'picked' | 'kind' | 'keyword' | 'code' | 'broad-code' | 'tra
 /** The guesses worth a look by hand (see the sorting deck). */
 export const UNSURE: Basis[] = ['none', 'broad-code', 'transfer']
 
-/** The category Tillroll guesses, from the kind of movement, the store name and the merchant code. */
-export function guessWithBasis(transaction: Transaction): { category: BuiltInCategory; basis: Basis } {
+/** A Revolut account or pocket in another currency, or the same one: "To EUR Sous", "From SEK". */
+const CURRENCY_ACCOUNT = /^(to|from) (EUR|USD|GBP|SEK|NOK|DKK|CHF|PLN|CZK|HUF|RON|JPY|CAD|AUD)\b/i
+
+/** Savings, pockets, a top-up from one's own card: money that stays one's own. */
+const OWN_TEXT =
+  /\b(pockets?|vault|savings?|coffre|flexible (cash funds|account)|instant access)\b|[ée]pargne|^top-?up by\b/i
+
+const wordsOf = (text: string) =>
+  text
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .match(/[a-z]+/g) ?? []
+
+/**
+ * The bank text names the account holder: every word of one of their names, in any order, maybe cut short by the
+ * bank ("Payment from DIJKSTRA VALENTI", "M DIJKSTRA VALENTIN"). A name needs two words, so "Main" never matches.
+ */
+export function namesMe(text: string, me: string[]) {
+  const said = wordsOf(text)
+  return me.some((name) => {
+    const parts = wordsOf(name).filter((part) => part.length >= 3)
+    return (
+      parts.length >= 2 &&
+      parts.every((part) => said.some((word) => word === part || (word.length >= 5 && part.startsWith(word))))
+    )
+  })
+}
+
+/**
+ * The category Tillroll guesses, from the kind of movement, the store name and the merchant code. `me` holds the
+ * account holder's names (the bank accounts' names), for the transfers to and from oneself.
+ */
+export function guessWithBasis(
+  transaction: Transaction,
+  me: string[] = [],
+): { category: BuiltInCategory; basis: Basis } {
   const { kind, description, mcc } = transaction
+  if (kind === 'topup' || kind === 'exchange') return { category: 'own', basis: 'kind' }
+  // Interest paid on savings is money in, even when the savings name it.
+  const own =
+    (OWN_TEXT.test(description) && !/\binterest\b|int[ée]r[êe]ts/i.test(description)) ||
+    CURRENCY_ACCOUNT.test(description) ||
+    namesMe(description, me)
+  if (kind !== 'card' && kind !== 'refund' && own) return { category: 'own', basis: 'kind' }
   if (kind === 'income') return { category: 'income', basis: 'kind' }
-  if (kind === 'topup' || kind === 'exchange') return { category: 'transfers', basis: 'kind' }
   if (kind === 'atm') return { category: 'cash', basis: 'kind' }
   const keyword = KEYWORDS.find(([, pattern]) => pattern.test(description))
   if (keyword) return { category: keyword[0], basis: 'keyword' }
-  // Money moved to one's own savings is sure; a transfer to someone may be rent, a gift or a shared bill.
-  if (kind === 'transfer') {
-    return {
-      category: 'transfers',
-      basis: /savings|vault|pocket|coffre|[ée]pargne/i.test(description) ? 'kind' : 'transfer',
-    }
-  }
+  // A transfer to someone may be rent, a gift or a shared bill.
+  if (kind === 'transfer') return { category: 'transfers', basis: 'transfer' }
   if (kind === 'fee') return { category: 'bills', basis: 'kind' }
   const code = Number(mcc)
   const range = mcc ? MCC_RANGES.find(([from, to]) => code >= from && code <= to) : undefined
@@ -196,8 +240,8 @@ export function guessWithBasis(transaction: Transaction): { category: BuiltInCat
   return { category: range[2], basis: range === MCC_RANGES.at(-1) ? 'broad-code' : 'code' }
 }
 
-export function guessCategory(transaction: Transaction) {
-  return guessWithBasis(transaction).category
+export function guessCategory(transaction: Transaction, me: string[] = []) {
+  return guessWithBasis(transaction, me).category
 }
 
 /** The category picked by hand for the store, if it still exists, or the guess; and what it comes from. */
@@ -206,7 +250,13 @@ export function categoryOf(
   key: string,
   rules: Rules,
   categories: Categories,
+  me: string[] = [],
 ): { category: CategoryKey; basis: Basis } {
   const picked = rules[key]
-  return picked && categories.byKey[picked] ? { category: picked, basis: 'picked' } : guessWithBasis(transaction)
+  if (!picked || !categories.byKey[picked]) return guessWithBasis(transaction, me)
+  // Transfers picked by hand are to other people: one between one's own accounts (a pocket, oneself) stays apart.
+  if (picked === 'transfers' && guessWithBasis(transaction, me).category === 'own') {
+    return { category: 'own', basis: 'picked' }
+  }
+  return { category: picked, basis: 'picked' }
 }

@@ -97,7 +97,8 @@ export function Payments({
   const words = plain(query).split(/\s+/).filter(Boolean)
   const visible = rows
     .filter((row) => {
-      if (!everything && !row.counts) return false
+      // A category picked in the filter shows its payments, even the ones that are not spending.
+      if (!everything && !row.counts && focus?.type !== 'category') return false
       if (focus?.type === 'category' && row.category !== focus.key) return false
       if (focus?.type === 'label' && !row.labels.some((label) => label.toLowerCase() === focus.key.toLowerCase())) {
         return false
@@ -113,8 +114,11 @@ export function Payments({
   const currency = rows[0]?.currency ?? 'EUR'
   const spent = visible.reduce((sum, row) => sum + row.spend, 0)
   const paid = visible.filter((row) => row.spend > 0).length
-  const movedOut = visible.reduce((sum, row) => sum + (!row.counts && row.amount < 0 ? -row.amount : 0), 0)
-  const cameIn = visible.reduce((sum, row) => sum + (!row.counts && row.amount > 0 ? row.amount : 0), 0)
+  const movedOut = visible.reduce(
+    (sum, row) => sum + (!row.counts && !row.leftOut && row.amount < 0 ? -row.amount : 0),
+    0,
+  )
+  const cameIn = visible.reduce((sum, row) => sum + (!row.counts && !row.leftOut && row.amount > 0 ? row.amount : 0), 0)
   const page = visible.slice(0, limit)
   // A time column only when some payments listed have a time (statements give one, the bank sync does not).
   const withTimes = page.some((row) => row.time)
@@ -124,14 +128,13 @@ export function Payments({
   const dayCounts = new Map<string, number>()
   for (const row of visible) {
     dayCounts.set(row.date, (dayCounts.get(row.date) ?? 0) + 1)
-    if (row.amount < 0) dayTotals.set(row.date, (dayTotals.get(row.date) ?? 0) - row.amount)
+    if (row.amount < 0 && !row.leftOut) dayTotals.set(row.date, (dayTotals.get(row.date) ?? 0) - row.amount)
   }
-  // The categories in the list as it stands before the category filter, with their number of payments.
+  // Every category with payments, with their number: picking one shows them all.
   const categoryCounts = new Map<CategoryKey, number>()
-  for (const row of rows) {
-    if (everything || row.counts) categoryCounts.set(row.category, (categoryCounts.get(row.category) ?? 0) + 1)
-  }
+  for (const row of rows) categoryCounts.set(row.category, (categoryCounts.get(row.category) ?? 0) + 1)
   const selection = visible.filter((row) => picked.has(row.id))
+  const allIgnored = selection.length > 0 && selection.every((row) => row.category === 'ignored')
   const allPicked = visible.length > 0 && selection.length === visible.length
 
   /** A new sort starts its own way; the same one again turns it around. */
@@ -313,7 +316,10 @@ export function Payments({
                     </td>
                   </tr>
                 ),
-                <tr key={row.id} className={`${row.counts ? '' : 'is-muted'}${picked.has(row.id) ? ' is-picked' : ''}`}>
+                <tr
+                  key={row.id}
+                  className={`${row.counts && row.spend !== 0 ? '' : 'is-muted'}${picked.has(row.id) ? ' is-picked' : ''}`}
+                >
                   <td className="payment-pick">
                     <input
                       type="checkbox"
@@ -341,6 +347,24 @@ export function Payments({
                     </button>
                     <WebSearch name={row.store} />
                     {row.pending && <span className="tag">pending</span>}
+                    {row.refundOf && (
+                      <span className="tag is-refund" title="This payment costs that much less instead">
+                        refund of {dayLabel(row.refundOf.date, withYears)}
+                      </span>
+                    )}
+                    {row.refund && !row.refundOf && (
+                      <span
+                        className="tag is-refund"
+                        title="No payment found for it: it lowers the spending of its own week and month"
+                      >
+                        refund
+                      </span>
+                    )}
+                    {row.refunded > 0 && (
+                      <span className="tag is-refund">
+                        {row.spend === 0 ? 'refunded' : `${money(row.refunded, row.currency, true)} refunded`}
+                      </span>
+                    )}
                     {row.labels.map((label) => (
                       <span key={label} className="label-chip">
                         <button
@@ -462,6 +486,14 @@ export function Payments({
           </span>
           <button type="button" className="button" onClick={() => setSheet(selection)}>
             Set category
+          </button>
+          <button
+            type="button"
+            className="button is-quiet"
+            title={allIgnored ? 'Back to their usual category' : 'Leave them out of every total'}
+            onClick={() => onCategorize(selection, allIgnored ? null : 'ignored', 'payment')}
+          >
+            {allIgnored ? 'Count again' : 'Ignore'}
           </button>
           <form
             className="selection-label"

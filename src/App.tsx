@@ -236,6 +236,8 @@ export default function App() {
       merges: data.merges,
       labels: data.labels,
       paymentCategories: data.paymentCategories,
+      // A bank account is named after its holder: transfers naming them are between their own accounts.
+      me: data.connections.flatMap((connection) => connection.accounts.map((account) => account.name)),
     })
   }, [data, categories])
 

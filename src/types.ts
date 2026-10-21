@@ -38,7 +38,9 @@ export type BuiltInCategory =
   | 'cash'
   | 'other'
   | 'transfers'
+  | 'own'
   | 'income'
+  | 'ignored'
 
 /** The category picked by hand for a store or payee, by store key (see src/stores.ts). */
 export type Rules = Record<string, CategoryKey>

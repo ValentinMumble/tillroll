@@ -40,6 +40,22 @@ under one name (the store it was opened from keeps its name, and the merge keeps
 payments first: merge them, or mark them "not the same" and they never come back. A rename is a merge into the new
 name, so both can be undone; renaming a store to another store's name asks first.
 
+**Refunds** are money back from a store: the bank calls it a refund, or it is exactly what a card payment there cost.
+Each one is matched with the payment it gives back (the latest one at that store in the 180 days before, the same
+amount first), and that payment then costs what is left, in its own week and month: a flight refunded in April makes
+March cheaper, not April. Payments shows "refund of 12 Mar" on the refund and "refunded" on the payment. A refund with
+no payment found lowers the spending of the week it came in.
+
+**Left out of every total**, spending and money in or out alike:
+
+- **Between my accounts**: pockets, savings, top-ups, currency exchanges, and transfers that name the account holder
+  (the synced accounts' names, "Valentin Dijkstra", also cut short by the bank as "DIJKSTRA VALENTI"). With two banks
+  connected, the other side of such a move (the same amount the other way at the other bank, up to 3 days apart) goes
+  there too, like a card payment to Revolut from the other bank. A payee put in Transfers by hand still goes there for
+  those payments: Transfers is for money sent to other people.
+- **Ignored**: tick payments in Payments and press Ignore (Count again undoes it), or pick Ignored as a category, for
+  a store or one payment: a deposit, a purchase made for someone who paid it back.
+
 **Labels** go on single payments: the # next to a booked payment adds one (with the labels already in use offered). A
 pending payment gets a new id once the bank books it, so it has no #. The owner's choices are kept in the site store,
 so they follow to every device; a visitor's stay in their browser.

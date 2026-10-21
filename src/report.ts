@@ -1,4 +1,4 @@
-import { type Basis, type Categories, categoryOf, guessCategory, UNSURE } from './categories'
+import { type Basis, type Categories, categoryOf, guessCategory, LEFT_OUT, UNSURE } from './categories'
 import { money } from './format'
 import {
   addDays,
@@ -29,8 +29,19 @@ export interface Row extends Transaction {
   basis: Basis
   /** The category counts as spending. */
   counts: boolean
-  /** What the row adds to the spending: the amount turned positive, negative for a refund, 0 when not spending. */
+  /**
+   * What the row adds to the spending: the amount turned positive, less what came back in refunds; negative for a
+   * refund matched with no payment; 0 for a matched refund (its payment costs less instead), or when not spending.
+   */
   spend: number
+  /** Left out of every total, money in and out too: between one's own accounts, or ignored by hand. */
+  leftOut: boolean
+  /** Money back from a store, matched with a payment or not. */
+  refund: boolean
+  /** For a matched refund: the payment it gives back. */
+  refundOf: { id: string; date: string } | null
+  /** For a payment: how much of it came back in refunds. */
+  refunded: number
   /** Labels put on it by hand. */
   labels: string[]
   /** Its category was picked for this payment only, over its store's. */
@@ -44,51 +55,149 @@ export interface Sorting {
   merges: Merges
   labels: Labels
   paymentCategories: PaymentCategories
+  /** The account holder's names (the bank accounts' names), for transfers to and from oneself. */
+  me?: string[]
+}
+
+/** A refund is matched with a payment made at most this many days before it. */
+const REFUND_DAYS = 180
+/** Money moved between one's own accounts at two banks leaves one and reaches the other this many days apart at most. */
+const TRANSFER_DAYS = 3
+
+const bankOf = (row: Row) => row.bank ?? 'Revolut'
+const cents = (amount: number) => Math.round(Math.abs(amount) * 100)
+
+/**
+ * Money between one's own accounts at two banks shows on both. The side that says so (a top-up, one's own name)
+ * makes the other one, the same amount the other way at another bank a few days apart, a move between one's
+ * accounts too: a card payment to Revolut from the other bank, say. A category picked by hand stays.
+ */
+function linkOwnTransfers(rows: Row[]) {
+  if (new Set(rows.map(bankOf)).size < 2) return
+  const open = new Map<string, Row[]>()
+  for (const row of rows) {
+    if (row.category === 'own' || row.basis === 'picked') continue
+    const key = `${row.currency}|${cents(row.amount)}`
+    const list = open.get(key) ?? []
+    list.push(row)
+    open.set(key, list)
+  }
+  for (const own of rows) {
+    if (own.category !== 'own') continue
+    const candidates = open.get(`${own.currency}|${cents(own.amount)}`) ?? []
+    const other = candidates.find(
+      (row) =>
+        Math.sign(row.amount) !== Math.sign(own.amount) &&
+        bankOf(row) !== bankOf(own) &&
+        Math.abs(Date.parse(row.date) - Date.parse(own.date)) <= TRANSFER_DAYS * 86_400_000,
+    )
+    if (!other) continue
+    other.category = 'own'
+    other.basis = 'kind'
+    candidates.splice(candidates.indexOf(other), 1)
+  }
+}
+
+/**
+ * Refunds: money back from a store. The bank says it is one, or a category that counts as spending was picked for
+ * it; money in of exactly what a card payment at the same store cost counts too. Oldest first, each refund is
+ * matched with the payment it gives back: the latest one at that store in the 180 days before, with that much not
+ * given back yet, the same amount first. That payment then costs what is left, in its own week and month.
+ */
+function matchRefunds(rows: Row[], categories: Categories) {
+  const spends = (row: Row) => Boolean(categories.byKey[row.category]?.spending) && !LEFT_OUT.includes(row.category)
+  const payments = new Map<string, Row[]>()
+  for (const row of rows) {
+    if (row.amount >= 0 || row.pending || !spends(row)) continue
+    const key = `${row.currency}|${row.storeKey}`
+    const list = payments.get(key) ?? []
+    list.push(row)
+    payments.set(key, list)
+  }
+  for (const list of payments.values()) list.sort((first, second) => (first.date < second.date ? -1 : 1))
+  const credits = rows
+    .filter((row) => row.amount > 0 && !LEFT_OUT.includes(row.category))
+    .sort((first, second) => (first.date < second.date ? -1 : 1))
+  for (const credit of credits) {
+    const sure = credit.kind === 'refund' || spends(credit)
+    if (!sure && credit.kind !== 'income') continue
+    const since = addDays(credit.date, -REFUND_DAYS)
+    const left = (row: Row) => -row.amount - row.refunded
+    const open = (payments.get(`${credit.currency}|${credit.storeKey}`) ?? []).filter(
+      (row) =>
+        row.date <= credit.date &&
+        row.date >= since &&
+        left(row) >= credit.amount - 0.005 &&
+        // Money in that the bank does not call a refund only matches a card payment: a person paying back is no store.
+        (sure || row.kind === 'card'),
+    )
+    const exact = open.filter((row) => Math.abs(left(row) - credit.amount) < 0.005).at(-1)
+    const payment = exact ?? (sure ? open.at(-1) : undefined)
+    if (!payment) {
+      credit.refund = sure
+      continue
+    }
+    payment.refunded += credit.amount
+    credit.refund = true
+    credit.refundOf = { id: payment.id, date: payment.date }
+    if (!credit.ownCategory) {
+      credit.category = payment.category
+      credit.basis = payment.basis === 'picked' ? 'picked' : 'kind'
+    }
+  }
 }
 
 export function toRows(
   transactions: Transaction[],
-  { rules, categories, merges, labels, paymentCategories }: Sorting,
+  { rules, categories, merges, labels, paymentCategories, me = [] }: Sorting,
 ): Row[] {
-  return transactions
-    .map((transaction) => {
-      const ownStore = storeName(transaction.description)
-      const ownStoreKey = storeKey(ownStore)
-      let store = ownStore
-      let key = ownStoreKey
-      // A merged store takes the name of the one it is part of (a few steps at most: A into B into C). A store
-      // renamed keeps its key when only the capitals change ("Edf" to "EDF").
-      for (let step = 0; step < 5 && merges[key]; step += 1) {
-        store = merges[key]
-        const next = storeKey(store)
-        if (next === key) break
-        key = next
-      }
-      // A category picked for this payment wins over its store's.
-      const own = paymentCategories[transaction.id]
-      const ownCategory = Boolean(own && categories.byKey[own])
-      const { category, basis } = ownCategory
-        ? { category: own, basis: 'picked' as const }
-        : categoryOf(transaction, key, rules, categories)
-      const counts = categories.byKey[category].spending
-      const spend = counts ? -transaction.amount : 0
-      const guessed = guessCategory(transaction)
-      return {
-        ...transaction,
-        store,
-        storeKey: key,
-        ownStore,
-        ownStoreKey,
-        category,
-        basis,
-        guessed,
-        counts,
-        spend,
-        labels: labels[transaction.id] ?? [],
-        ownCategory,
-      }
-    })
-    .sort((first, second) => (first.date < second.date ? 1 : first.date > second.date ? -1 : 0))
+  const rows: Row[] = transactions.map((transaction) => {
+    const ownStore = storeName(transaction.description)
+    const ownStoreKey = storeKey(ownStore)
+    let store = ownStore
+    let key = ownStoreKey
+    // A merged store takes the name of the one it is part of (a few steps at most: A into B into C). A store
+    // renamed keeps its key when only the capitals change ("Edf" to "EDF").
+    for (let step = 0; step < 5 && merges[key]; step += 1) {
+      store = merges[key]
+      const next = storeKey(store)
+      if (next === key) break
+      key = next
+    }
+    // A category picked for this payment wins over its store's.
+    const own = paymentCategories[transaction.id]
+    const ownCategory = Boolean(own && categories.byKey[own])
+    const { category, basis } = ownCategory
+      ? { category: own, basis: 'picked' as const }
+      : categoryOf(transaction, key, rules, categories, me)
+    return {
+      ...transaction,
+      store,
+      storeKey: key,
+      ownStore,
+      ownStoreKey,
+      category,
+      basis,
+      guessed: guessCategory(transaction, me),
+      // Set below, once own transfers and refunds are known.
+      counts: false,
+      spend: 0,
+      leftOut: false,
+      refund: false,
+      refundOf: null,
+      refunded: 0,
+      labels: labels[transaction.id] ?? [],
+      ownCategory,
+    }
+  })
+  linkOwnTransfers(rows)
+  matchRefunds(rows, categories)
+  for (const row of rows) {
+    row.leftOut = LEFT_OUT.includes(row.category)
+    row.counts = !row.leftOut && categories.byKey[row.category].spending
+    row.spend = !row.counts || row.refundOf ? 0 : -row.amount - row.refunded
+  }
+  return rows.sort((first, second) => (first.date < second.date ? 1 : first.date > second.date ? -1 : 0))
 }
 
 export interface StoreTotal {
@@ -113,11 +222,14 @@ export interface Totals {
 function totalsOf(rows: Row[]): Totals {
   const totals: Totals = { total: 0, payments: 0, categories: new Map(), stores: new Map(), movedOut: 0, moneyIn: 0 }
   for (const row of rows) {
+    if (row.leftOut) continue
     if (!row.counts) {
       if (row.amount < 0) totals.movedOut -= row.amount
       else totals.moneyIn += row.amount
       continue
     }
+    // A matched refund, or a payment given back in full: nothing to add.
+    if (row.spend === 0) continue
     totals.total += row.spend
     if (row.spend > 0) totals.payments += 1
     totals.categories.set(row.category, (totals.categories.get(row.category) ?? 0) + row.spend)

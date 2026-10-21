@@ -1482,6 +1482,10 @@ main {
   letter-spacing: 0.04em;
 }
 
+.tag.is-refund {
+  color: var(--down);
+}
+
 .payments > .link-button {
   margin-top: 12px;
 }

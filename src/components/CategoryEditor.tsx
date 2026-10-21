@@ -1,5 +1,13 @@
 import { useState } from 'react'
-import { BUILT_IN, type Categories, type Category, DEFAULT_ICON, newCategoryKey, oneIcon } from '../categories'
+import {
+  BUILT_IN,
+  type Categories,
+  type Category,
+  DEFAULT_ICON,
+  LEFT_OUT,
+  newCategoryKey,
+  oneIcon,
+} from '../categories'
 import type { CategoryKey } from '../types'
 import { useDialog } from '../useDialog'
 
@@ -129,7 +137,9 @@ export function CategoryEditor({ categories, forStore, onSave, onClose }: Props)
             <label className="check">
               <input
                 type="checkbox"
-                checked={category.spending}
+                checked={category.spending && !LEFT_OUT.includes(category.key)}
+                // Money between one's accounts and ignored payments stay out of every total.
+                disabled={LEFT_OUT.includes(category.key)}
                 onChange={(event) => update(category.key, { spending: event.target.checked })}
               />
               Counts as spending
