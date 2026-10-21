@@ -1,74 +1,74 @@
-import { useState } from 'react'
-import type { Categories } from '../categories'
-import { money } from '../format'
-import { tidyLabel, withLabel } from '../labels'
-import { dayLabel, today, weekdayLabel } from '../periods'
-import type { Row } from '../report'
+import {useState} from 'react';
+import type {Categories} from '../categories';
+import {money} from '../format';
+import {tidyLabel, withLabel} from '../labels';
+import {dayLabel, today, weekdayLabel} from '../periods';
+import type {Row} from '../report';
 import {
   loadPaymentSort,
   loadPaymentsEverything,
   type PaymentSort,
   savePaymentSort,
   savePaymentsEverything,
-} from '../storage'
-import type { CategoryKey, Labels } from '../types'
-import { BankBadge } from './BankBadge'
-import type { Focus } from './Breakdown'
-import { CategorySheet, type Scope } from './CategorySheet'
-import { LabelOptions, PaymentLabels } from './PaymentLabels'
-import { WebSearch } from './WebSearch'
+} from '../storage';
+import type {CategoryKey, Labels} from '../types';
+import {BankBadge} from './BankBadge';
+import type {Focus} from './Breakdown';
+import {CategorySheet, type Scope} from './CategorySheet';
+import {LabelOptions, PaymentLabels} from './PaymentLabels';
+import {WebSearch} from './WebSearch';
 
 interface Props {
-  rows: Row[]
-  categories: Categories
-  focus: Focus | null
-  onClearFocus: () => void
+  rows: Row[];
+  categories: Categories;
+  focus: Focus | null;
+  onClearFocus: () => void;
   /** The category of some payments, for their stores or for these payments only (scope "store" or "payment"). */
-  onCategorize: (rows: Row[], category: CategoryKey | null, scope: string) => void
-  onCreateCategory: (rows: Row[], label: string, icon: string, scope: string) => void
+  onCategorize: (rows: Row[], category: CategoryKey | null, scope: string) => void;
+  onCreateCategory: (rows: Row[], label: string, icon: string, scope: string) => void;
   /** Opens the store editor on this store. */
-  onEditStore: (storeKey: string) => void
+  onEditStore: (storeKey: string) => void;
   /** Opens one store's dialog (name and category). */
-  onOpenStore: (store: { key: string; name: string }) => void
+  onOpenStore: (store: {key: string; name: string}) => void;
   /** Every label in use, offered while typing one. */
-  labelNames: string[]
+  labelNames: string[];
   /** Each changed payment's full list of labels. */
-  onLabels: (changes: Labels) => void
-  onFocusLabel: (label: string) => void
+  onLabels: (changes: Labels) => void;
+  onFocusLabel: (label: string) => void;
   /** The category filter above the list; null shows every category. */
-  onFocusCategory: (category: CategoryKey | null) => void
+  onFocusCategory: (category: CategoryKey | null) => void;
   /** The payments come from more than one bank: each shows its bank's letter. */
-  showBanks: boolean
+  showBanks: boolean;
 }
 
-const PAGE = 60
+const PAGE = 60;
 
 const plain = (text: string) =>
   text
     .normalize('NFKD')
     .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
+    .toLowerCase();
 
 /** The sort buttons, with the way each one starts: newest, biggest, A to Z. */
-const SORTS: { key: PaymentSort['key']; label: string; descending: boolean }[] = [
-  { key: 'date', label: 'Date', descending: true },
-  { key: 'amount', label: 'Amount', descending: true },
-  { key: 'store', label: 'Store', descending: false },
-]
+const SORTS: {key: PaymentSort['key']; label: string; descending: boolean}[] = [
+  {key: 'date', label: 'Date', descending: true},
+  {key: 'amount', label: 'Amount', descending: true},
+  {key: 'store', label: 'Store', descending: false},
+];
 
-function compare(first: Row, second: Row, { key, descending }: PaymentSort) {
+function compare(first: Row, second: Row, {key, descending}: PaymentSort) {
   // The day, then the time when both have one (statements give it, the bank sync does not).
-  const firstMoment = `${first.date} ${first.time ?? ''}`
-  const secondMoment = `${second.date} ${second.time ?? ''}`
-  const byDate = firstMoment < secondMoment ? -1 : firstMoment > secondMoment ? 1 : 0
+  const firstMoment = `${first.date} ${first.time ?? ''}`;
+  const secondMoment = `${second.date} ${second.time ?? ''}`;
+  const byDate = firstMoment < secondMoment ? -1 : firstMoment > secondMoment ? 1 : 0;
   const order =
     key === 'amount'
       ? Math.abs(first.amount) - Math.abs(second.amount)
       : key === 'store'
-        ? first.store.localeCompare(second.store, 'en', { sensitivity: 'base' })
-        : byDate
+        ? first.store.localeCompare(second.store, 'en', {sensitivity: 'base'})
+        : byDate;
   // Ties (same store, same amount) stay newest first.
-  return (descending ? -order : order) || -byDate
+  return (descending ? -order : order) || -byDate;
 }
 
 /**
@@ -91,104 +91,107 @@ export function Payments({
   onFocusCategory,
   showBanks,
 }: Props) {
-  const [everything, setEverything] = useState(loadPaymentsEverything)
-  const [limit, setLimit] = useState(PAGE)
-  const [sort, setSort] = useState<PaymentSort>(loadPaymentSort)
-  const [query, setQuery] = useState('')
+  const [everything, setEverything] = useState(loadPaymentsEverything);
+  const [limit, setLimit] = useState(PAGE);
+  const [sort, setSort] = useState<PaymentSort>(loadPaymentSort);
+  const [query, setQuery] = useState('');
   // Ticked payments, the last one ticked (for shift-click runs), and the label typed for them.
-  const [picked, setPicked] = useState<Set<string>>(new Set())
-  const [lastPicked, setLastPicked] = useState<string | null>(null)
-  const [pickedLabel, setPickedLabel] = useState('')
+  const [picked, setPicked] = useState<Set<string>>(new Set());
+  const [lastPicked, setLastPicked] = useState<string | null>(null);
+  const [pickedLabel, setPickedLabel] = useState('');
   // The payments the category sheet is open for.
-  const [sheet, setSheet] = useState<Row[] | null>(null)
+  const [sheet, setSheet] = useState<Row[] | null>(null);
 
-  const words = plain(query).split(/\s+/).filter(Boolean)
+  const words = plain(query).split(/\s+/).filter(Boolean);
   const visible = rows
-    .filter((row) => {
+    .filter(row => {
       // A category picked in the filter shows its payments, even the ones that are not spending.
-      if (!everything && !row.counts && focus?.type !== 'category') return false
-      if (focus?.type === 'category' && row.category !== focus.key) return false
-      if (focus?.type === 'label' && !row.labels.some((label) => label.toLowerCase() === focus.key.toLowerCase())) {
-        return false
+      if (!everything && !row.counts && focus?.type !== 'category') return false;
+      if (focus?.type === 'category' && row.category !== focus.key) return false;
+      if (focus?.type === 'label' && !row.labels.some(label => label.toLowerCase() === focus.key.toLowerCase())) {
+        return false;
       }
-      if (focus?.type === 'store' && row.storeKey !== focus.key) return false
-      const text = plain(`${row.store} ${row.description}`)
-      return words.every((word) => text.includes(word))
+      if (focus?.type === 'store' && row.storeKey !== focus.key) return false;
+      const text = plain(`${row.store} ${row.description}`);
+      return words.every(word => text.includes(word));
     })
-    .sort((first, second) => compare(first, second, sort))
+    .sort((first, second) => compare(first, second, sort));
   // By date, the list reads like a bank statement: a heading per day, with what went out that day.
-  const byDay = sort.key === 'date'
+  const byDay = sort.key === 'date';
   // The totals of what is listed: they follow the filters and the search.
-  const currency = rows[0]?.currency ?? 'EUR'
-  const spent = visible.reduce((sum, row) => sum + row.spend, 0)
-  const paid = visible.filter((row) => row.spend > 0).length
+  const currency = rows[0]?.currency ?? 'EUR';
+  const spent = visible.reduce((sum, row) => sum + row.spend, 0);
+  const paid = visible.filter(row => row.spend > 0).length;
   const movedOut = visible.reduce(
     (sum, row) => sum + (!row.counts && !row.leftOut && row.amount < 0 ? -row.amount : 0),
     0,
-  )
-  const cameIn = visible.reduce((sum, row) => sum + (!row.counts && !row.leftOut && row.amount > 0 ? row.amount : 0), 0)
-  const page = visible.slice(0, limit)
+  );
+  const cameIn = visible.reduce(
+    (sum, row) => sum + (!row.counts && !row.leftOut && row.amount > 0 ? row.amount : 0),
+    0,
+  );
+  const page = visible.slice(0, limit);
   // A time column only when some payments listed have a time (statements give one, the bank sync does not).
-  const withTimes = page.some((row) => row.time)
+  const withTimes = page.some(row => row.time);
   // Dates carry their year when the list covers more than one (all time, a label), or another year than this one.
-  const years = new Set(visible.map((row) => row.date.slice(0, 4)))
-  const withYears = years.size > 1 || (years.size === 1 && !years.has(today().slice(0, 4)))
-  const dayTotals = new Map<string, number>()
-  const dayCounts = new Map<string, number>()
+  const years = new Set(visible.map(row => row.date.slice(0, 4)));
+  const withYears = years.size > 1 || (years.size === 1 && !years.has(today().slice(0, 4)));
+  const dayTotals = new Map<string, number>();
+  const dayCounts = new Map<string, number>();
   for (const row of visible) {
-    dayCounts.set(row.date, (dayCounts.get(row.date) ?? 0) + 1)
-    if (row.amount < 0 && !row.leftOut) dayTotals.set(row.date, (dayTotals.get(row.date) ?? 0) - row.amount)
+    dayCounts.set(row.date, (dayCounts.get(row.date) ?? 0) + 1);
+    if (row.amount < 0 && !row.leftOut) dayTotals.set(row.date, (dayTotals.get(row.date) ?? 0) - row.amount);
   }
   // Every category with payments, with their number: picking one shows them all.
-  const categoryCounts = new Map<CategoryKey, number>()
-  for (const row of rows) categoryCounts.set(row.category, (categoryCounts.get(row.category) ?? 0) + 1)
-  const selection = visible.filter((row) => picked.has(row.id))
-  const allIgnored = selection.length > 0 && selection.every((row) => row.category === 'ignored')
-  const allPicked = visible.length > 0 && selection.length === visible.length
+  const categoryCounts = new Map<CategoryKey, number>();
+  for (const row of rows) categoryCounts.set(row.category, (categoryCounts.get(row.category) ?? 0) + 1);
+  const selection = visible.filter(row => picked.has(row.id));
+  const allIgnored = selection.length > 0 && selection.every(row => row.category === 'ignored');
+  const allPicked = visible.length > 0 && selection.length === visible.length;
 
   /** A new sort starts its own way; the same one again turns it around. */
   function sortBy(key: PaymentSort['key']) {
-    const start = SORTS.find((item) => item.key === key)!
-    const next = { key, descending: key === sort.key ? !sort.descending : start.descending }
-    setSort(next)
-    savePaymentSort(next)
+    const start = SORTS.find(item => item.key === key)!;
+    const next = {key, descending: key === sort.key ? !sort.descending : start.descending};
+    setSort(next);
+    savePaymentSort(next);
   }
 
   /** Ticks or unticks a payment; with shift, the whole run from the last one ticked. */
   function pick(row: Row, run: boolean) {
-    const next = new Set(picked)
-    const on = !next.has(row.id)
-    const from = lastPicked ? page.findIndex((item) => item.id === lastPicked) : -1
-    const to = page.findIndex((item) => item.id === row.id)
+    const next = new Set(picked);
+    const on = !next.has(row.id);
+    const from = lastPicked ? page.findIndex(item => item.id === lastPicked) : -1;
+    const to = page.findIndex(item => item.id === row.id);
     if (run && from >= 0 && to >= 0) {
       for (const item of page.slice(Math.min(from, to), Math.max(from, to) + 1)) {
-        if (on) next.add(item.id)
-        else next.delete(item.id)
+        if (on) next.add(item.id);
+        else next.delete(item.id);
       }
-    } else if (on) next.add(row.id)
-    else next.delete(row.id)
-    setPicked(next)
-    setLastPicked(row.id)
+    } else if (on) next.add(row.id);
+    else next.delete(row.id);
+    setPicked(next);
+    setLastPicked(row.id);
   }
 
   function labelPicked() {
-    const label = tidyLabel(pickedLabel)
-    if (!label || selection.length === 0) return
-    onLabels(Object.fromEntries(selection.map((row) => [row.id, withLabel(row.labels, label)])))
-    setPickedLabel('')
+    const label = tidyLabel(pickedLabel);
+    if (!label || selection.length === 0) return;
+    onLabels(Object.fromEntries(selection.map(row => [row.id, withLabel(row.labels, label)])));
+    setPickedLabel('');
   }
 
   // The category sheet: where the choice applies, and what it shows.
-  const sheetStores = sheet ? [...new Set(sheet.map((row) => row.store))] : []
+  const sheetStores = sheet ? [...new Set(sheet.map(row => row.store))] : [];
   const scopes: Scope[] = !sheet
     ? []
     : sheet.length === 1
       ? [
-          { key: 'store', label: `Every payment at ${sheet[0].store}, past and future` },
-          { key: 'payment', label: 'Only this payment' },
+          {key: 'store', label: `Every payment at ${sheet[0].store}, past and future`},
+          {key: 'payment', label: 'Only this payment'},
         ]
       : [
-          { key: 'payment', label: `Only these ${sheet.length} payments` },
+          {key: 'payment', label: `Only these ${sheet.length} payments`},
           {
             key: 'store',
             label:
@@ -196,10 +199,10 @@ export function Payments({
                 ? `Every payment at ${sheetStores[0]}, past and future`
                 : `Every payment at these ${sheetStores.length} stores, past and future`,
           },
-        ]
-  const sheetCategories = sheet ? new Set(sheet.map((row) => row.category)) : new Set<CategoryKey>()
+        ];
+  const sheetCategories = sheet ? new Set(sheet.map(row => row.category)) : new Set<CategoryKey>();
 
-  const focusLabel = focus?.type === 'label' ? `# ${focus.key}` : focus?.type === 'store' ? focus.name : null
+  const focusLabel = focus?.type === 'label' ? `# ${focus.key}` : focus?.type === 'store' ? focus.name : null;
 
   return (
     <section className="card payments">
@@ -227,9 +230,10 @@ export function Payments({
           </button>
         )}
         <div className="segmented is-small" role="group" aria-label="Sort payments by">
-          {SORTS.map((item) => {
-            const active = sort.key === item.key
-            const way = item.key === 'store' ? (sort.descending ? 'Z to A' : 'A to Z') : sort.descending ? 'down' : 'up'
+          {SORTS.map(item => {
+            const active = sort.key === item.key;
+            const way =
+              item.key === 'store' ? (sort.descending ? 'Z to A' : 'A to Z') : sort.descending ? 'down' : 'up';
             return (
               <button
                 key={item.key}
@@ -241,16 +245,16 @@ export function Payments({
                 {item.label}
                 {active && <span aria-hidden="true">{sort.descending ? ' ↓' : ' ↑'}</span>}
               </button>
-            )
+            );
           })}
         </div>
         <label className="toggle">
           <input
             type="checkbox"
             checked={everything}
-            onChange={(event) => {
-              setEverything(event.target.checked)
-              savePaymentsEverything(event.target.checked)
+            onChange={event => {
+              setEverything(event.target.checked);
+              savePaymentsEverything(event.target.checked);
             }}
           />
           Show transfers and money in
@@ -262,7 +266,7 @@ export function Payments({
             type="checkbox"
             aria-label={allPicked ? 'Untick all payments' : `Tick all ${visible.length} payments`}
             checked={allPicked}
-            onChange={() => setPicked(allPicked ? new Set() : new Set(visible.map((row) => row.id)))}
+            onChange={() => setPicked(allPicked ? new Set() : new Set(visible.map(row => row.id)))}
           />
         </label>
         <input
@@ -271,24 +275,24 @@ export function Payments({
           aria-label="Search payments"
           placeholder="Search a store or the bank's text"
           value={query}
-          onChange={(event) => {
-            setQuery(event.target.value)
-            setLimit(PAGE)
+          onChange={event => {
+            setQuery(event.target.value);
+            setLimit(PAGE);
           }}
         />
         <select
           className="select"
           aria-label="Category"
           value={focus?.type === 'category' ? focus.key : ''}
-          onChange={(event) => {
-            onFocusCategory(event.target.value || null)
-            setLimit(PAGE)
+          onChange={event => {
+            onFocusCategory(event.target.value || null);
+            setLimit(PAGE);
           }}
         >
           <option value="">All categories</option>
           {categories.alphabetical
-            .filter((category) => categoryCounts.has(category.key) || focus?.key === category.key)
-            .map((category) => (
+            .filter(category => categoryCounts.has(category.key) || focus?.key === category.key)
+            .map(category => (
               <option key={category.key} value={category.key}>
                 {category.icon} {category.label} ({categoryCounts.get(category.key) ?? 0})
               </option>
@@ -310,7 +314,7 @@ export function Payments({
           </thead>
           <tbody>
             {page.map((row, index) => {
-              const category = categories.byKey[row.category]
+              const category = categories.byKey[row.category];
               return [
                 byDay && row.date !== page[index - 1]?.date && (
                   <tr key={`day-${row.date}`} className="day-row">
@@ -335,7 +339,7 @@ export function Payments({
                       aria-label={`Tick ${row.store}, ${dayLabel(row.date)}`}
                       checked={picked.has(row.id)}
                       readOnly
-                      onClick={(event) => pick(row, event.shiftKey)}
+                      onClick={event => pick(row, event.shiftKey)}
                     />
                   </td>
                   {!byDay && (
@@ -351,7 +355,7 @@ export function Payments({
                       type="button"
                       className="payment-store-name"
                       title={`${row.description}\nRename ${row.store} or change its category`}
-                      onClick={() => onOpenStore({ key: row.storeKey, name: row.store })}
+                      onClick={() => onOpenStore({key: row.storeKey, name: row.store})}
                     >
                       {row.store}
                     </button>
@@ -399,7 +403,7 @@ export function Payments({
                     {money(row.amount, row.currency, true)}
                   </td>
                 </tr>,
-              ]
+              ];
             })}
           </tbody>
         </table>
@@ -432,9 +436,9 @@ export function Payments({
           </button>
           <form
             className="selection-label"
-            onSubmit={(event) => {
-              event.preventDefault()
-              labelPicked()
+            onSubmit={event => {
+              event.preventDefault();
+              labelPicked();
             }}
           >
             <input
@@ -444,7 +448,7 @@ export function Payments({
               placeholder="Label them"
               value={pickedLabel}
               maxLength={40}
-              onChange={(event) => setPickedLabel(event.target.value)}
+              onChange={event => setPickedLabel(event.target.value)}
             />
             <button type="submit" className="button" disabled={!tidyLabel(pickedLabel)}>
               Add label
@@ -472,16 +476,16 @@ export function Payments({
           categories={categories}
           current={sheetCategories.size === 1 ? [...sheetCategories][0] : null}
           onPick={(category, scope) => {
-            onCategorize(sheet, category, scope)
-            if (sheet.length > 1) setPicked(new Set())
+            onCategorize(sheet, category, scope);
+            if (sheet.length > 1) setPicked(new Set());
           }}
           onCreate={(label, icon, scope) => {
-            onCreateCategory(sheet, label, icon, scope)
-            if (sheet.length > 1) setPicked(new Set())
+            onCreateCategory(sheet, label, icon, scope);
+            if (sheet.length > 1) setPicked(new Set());
           }}
           onClose={() => setSheet(null)}
         />
       )}
     </section>
-  )
+  );
 }

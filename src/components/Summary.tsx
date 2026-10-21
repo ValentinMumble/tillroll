@@ -1,19 +1,19 @@
-import { money } from '../format'
-import { daysBetween, type Grain, periodLabel, today } from '../periods'
-import type { Report } from '../report'
-import { Delta } from './Delta'
+import {money} from '../format';
+import {daysBetween, type Grain, periodLabel, today} from '../periods';
+import type {Report} from '../report';
+import {Delta} from './Delta';
 
 interface Props {
-  report: Report
-  period: string
-  grain: Grain
-  currency: string
+  report: Report;
+  period: string;
+  grain: Grain;
+  currency: string;
 }
 
 /** The receipt's total: what the period cost, against the usual period or the previous one so far. */
-export function Summary({ report, period, grain, currency }: Props) {
-  const { current, baseline, ongoing } = report
-  const days = daysBetween(report.from, ongoing ? today() : report.to)
+export function Summary({report, period, grain, currency}: Props) {
+  const {current, baseline, ongoing} = report;
+  const days = daysBetween(report.from, ongoing ? today() : report.to);
   return (
     <div className="summary">
       <p className="eyebrow">
@@ -51,5 +51,5 @@ export function Summary({ report, period, grain, currency }: Props) {
         </div>
       </dl>
     </div>
-  )
+  );
 }

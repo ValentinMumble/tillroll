@@ -1,13 +1,13 @@
-import { createSession } from './_lib/bank.js'
-import { HttpError } from './_lib/http.js'
-import { authState, redis } from './_lib/store.js'
-import { bankKey, saveSession, sync } from './_lib/sync.js'
+import {createSession} from './_lib/bank.js';
+import {HttpError} from './_lib/http.js';
+import {authState, redis} from './_lib/store.js';
+import {bankKey, saveSession, sync} from './_lib/sync.js';
 
 function backToPage(query: Record<string, string>) {
   return new Response(null, {
     status: 302,
-    headers: { Location: `/?${new URLSearchParams(query)}`, 'Cache-Control': 'no-store' },
-  })
+    headers: {Location: `/?${new URLSearchParams(query)}`, 'Cache-Control': 'no-store'},
+  });
 }
 
 /**
@@ -16,22 +16,22 @@ function backToPage(query: Record<string, string>) {
  * sync runs at once, while the bank still gives the whole history, then the owner lands on the page.
  */
 export async function GET(request: Request) {
-  const query = new URL(request.url).searchParams
+  const query = new URL(request.url).searchParams;
   try {
-    const store = redis()
-    const state = query.get('state')
-    const started = state ? await store.getdel<{ requiredHeaders: string[] }>(authState(state)) : null
-    const refused = query.get('error')
-    if (refused) return backToPage({ 'bank-error': query.get('error_description') || refused })
-    const code = query.get('code')
-    if (!started || !code) throw new HttpError(400, 'This link has expired: start the connection again')
-    const session = await createSession(code, started.requiredHeaders)
-    await saveSession(session)
-    const result = await sync(request, bankKey(session.bank))
-    return backToPage({ bank: 'connected', name: session.bank.name, count: String(result.booked) })
+    const store = redis();
+    const state = query.get('state');
+    const started = state ? await store.getdel<{requiredHeaders: string[]}>(authState(state)) : null;
+    const refused = query.get('error');
+    if (refused) return backToPage({'bank-error': query.get('error_description') || refused});
+    const code = query.get('code');
+    if (!started || !code) throw new HttpError(400, 'This link has expired: start the connection again');
+    const session = await createSession(code, started.requiredHeaders);
+    await saveSession(session);
+    const result = await sync(request, bankKey(session.bank));
+    return backToPage({bank: 'connected', name: session.bank.name, count: String(result.booked)});
   } catch (error) {
-    if (!(error instanceof HttpError)) console.error(error)
-    const message = error instanceof HttpError ? error.message : 'The connection failed, try again later'
-    return backToPage({ 'bank-error': message })
+    if (!(error instanceof HttpError)) console.error(error);
+    const message = error instanceof HttpError ? error.message : 'The connection failed, try again later';
+    return backToPage({'bank-error': message});
   }
 }

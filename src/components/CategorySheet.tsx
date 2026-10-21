@@ -1,36 +1,36 @@
-import { useState } from 'react'
-import { type Categories, DEFAULT_ICON, oneIcon } from '../categories'
-import type { CategoryKey } from '../types'
-import { useDialog } from '../useDialog'
+import {useState} from 'react';
+import {type Categories, DEFAULT_ICON, oneIcon} from '../categories';
+import type {CategoryKey} from '../types';
+import {useDialog} from '../useDialog';
 
 export interface Scope {
-  key: string
-  label: string
+  key: string;
+  label: string;
 }
 
 interface Props {
-  title: string
-  detail: string
+  title: string;
+  detail: string;
   /** Where the choice applies, the first one picked to start with. */
-  scopes: Scope[]
-  categories: Categories
+  scopes: Scope[];
+  categories: Categories;
   /** The category now, outlined. */
-  current: CategoryKey | null
-  onPick: (category: CategoryKey | null, scope: string) => void
-  onCreate: (label: string, icon: string, scope: string) => void
-  onClose: () => void
+  current: CategoryKey | null;
+  onPick: (category: CategoryKey | null, scope: string) => void;
+  onCreate: (label: string, icon: string, scope: string) => void;
+  onClose: () => void;
 }
 
 /** Pick a category for one payment or several: first where it applies (these payments, or their stores), then which. */
-export function CategorySheet({ title, detail, scopes, categories, current, onPick, onCreate, onClose }: Props) {
-  const { ref: dialogRef, onKeyDown: onDialogKeyDown, close: closeDialog } = useDialog()
-  const [scope, setScope] = useState(scopes[0].key)
-  const [name, setName] = useState('')
-  const [icon, setIcon] = useState('')
+export function CategorySheet({title, detail, scopes, categories, current, onPick, onCreate, onClose}: Props) {
+  const {ref: dialogRef, onKeyDown: onDialogKeyDown, close: closeDialog} = useDialog();
+  const [scope, setScope] = useState(scopes[0].key);
+  const [name, setName] = useState('');
+  const [icon, setIcon] = useState('');
 
   function pick(category: CategoryKey | null) {
-    onPick(category, scope)
-    closeDialog()
+    onPick(category, scope);
+    closeDialog();
   }
 
   return (
@@ -47,7 +47,7 @@ export function CategorySheet({ title, detail, scopes, categories, current, onPi
       </header>
       <fieldset className="scopes">
         <legend className="visually-hidden">Apply to</legend>
-        {scopes.map((item) => (
+        {scopes.map(item => (
           <label key={item.key} className={`scope${scope === item.key ? ' is-on' : ''}`}>
             <input type="radio" name="scope" checked={scope === item.key} onChange={() => setScope(item.key)} />
             {item.label}
@@ -56,7 +56,7 @@ export function CategorySheet({ title, detail, scopes, categories, current, onPi
       </fieldset>
       <div className="sheet-body">
         <div className="chip-grid" role="group" aria-label="Category">
-          {categories.alphabetical.map((category) => (
+          {categories.alphabetical.map(category => (
             <button
               key={category.key}
               type="button"
@@ -71,11 +71,11 @@ export function CategorySheet({ title, detail, scopes, categories, current, onPi
         </div>
         <form
           className="category-add"
-          onSubmit={(event) => {
-            event.preventDefault()
-            if (!name.trim()) return
-            onCreate(name.trim(), icon || DEFAULT_ICON, scope)
-            closeDialog()
+          onSubmit={event => {
+            event.preventDefault();
+            if (!name.trim()) return;
+            onCreate(name.trim(), icon || DEFAULT_ICON, scope);
+            closeDialog();
           }}
         >
           <input
@@ -83,7 +83,7 @@ export function CategorySheet({ title, detail, scopes, categories, current, onPi
             aria-label="Icon of the new category"
             placeholder={DEFAULT_ICON}
             value={icon}
-            onChange={(event) => setIcon(oneIcon(event.target.value, icon))}
+            onChange={event => setIcon(oneIcon(event.target.value, icon))}
           />
           <input
             className="text-input"
@@ -91,7 +91,7 @@ export function CategorySheet({ title, detail, scopes, categories, current, onPi
             placeholder="Or a new category"
             value={name}
             maxLength={40}
-            onChange={(event) => setName(event.target.value)}
+            onChange={event => setName(event.target.value)}
           />
           <button type="submit" className="button" disabled={!name.trim()}>
             Add
@@ -107,5 +107,5 @@ export function CategorySheet({ title, detail, scopes, categories, current, onPi
         </button>
       </footer>
     </dialog>
-  )
+  );
 }

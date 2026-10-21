@@ -1,15 +1,15 @@
-import { compactPeriodLabel, type Grain, periodLabel } from '../periods'
+import {compactPeriodLabel, type Grain, periodLabel} from '../periods';
 
 interface Props {
-  grain: Grain
-  onGrain: (grain: Grain) => void
-  period: string
-  onStep: (steps: number) => void
-  canGoBack: boolean
-  canGoForward: boolean
-  currencies: string[]
-  currency: string
-  onCurrency: (currency: string) => void
+  grain: Grain;
+  onGrain: (grain: Grain) => void;
+  period: string;
+  onStep: (steps: number) => void;
+  canGoBack: boolean;
+  canGoForward: boolean;
+  currencies: string[];
+  currency: string;
+  onCurrency: (currency: string) => void;
 }
 
 /** Each length with its name, and a shorter one for phones. */
@@ -18,11 +18,11 @@ const GRAINS: [Grain, string, string][] = [
   ['month', 'Month', 'Month'],
   ['year', 'Year', 'Year'],
   ['all', 'All time', 'All'],
-]
+];
 
 /** The one row of controls: the length of the period, which one, and the currency when there are several. */
 export function Toolbar(props: Props) {
-  const { grain, onGrain, period, onStep, canGoBack, canGoForward, currencies, currency, onCurrency } = props
+  const {grain, onGrain, period, onStep, canGoBack, canGoForward, currencies, currency, onCurrency} = props;
   return (
     <div className="toolbar">
       <div className="segmented" role="group" aria-label="Period">
@@ -62,9 +62,9 @@ export function Toolbar(props: Props) {
           className="select toolbar-currency"
           aria-label="Currency"
           value={currency}
-          onChange={(event) => onCurrency(event.target.value)}
+          onChange={event => onCurrency(event.target.value)}
         >
-          {currencies.map((item) => (
+          {currencies.map(item => (
             <option key={item} value={item}>
               {item}
             </option>
@@ -72,5 +72,5 @@ export function Toolbar(props: Props) {
         </select>
       )}
     </div>
-  )
+  );
 }

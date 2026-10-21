@@ -1,12 +1,12 @@
-import type { Kind, Transaction } from '../src/types'
-import { handle, HttpError, json, readJson } from './_lib/http.js'
-import { requireOwner } from './_lib/owner.js'
-import { saveTransactions } from './_lib/store.js'
+import type {Kind, Transaction} from '../src/types';
+import {handle, HttpError, json, readJson} from './_lib/http.js';
+import {requireOwner} from './_lib/owner.js';
+import {saveTransactions} from './_lib/store.js';
 
-const KINDS: Kind[] = ['card', 'refund', 'transfer', 'topup', 'exchange', 'atm', 'fee', 'income']
+const KINDS: Kind[] = ['card', 'refund', 'transfer', 'topup', 'exchange', 'atm', 'fee', 'income'];
 
 function isTransaction(value: unknown): value is Transaction {
-  const item = value as Transaction
+  const item = value as Transaction;
   return (
     typeof item === 'object' &&
     item !== null &&
@@ -18,7 +18,7 @@ function isTransaction(value: unknown): value is Transaction {
     typeof item.description === 'string' &&
     item.description.length <= 300 &&
     KINDS.includes(item.kind)
-  )
+  );
 }
 
 /**
@@ -27,15 +27,15 @@ function isTransaction(value: unknown): value is Transaction {
  */
 export function POST(request: Request) {
   return handle(async () => {
-    requireOwner(request)
-    const { transactions } = await readJson(request)
+    requireOwner(request);
+    const {transactions} = await readJson(request);
     if (!Array.isArray(transactions) || transactions.length > 20_000 || !transactions.every(isTransaction)) {
-      throw new HttpError(400, 'Expected statement transactions')
+      throw new HttpError(400, 'Expected statement transactions');
     }
     const text = (value: unknown, length: number) =>
-      typeof value === 'string' && value.length > 0 && value.length <= length ? value : undefined
+      typeof value === 'string' && value.length > 0 && value.length <= length ? value : undefined;
     await saveTransactions(
-      transactions.map((item) => ({
+      transactions.map(item => ({
         ...item,
         time: typeof item.time === 'string' && /^\d{2}:\d{2}$/.test(item.time) ? item.time : undefined,
         bank: text(item.bank, 60),
@@ -46,7 +46,7 @@ export function POST(request: Request) {
         pending: Boolean(item.pending),
         source: 'statement',
       })),
-    )
-    return json({ saved: transactions.length })
-  })
+    );
+    return json({saved: transactions.length});
+  });
 }

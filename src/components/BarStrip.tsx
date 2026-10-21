@@ -1,4 +1,4 @@
-import { money } from '../format'
+import {money} from '../format';
 
 /**
  * One series of bars with their labels under them (weekdays, hours, months): one colour, the length is the value; the
@@ -11,14 +11,14 @@ export function BarStrip({
   currency,
   caption,
 }: {
-  values: number[]
-  labels: string[]
-  titles?: string[]
-  currency: string
-  caption: string
+  values: number[];
+  labels: string[];
+  titles?: string[];
+  currency: string;
+  caption: string;
 }) {
-  const top = Math.max(1, ...values)
-  const best = values.indexOf(Math.max(...values))
+  const top = Math.max(1, ...values);
+  const best = values.indexOf(Math.max(...values));
   return (
     <figure className="stat-bars">
       <figcaption>{caption}</figcaption>
@@ -28,12 +28,12 @@ export function BarStrip({
             <span className="stat-bar-value">{index === best ? money(value, currency) : ''}</span>
             <span
               className={`stat-bar-fill${index === best ? ' is-best' : ''}`}
-              style={{ height: `${(value / top) * 100}%` }}
+              style={{height: `${(value / top) * 100}%`}}
             />
             <span className="stat-bar-label">{labels[index]}</span>
           </div>
         ))}
       </div>
     </figure>
-  )
+  );
 }

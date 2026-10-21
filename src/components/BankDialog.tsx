@@ -1,13 +1,13 @@
-import { useEffect, useState } from 'react'
-import { fetchBanks } from '../api'
-import { useDialog } from '../useDialog'
+import {useEffect, useState} from 'react';
+import {fetchBanks} from '../api';
+import {useDialog} from '../useDialog';
 
 interface Props {
   /** Banks already connected, by name: they show as such. */
-  connected: string[]
-  busy: boolean
-  onConnect: (bank: { name: string; country: string }) => void
-  onClose: () => void
+  connected: string[];
+  busy: boolean;
+  onConnect: (bank: {name: string; country: string}) => void;
+  onClose: () => void;
 }
 
 /** Countries Enable Banking covers, the owner's first. */
@@ -28,47 +28,47 @@ const COUNTRIES: [string, string][] = [
   ['DK', 'Denmark'],
   ['NO', 'Norway'],
   ['PL', 'Poland'],
-]
+];
 
 /** Shown first when the country lists them. */
-const FAVOURITES = ['Revolut', 'Crédit Coopératif']
+const FAVOURITES = ['Revolut', 'Crédit Coopératif'];
 
 const plain = (text: string) =>
   text
     .normalize('NFKD')
     .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
+    .toLowerCase();
 
 /**
  * Picks a bank to connect through Enable Banking. In its free mode the app only reads accounts its owner linked in
  * the Enable Banking Control Panel, so a bank must be linked there first.
  */
-export function BankDialog({ connected, busy, onConnect, onClose }: Props) {
-  const { ref: dialogRef, onKeyDown: onDialogKeyDown, close: closeDialog } = useDialog()
-  const [country, setCountry] = useState('FR')
+export function BankDialog({connected, busy, onConnect, onClose}: Props) {
+  const {ref: dialogRef, onKeyDown: onDialogKeyDown, close: closeDialog} = useDialog();
+  const [country, setCountry] = useState('FR');
   // The list fetched for a country; while another country loads, nothing shows.
-  const [loaded, setLoaded] = useState<{ country: string; banks?: string[]; failure?: string } | null>(null)
-  const [query, setQuery] = useState('')
+  const [loaded, setLoaded] = useState<{country: string; banks?: string[]; failure?: string} | null>(null);
+  const [query, setQuery] = useState('');
 
   useEffect(() => {
-    let current = true
+    let current = true;
     fetchBanks(country)
-      .then((banks) => current && setLoaded({ country, banks }))
+      .then(banks => current && setLoaded({country, banks}))
       .catch(
         (error: unknown) =>
-          current && setLoaded({ country, failure: error instanceof Error ? error.message : 'No bank list' }),
-      )
+          current && setLoaded({country, failure: error instanceof Error ? error.message : 'No bank list'}),
+      );
     return () => {
-      current = false
-    }
-  }, [country])
-  const banks = loaded?.country === country ? (loaded.banks ?? null) : null
-  const failure = loaded?.country === country ? (loaded.failure ?? null) : null
+      current = false;
+    };
+  }, [country]);
+  const banks = loaded?.country === country ? (loaded.banks ?? null) : null;
+  const failure = loaded?.country === country ? (loaded.failure ?? null) : null;
 
-  const words = plain(query).split(/\s+/).filter(Boolean)
-  const matching = (banks ?? []).filter((name) => words.every((word) => plain(name).includes(word)))
-  const favourites = matching.filter((name) => FAVOURITES.includes(name))
-  const others = matching.filter((name) => !FAVOURITES.includes(name))
+  const words = plain(query).split(/\s+/).filter(Boolean);
+  const matching = (banks ?? []).filter(name => words.every(word => plain(name).includes(word)));
+  const favourites = matching.filter(name => FAVOURITES.includes(name));
+  const others = matching.filter(name => !FAVOURITES.includes(name));
 
   const line = (name: string) => (
     <li key={name}>
@@ -76,12 +76,12 @@ export function BankDialog({ connected, busy, onConnect, onClose }: Props) {
       {connected.includes(name) ? (
         <span className="muted">connected</span>
       ) : (
-        <button type="button" className="button" disabled={busy} onClick={() => onConnect({ name, country })}>
+        <button type="button" className="button" disabled={busy} onClick={() => onConnect({name, country})}>
           Connect
         </button>
       )}
     </li>
-  )
+  );
 
   return (
     <dialog
@@ -103,7 +103,7 @@ export function BankDialog({ connected, busy, onConnect, onClose }: Props) {
           className="select"
           aria-label="Country"
           value={country}
-          onChange={(event) => setCountry(event.target.value)}
+          onChange={event => setCountry(event.target.value)}
         >
           {COUNTRIES.map(([code, name]) => (
             <option key={code} value={code}>
@@ -117,7 +117,7 @@ export function BankDialog({ connected, busy, onConnect, onClose }: Props) {
           aria-label="Find a bank"
           placeholder="Find a bank"
           value={query}
-          onChange={(event) => setQuery(event.target.value)}
+          onChange={event => setQuery(event.target.value)}
         />
       </div>
       <ul className="bank-list">
@@ -133,5 +133,5 @@ export function BankDialog({ connected, busy, onConnect, onClose }: Props) {
         </button>
       </footer>
     </dialog>
-  )
+  );
 }

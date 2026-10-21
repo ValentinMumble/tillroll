@@ -1,25 +1,25 @@
-import type { Row } from './report'
-import type { CategoryKey } from './types'
+import type {Row} from './report';
+import type {CategoryKey} from './types';
 
 /** A store as the duplicates deck shows it. */
 export interface StoreInfo {
-  key: string
-  name: string
-  currency: string
-  payments: number
-  total: number
-  lastDate: string
-  examples: string[]
-  category: CategoryKey
+  key: string;
+  name: string;
+  currency: string;
+  payments: number;
+  total: number;
+  lastDate: string;
+  examples: string[];
+  category: CategoryKey;
   /** The category was picked by hand for the store, not guessed. */
-  picked: boolean
+  picked: boolean;
 }
 
 /** Two stores that may be the same place, with the words their names share. */
 export interface Pair {
-  first: StoreInfo
-  second: StoreInfo
-  shared: string[]
+  first: StoreInfo;
+  second: StoreInfo;
+  shared: string[];
 }
 
 /** Words that say nothing about which place it is: legal forms, towns, kinds of shop, payment apps. */
@@ -33,7 +33,7 @@ const COMMON = new Set(
     // French bank wording: a direct debit, a transfer, a card payment's date, a cheque, a withdrawal.
     'prlv vir sepa inst virement vers fact cheque retrait dab depot'
   ).split(' '),
-)
+);
 
 /** A store's telling words: lowercase, no accents, three letters or more, not a number, not a common word. */
 function wordsOf(name: string) {
@@ -44,19 +44,19 @@ function wordsOf(name: string) {
         .replace(/[\u0300-\u036f]/g, '')
         .toLowerCase()
         .split(/[^a-z0-9]+/)
-        .filter((word) => word.length >= 3 && !/^\d+$/.test(word) && !COMMON.has(word)),
+        .filter(word => word.length >= 3 && !/^\d+$/.test(word) && !COMMON.has(word)),
     ),
-  ]
+  ];
 }
 
 /** The key a pair is remembered by once it is marked "not the same". */
 export function pairKey(first: string, second: string) {
-  return [first, second].sort().join('|')
+  return [first, second].sort().join('|');
 }
 
 /** Every store with its payments, totals and bank texts, from the rows (merges already applied). */
 export function storeInfos(rows: Row[]) {
-  const stores = new Map<string, StoreInfo>()
+  const stores = new Map<string, StoreInfo>();
   for (const row of rows) {
     const store = stores.get(row.storeKey) ?? {
       key: row.storeKey,
@@ -68,14 +68,14 @@ export function storeInfos(rows: Row[]) {
       examples: [],
       category: row.category,
       picked: row.basis === 'picked' && !row.ownCategory,
-    }
-    store.payments += 1
-    if (row.amount < 0) store.total -= row.amount
-    if (row.date > store.lastDate) store.lastDate = row.date
-    if (store.examples.length < 3 && !store.examples.includes(row.description)) store.examples.push(row.description)
-    stores.set(row.storeKey, store)
+    };
+    store.payments += 1;
+    if (row.amount < 0) store.total -= row.amount;
+    if (row.date > store.lastDate) store.lastDate = row.date;
+    if (store.examples.length < 3 && !store.examples.includes(row.description)) store.examples.push(row.description);
+    stores.set(row.storeKey, store);
   }
-  return stores
+  return stores;
 }
 
 /**
@@ -83,42 +83,42 @@ export function storeInfos(rows: Row[]) {
  * "roue"), and that word is rare (in 6 stores at most). Pairs marked "not the same" stay out. Most payments first.
  */
 export function findDuplicates(rows: Row[], dismissed: Set<string>): Pair[] {
-  const stores = storeInfos(rows)
-  const words = new Map<string, string[]>()
-  const byWord = new Map<string, string[]>()
+  const stores = storeInfos(rows);
+  const words = new Map<string, string[]>();
+  const byWord = new Map<string, string[]>();
   for (const store of stores.values()) {
-    const list = wordsOf(store.name)
-    words.set(store.key, list)
-    for (const word of list) byWord.set(word, [...(byWord.get(word) ?? []), store.key])
+    const list = wordsOf(store.name);
+    words.set(store.key, list);
+    for (const word of list) byWord.set(word, [...(byWord.get(word) ?? []), store.key]);
   }
-  const pairs = new Map<string, Pair>()
+  const pairs = new Map<string, Pair>();
   for (const [word, keys] of byWord) {
-    if (keys.length < 2 || keys.length > 6) continue
+    if (keys.length < 2 || keys.length > 6) continue;
     for (let index = 0; index < keys.length; index += 1) {
       for (let other = index + 1; other < keys.length; other += 1) {
-        const key = pairKey(keys[index], keys[other])
-        if (dismissed.has(key)) continue
+        const key = pairKey(keys[index], keys[other]);
+        if (dismissed.has(key)) continue;
         const pair = pairs.get(key) ?? {
           first: stores.get(keys[index])!,
           second: stores.get(keys[other])!,
           shared: [],
-        }
-        pair.shared.push(word)
-        pairs.set(key, pair)
+        };
+        pair.shared.push(word);
+        pairs.set(key, pair);
       }
     }
   }
   return [...pairs.values()]
-    .filter((pair) => {
+    .filter(pair => {
       // At least half of the shorter name's telling words are shared.
-      const fewest = Math.min(words.get(pair.first.key)!.length, words.get(pair.second.key)!.length)
-      return pair.shared.length / Math.max(1, fewest) >= 0.5
+      const fewest = Math.min(words.get(pair.first.key)!.length, words.get(pair.second.key)!.length);
+      return pair.shared.length / Math.max(1, fewest) >= 0.5;
     })
-    .map((pair) =>
-      pair.second.payments > pair.first.payments ? { ...pair, first: pair.second, second: pair.first } : pair,
+    .map(pair =>
+      pair.second.payments > pair.first.payments ? {...pair, first: pair.second, second: pair.first} : pair,
     )
     .sort(
       (first, second) =>
         second.first.payments + second.second.payments - (first.first.payments + first.second.payments),
-    )
+    );
 }

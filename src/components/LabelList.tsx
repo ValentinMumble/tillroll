@@ -1,48 +1,48 @@
-import { useState } from 'react'
-import { money } from '../format'
-import { tidyLabel } from '../labels'
-import { dayLabel } from '../periods'
-import type { Row } from '../report'
+import {useState} from 'react';
+import {money} from '../format';
+import {tidyLabel} from '../labels';
+import {dayLabel} from '../periods';
+import type {Row} from '../report';
 
 interface Props {
   /** The payments of one currency, all time. */
-  rows: Row[]
-  currency: string
-  onOpen: (label: string) => void
-  onRename: (label: string, newLabel: string) => void
-  onDelete: (label: string) => void
+  rows: Row[];
+  currency: string;
+  onOpen: (label: string) => void;
+  onRename: (label: string, newLabel: string) => void;
+  onDelete: (label: string) => void;
 }
 
 interface LabelLine {
-  name: string
-  total: number
-  payments: number
-  from: string
-  to: string
+  name: string;
+  total: number;
+  payments: number;
+  from: string;
+  to: string;
 }
 
 /** Every label with what it adds up to (all time): open its payments, rename it or take it off everywhere. */
-export function LabelList({ rows, currency, onOpen, onRename, onDelete }: Props) {
-  const [renaming, setRenaming] = useState<{ label: string; text: string } | null>(null)
-  const lines = new Map<string, LabelLine>()
+export function LabelList({rows, currency, onOpen, onRename, onDelete}: Props) {
+  const [renaming, setRenaming] = useState<{label: string; text: string} | null>(null);
+  const lines = new Map<string, LabelLine>();
   for (const row of rows) {
     for (const label of row.labels) {
-      const key = label.toLowerCase()
-      const line = lines.get(key) ?? { name: label, total: 0, payments: 0, from: row.date, to: row.date }
-      line.total += row.spend
-      line.payments += 1
-      if (row.date < line.from) line.from = row.date
-      if (row.date > line.to) line.to = row.date
-      lines.set(key, line)
+      const key = label.toLowerCase();
+      const line = lines.get(key) ?? {name: label, total: 0, payments: 0, from: row.date, to: row.date};
+      line.total += row.spend;
+      line.payments += 1;
+      if (row.date < line.from) line.from = row.date;
+      if (row.date > line.to) line.to = row.date;
+      lines.set(key, line);
     }
   }
-  const labels = [...lines.values()].sort((first, second) => (first.to < second.to ? 1 : -1))
+  const labels = [...lines.values()].sort((first, second) => (first.to < second.to ? 1 : -1));
 
   function finishRename() {
-    if (!renaming) return
-    const text = tidyLabel(renaming.text)
-    if (text && text !== renaming.label) onRename(renaming.label, text)
-    setRenaming(null)
+    if (!renaming) return;
+    const text = tidyLabel(renaming.text);
+    if (text && text !== renaming.label) onRename(renaming.label, text);
+    setRenaming(null);
   }
 
   return (
@@ -58,14 +58,14 @@ export function LabelList({ rows, currency, onOpen, onRename, onDelete }: Props)
         </p>
       ) : (
         <ul className="label-lines">
-          {labels.map((line) => (
+          {labels.map(line => (
             <li key={line.name}>
               {renaming?.label === line.name ? (
                 <form
                   className="label-rename"
-                  onSubmit={(event) => {
-                    event.preventDefault()
-                    finishRename()
+                  onSubmit={event => {
+                    event.preventDefault();
+                    finishRename();
                   }}
                 >
                   <input
@@ -74,12 +74,12 @@ export function LabelList({ rows, currency, onOpen, onRename, onDelete }: Props)
                     value={renaming.text}
                     maxLength={40}
                     autoFocus
-                    onFocus={(event) => event.target.select()}
-                    onChange={(event) => setRenaming({ label: line.name, text: event.target.value })}
-                    onKeyDown={(event) => {
+                    onFocus={event => event.target.select()}
+                    onChange={event => setRenaming({label: line.name, text: event.target.value})}
+                    onKeyDown={event => {
                       if (event.key === 'Escape') {
-                        event.preventDefault()
-                        setRenaming(null)
+                        event.preventDefault();
+                        setRenaming(null);
                       }
                     }}
                   />
@@ -104,7 +104,7 @@ export function LabelList({ rows, currency, onOpen, onRename, onDelete }: Props)
                   <button
                     type="button"
                     className="link-button"
-                    onClick={() => setRenaming({ label: line.name, text: line.name })}
+                    onClick={() => setRenaming({label: line.name, text: line.name})}
                   >
                     Rename
                   </button>
@@ -112,8 +112,8 @@ export function LabelList({ rows, currency, onOpen, onRename, onDelete }: Props)
                     type="button"
                     className="link-button"
                     onClick={() => {
-                      const count = line.payments === 1 ? 'its payment' : `its ${line.payments} payments`
-                      if (window.confirm(`Take the label "${line.name}" off ${count}?`)) onDelete(line.name)
+                      const count = line.payments === 1 ? 'its payment' : `its ${line.payments} payments`;
+                      if (window.confirm(`Take the label "${line.name}" off ${count}?`)) onDelete(line.name);
                     }}
                   >
                     Delete
@@ -125,5 +125,5 @@ export function LabelList({ rows, currency, onOpen, onRename, onDelete }: Props)
         </ul>
       )}
     </section>
-  )
+  );
 }

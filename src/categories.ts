@@ -1,87 +1,87 @@
-import type { BuiltInCategory, CategoryEdit, CategoryKey, Rules, Transaction } from './types'
+import type {BuiltInCategory, CategoryEdit, CategoryKey, Rules, Transaction} from './types';
 
 export interface Category extends CategoryEdit {
   /** Added by hand: it can be deleted. */
-  custom: boolean
+  custom: boolean;
 }
 
 export const BUILT_IN: Category[] = [
-  { key: 'groceries', label: 'Groceries', icon: '🛒', spending: true, custom: false },
-  { key: 'eating-out', label: 'Eating out', icon: '🍽️', spending: true, custom: false },
-  { key: 'transport', label: 'Transport', icon: '🚆', spending: true, custom: false },
-  { key: 'shopping', label: 'Shopping', icon: '🛍️', spending: true, custom: false },
-  { key: 'bills', label: 'Bills and subscriptions', icon: '🧾', spending: true, custom: false },
-  { key: 'fun', label: 'Going out and fun', icon: '🎟️', spending: true, custom: false },
-  { key: 'travel', label: 'Travel', icon: '✈️', spending: true, custom: false },
-  { key: 'health', label: 'Health and sport', icon: '💊', spending: true, custom: false },
-  { key: 'home', label: 'Home and rent', icon: '🏠', spending: true, custom: false },
-  { key: 'cash', label: 'Cash', icon: '🏧', spending: true, custom: false },
-  { key: 'other', label: 'Other', icon: '📦', spending: true, custom: false },
-  { key: 'transfers', label: 'Transfers', icon: '↔️', spending: false, custom: false },
-  { key: 'own', label: 'Between my accounts', icon: '🔁', spending: false, custom: false },
-  { key: 'income', label: 'Money in', icon: '💶', spending: false, custom: false },
-  { key: 'ignored', label: 'Ignored', icon: '🙈', spending: false, custom: false },
-]
+  {key: 'groceries', label: 'Groceries', icon: '🛒', spending: true, custom: false},
+  {key: 'eating-out', label: 'Eating out', icon: '🍽️', spending: true, custom: false},
+  {key: 'transport', label: 'Transport', icon: '🚆', spending: true, custom: false},
+  {key: 'shopping', label: 'Shopping', icon: '🛍️', spending: true, custom: false},
+  {key: 'bills', label: 'Bills and subscriptions', icon: '🧾', spending: true, custom: false},
+  {key: 'fun', label: 'Going out and fun', icon: '🎟️', spending: true, custom: false},
+  {key: 'travel', label: 'Travel', icon: '✈️', spending: true, custom: false},
+  {key: 'health', label: 'Health and sport', icon: '💊', spending: true, custom: false},
+  {key: 'home', label: 'Home and rent', icon: '🏠', spending: true, custom: false},
+  {key: 'cash', label: 'Cash', icon: '🏧', spending: true, custom: false},
+  {key: 'other', label: 'Other', icon: '📦', spending: true, custom: false},
+  {key: 'transfers', label: 'Transfers', icon: '↔️', spending: false, custom: false},
+  {key: 'own', label: 'Between my accounts', icon: '🔁', spending: false, custom: false},
+  {key: 'income', label: 'Money in', icon: '💶', spending: false, custom: false},
+  {key: 'ignored', label: 'Ignored', icon: '🙈', spending: false, custom: false},
+];
 
 /**
  * Left out of every total, spending and money in or out alike: money moved between one's own accounts (savings,
  * pockets, top-ups, another bank), and payments ignored by hand.
  */
-export const LEFT_OUT: CategoryKey[] = ['own', 'ignored']
+export const LEFT_OUT: CategoryKey[] = ['own', 'ignored'];
 
 /** The icon a new category gets when none is picked. */
-export const DEFAULT_ICON = '🏷️'
+export const DEFAULT_ICON = '🏷️';
 
 /**
  * What an icon field keeps when it changes: the emoji just typed or picked, so it replaces the old one instead of
  * joining it, wherever the cursor was. An emoji made of several characters (a flag, 👨‍👩‍👧) counts as one.
  */
 export function oneIcon(next: string, previous: string) {
-  const emoji = [...new Intl.Segmenter(undefined, { granularity: 'grapheme' }).segment(next.trim())].map(
-    (part) => part.segment,
-  )
-  if (emoji.length <= 1) return emoji[0] ?? ''
-  return emoji.find((item) => item !== previous) ?? emoji[emoji.length - 1]
+  const emoji = [...new Intl.Segmenter(undefined, {granularity: 'grapheme'}).segment(next.trim())].map(
+    part => part.segment,
+  );
+  if (emoji.length <= 1) return emoji[0] ?? '';
+  return emoji.find(item => item !== previous) ?? emoji[emoji.length - 1];
 }
 
 /** The categories in use: the built-in ones as changed by hand, and the new ones (before Other). */
 export interface Categories {
-  list: Category[]
+  list: Category[];
   /** The same, by name, for the dropdowns. */
-  alphabetical: Category[]
-  byKey: Record<CategoryKey, Category>
+  alphabetical: Category[];
+  byKey: Record<CategoryKey, Category>;
 }
 
 export function categoriesFrom(edits: CategoryEdit[]): Categories {
-  const edited = new Map(edits.map((edit) => [edit.key, edit]))
-  const builtIn = BUILT_IN.map((category) => ({ ...category, ...edited.get(category.key), custom: false }))
+  const edited = new Map(edits.map(edit => [edit.key, edit]));
+  const builtIn = BUILT_IN.map(category => ({...category, ...edited.get(category.key), custom: false}));
   const added = edits
-    .filter((edit) => !BUILT_IN.some((category) => category.key === edit.key))
-    .map((edit) => ({ ...edit, custom: true }))
-  const other = builtIn.findIndex((category) => category.key === 'other')
-  const list = [...builtIn.slice(0, other), ...added, ...builtIn.slice(other)]
+    .filter(edit => !BUILT_IN.some(category => category.key === edit.key))
+    .map(edit => ({...edit, custom: true}));
+  const other = builtIn.findIndex(category => category.key === 'other');
+  const list = [...builtIn.slice(0, other), ...added, ...builtIn.slice(other)];
   return {
     list,
     alphabetical: [...list].sort((first, second) =>
-      first.label.localeCompare(second.label, 'en', { sensitivity: 'base' }),
+      first.label.localeCompare(second.label, 'en', {sensitivity: 'base'}),
     ),
-    byKey: Object.fromEntries(list.map((category) => [category.key, category])),
-  }
+    byKey: Object.fromEntries(list.map(category => [category.key, category])),
+  };
 }
 
 /** What to save: the new categories and the built-in ones that differ from their defaults. */
 export function editsFrom(list: Category[]): CategoryEdit[] {
   return list
-    .filter((category) => {
-      const original = BUILT_IN.find((item) => item.key === category.key)
+    .filter(category => {
+      const original = BUILT_IN.find(item => item.key === category.key);
       return (
         !original ||
         original.label !== category.label ||
         original.icon !== category.icon ||
         original.spending !== category.spending
-      )
+      );
     })
-    .map(({ key, label, icon, spending }) => ({ key, label, icon, spending }))
+    .map(({key, label, icon, spending}) => ({key, label, icon, spending}));
 }
 
 export function newCategoryKey(label: string) {
@@ -91,8 +91,8 @@ export function newCategoryKey(label: string) {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '')
-    .slice(0, 20)
-  return `custom-${slug || 'category'}-${Date.now().toString(36)}`
+    .slice(0, 20);
+  return `custom-${slug || 'category'}-${Date.now().toString(36)}`;
 }
 
 /** Store names that give the category away. Checked in this order: "Uber Eats" is eating out, not transport. */
@@ -133,7 +133,7 @@ const KEYWORDS: [BuiltInCategory, RegExp][] = [
     'shopping',
     /amazon|amzn|fnac|decathlon|zara|h&m|uniqlo|zalando|vinted|ebay|primark|action\b|kiabi|galeries lafayette|printemps|cultura|apple store|\bshop|store\b|boutique|librairie|\bbooks?\b|bookshop|cycling|socks|apparel|outdoor|intersport|go sport|brick|print/i,
   ],
-]
+];
 
 /** Merchant category codes (ISO 18245), first matching range wins: the broad retail range comes last. */
 const MCC_RANGES: [number, number, BuiltInCategory][] = [
@@ -171,33 +171,33 @@ const MCC_RANGES: [number, number, BuiltInCategory][] = [
   [7911, 7999, 'fun'],
   [8011, 8099, 'health'],
   [5000, 5999, 'shopping'],
-]
+];
 
 /**
  * What a category comes from, from sure to unsure: picked by hand, the kind of movement, a keyword in the store
  * name, the merchant code, the broad retail range of merchant codes, a transfer to someone, nothing at all.
  */
-export type Basis = 'picked' | 'kind' | 'keyword' | 'code' | 'broad-code' | 'transfer' | 'none'
+export type Basis = 'picked' | 'kind' | 'keyword' | 'code' | 'broad-code' | 'transfer' | 'none';
 
 /** The guesses worth a look by hand (see the sorting deck). */
-export const UNSURE: Basis[] = ['none', 'broad-code', 'transfer']
+export const UNSURE: Basis[] = ['none', 'broad-code', 'transfer'];
 
 /** A Revolut account or pocket in another currency, or the same one: "To EUR Sous", "From SEK". */
-const CURRENCY_ACCOUNT = /^(to|from) (EUR|USD|GBP|SEK|NOK|DKK|CHF|PLN|CZK|HUF|RON|JPY|CAD|AUD)\b/i
+const CURRENCY_ACCOUNT = /^(to|from) (EUR|USD|GBP|SEK|NOK|DKK|CHF|PLN|CZK|HUF|RON|JPY|CAD|AUD)\b/i;
 
 /** Health costs paid back by the state or a mutual insurer: refunds of health spending. */
-const HEALTH_REFUND = /\bcpam\b|\bameli\b|mutuelle|gerep|groupe europeen retrai|harmonie mutuelle|\bmgen\b/i
+const HEALTH_REFUND = /\bcpam\b|\bameli\b|mutuelle|gerep|groupe europeen retrai|harmonie mutuelle|\bmgen\b/i;
 
 /** Savings, pockets, a top-up from one's own card: money that stays one's own. */
 const OWN_TEXT =
-  /\b(pockets?|vault|savings?|coffre|flexible (cash funds|account)|instant access|livret|ldds?|lep)\b|[ée]pargne|^top-?up by\b/i
+  /\b(pockets?|vault|savings?|coffre|flexible (cash funds|account)|instant access|livret|ldds?|lep)\b|[ée]pargne|^top-?up by\b/i;
 
 const wordsOf = (text: string) =>
   text
     .normalize('NFKD')
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
-    .match(/[a-z]+/g) ?? []
+    .match(/[a-z]+/g) ?? [];
 
 /** Words around a name in a bank text: "Virement vers M ...", "Payment from ...". */
 const FILLERS = new Set([
@@ -217,7 +217,7 @@ const FILLERS = new Set([
   'mme',
   'monsieur',
   'madame',
-])
+]);
 
 /**
  * The bank text names the account holder: every word of one of their names, in any order, maybe cut short by the
@@ -225,81 +225,78 @@ const FILLERS = new Set([
  * One more word is fine (a middle name, "Revolut"); two are someone else's name too, as on a joint account.
  */
 export function namesMe(text: string, me: string[]) {
-  const said = wordsOf(text)
-  return me.some((name) => {
-    const parts = wordsOf(name).filter((part) => part.length >= 3)
-    if (parts.length < 2) return false
-    const found = parts.map((part) => said.find((word) => word === part || (word.length >= 5 && part.startsWith(word))))
-    if (found.some((word) => !word)) return false
-    return said.filter((word) => !found.includes(word) && !FILLERS.has(word)).length <= 1
-  })
+  const said = wordsOf(text);
+  return me.some(name => {
+    const parts = wordsOf(name).filter(part => part.length >= 3);
+    if (parts.length < 2) return false;
+    const found = parts.map(part => said.find(word => word === part || (word.length >= 5 && part.startsWith(word))));
+    if (found.some(word => !word)) return false;
+    return said.filter(word => !found.includes(word) && !FILLERS.has(word)).length <= 1;
+  });
 }
 
 /**
  * The bank's own categories (Crédit Coopératif's statement), a clue when the store name gives none: the most precise
  * one first. A broad one leaves the store to sort. Written in plain words, as `wordsOf` gives them.
  */
-const BANK_CATEGORIES: Record<string, { category: BuiltInCategory; basis: Basis }> = {
-  'virement interne': { category: 'own', basis: 'kind' },
-  'internet et telephonie': { category: 'bills', basis: 'code' },
-  'frais bancaires': { category: 'bills', basis: 'code' },
-  'remboursements de soins': { category: 'health', basis: 'code' },
-  'transports en commun': { category: 'transport', basis: 'code' },
-  'livres magazines': { category: 'fun', basis: 'code' },
-  'video musique et jeux': { category: 'fun', basis: 'code' },
-  salaires: { category: 'income', basis: 'kind' },
-  alimentation: { category: 'groceries', basis: 'code' },
-  sante: { category: 'health', basis: 'code' },
-  transports: { category: 'transport', basis: 'code' },
-  'shopping et services': { category: 'shopping', basis: 'broad-code' },
-  'loisirs et vacances': { category: 'fun', basis: 'broad-code' },
-  'logement maison': { category: 'home', basis: 'broad-code' },
-  'banque et assurances': { category: 'bills', basis: 'broad-code' },
-}
+const BANK_CATEGORIES: Record<string, {category: BuiltInCategory; basis: Basis}> = {
+  'virement interne': {category: 'own', basis: 'kind'},
+  'internet et telephonie': {category: 'bills', basis: 'code'},
+  'frais bancaires': {category: 'bills', basis: 'code'},
+  'remboursements de soins': {category: 'health', basis: 'code'},
+  'transports en commun': {category: 'transport', basis: 'code'},
+  'livres magazines': {category: 'fun', basis: 'code'},
+  'video musique et jeux': {category: 'fun', basis: 'code'},
+  salaires: {category: 'income', basis: 'kind'},
+  alimentation: {category: 'groceries', basis: 'code'},
+  sante: {category: 'health', basis: 'code'},
+  transports: {category: 'transport', basis: 'code'},
+  'shopping et services': {category: 'shopping', basis: 'broad-code'},
+  'loisirs et vacances': {category: 'fun', basis: 'broad-code'},
+  'logement maison': {category: 'home', basis: 'broad-code'},
+  'banque et assurances': {category: 'bills', basis: 'broad-code'},
+};
 
-function bankHint({ bankCategory }: Transaction) {
-  const names = bankCategory?.split(' > ').reverse() ?? []
-  return names.map((name) => BANK_CATEGORIES[wordsOf(name).join(' ')]).find(Boolean)
+function bankHint({bankCategory}: Transaction) {
+  const names = bankCategory?.split(' > ').reverse() ?? [];
+  return names.map(name => BANK_CATEGORIES[wordsOf(name).join(' ')]).find(Boolean);
 }
 
 /**
  * The category Tillroll guesses, from the kind of movement, the store name and the merchant code. `me` holds the
  * account holder's names (the bank accounts' names), for the transfers to and from oneself.
  */
-export function guessWithBasis(
-  transaction: Transaction,
-  me: string[] = [],
-): { category: BuiltInCategory; basis: Basis } {
-  const { description, mcc } = transaction
+export function guessWithBasis(transaction: Transaction, me: string[] = []): {category: BuiltInCategory; basis: Basis} {
+  const {description, mcc} = transaction;
   // Some banks give a transfer out no account on the other side, so it reads as a card payment: "VIR SEPA ...".
-  const kind = transaction.kind === 'card' && /^vir(ement)?\b/i.test(description) ? 'transfer' : transaction.kind
-  if (kind === 'topup' || kind === 'exchange') return { category: 'own', basis: 'kind' }
+  const kind = transaction.kind === 'card' && /^vir(ement)?\b/i.test(description) ? 'transfer' : transaction.kind;
+  if (kind === 'topup' || kind === 'exchange') return {category: 'own', basis: 'kind'};
   // Interest paid on savings is money in, even when the savings name it.
   const own =
     (OWN_TEXT.test(description) && !/\binterest\b|int[ée]r[êe]ts/i.test(description)) ||
     CURRENCY_ACCOUNT.test(description) ||
-    namesMe(description, me)
-  if (kind !== 'card' && kind !== 'refund' && own) return { category: 'own', basis: 'kind' }
-  const hint = bankHint(transaction)
-  if (hint?.category === 'own') return hint
-  if (transaction.amount > 0 && HEALTH_REFUND.test(description)) return { category: 'health', basis: 'keyword' }
-  if (kind === 'income') return { category: 'income', basis: 'kind' }
-  if (kind === 'atm') return { category: 'cash', basis: 'kind' }
-  const keyword = KEYWORDS.find(([, pattern]) => pattern.test(description))
+    namesMe(description, me);
+  if (kind !== 'card' && kind !== 'refund' && own) return {category: 'own', basis: 'kind'};
+  const hint = bankHint(transaction);
+  if (hint?.category === 'own') return hint;
+  if (transaction.amount > 0 && HEALTH_REFUND.test(description)) return {category: 'health', basis: 'keyword'};
+  if (kind === 'income') return {category: 'income', basis: 'kind'};
+  if (kind === 'atm') return {category: 'cash', basis: 'kind'};
+  const keyword = KEYWORDS.find(([, pattern]) => pattern.test(description));
   // A store's word in a transfer may be a person's name (Leclerc): worth a look.
-  if (keyword) return { category: keyword[0], basis: kind === 'transfer' ? 'transfer' : 'keyword' }
-  if (hint) return hint
+  if (keyword) return {category: keyword[0], basis: kind === 'transfer' ? 'transfer' : 'keyword'};
+  if (hint) return hint;
   // A transfer to someone may be rent, a gift or a shared bill.
-  if (kind === 'transfer') return { category: 'transfers', basis: 'transfer' }
-  if (kind === 'fee') return { category: 'bills', basis: 'kind' }
-  const code = Number(mcc)
-  const range = mcc ? MCC_RANGES.find(([from, to]) => code >= from && code <= to) : undefined
-  if (!range) return { category: 'other', basis: 'none' }
-  return { category: range[2], basis: range === MCC_RANGES.at(-1) ? 'broad-code' : 'code' }
+  if (kind === 'transfer') return {category: 'transfers', basis: 'transfer'};
+  if (kind === 'fee') return {category: 'bills', basis: 'kind'};
+  const code = Number(mcc);
+  const range = mcc ? MCC_RANGES.find(([from, to]) => code >= from && code <= to) : undefined;
+  if (!range) return {category: 'other', basis: 'none'};
+  return {category: range[2], basis: range === MCC_RANGES.at(-1) ? 'broad-code' : 'code'};
 }
 
 export function guessCategory(transaction: Transaction, me: string[] = []) {
-  return guessWithBasis(transaction, me).category
+  return guessWithBasis(transaction, me).category;
 }
 
 /** The category picked by hand for the store, if it still exists, or the guess; and what it comes from. */
@@ -309,16 +306,16 @@ export function categoryOf(
   rules: Rules,
   categories: Categories,
   me: string[] = [],
-): { category: CategoryKey; basis: Basis } {
-  const picked = rules[key]
-  if (!picked || !categories.byKey[picked]) return guessWithBasis(transaction, me)
+): {category: CategoryKey; basis: Basis} {
+  const picked = rules[key];
+  if (!picked || !categories.byKey[picked]) return guessWithBasis(transaction, me);
   // Money in that is no refund (a salary, a sale) stays money in, from a store filed under spending too.
   if (categories.byKey[picked].spending && transaction.amount > 0 && transaction.kind === 'income') {
-    return guessWithBasis(transaction, me)
+    return guessWithBasis(transaction, me);
   }
   // Transfers picked by hand are to other people: one between one's own accounts (a pocket, oneself) stays apart.
   if (picked === 'transfers' && guessWithBasis(transaction, me).category === 'own') {
-    return { category: 'own', basis: 'picked' }
+    return {category: 'own', basis: 'picked'};
   }
-  return { category: picked, basis: 'picked' }
+  return {category: picked, basis: 'picked'};
 }

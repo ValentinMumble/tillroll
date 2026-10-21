@@ -1,25 +1,25 @@
-import { type KeyboardEvent, useEffect, useRef, useState } from 'react'
-import { type Basis, type Categories, DEFAULT_ICON, oneIcon } from '../categories'
-import { money } from '../format'
-import { dayLabel } from '../periods'
-import type { StoreToSort } from '../report'
-import { storeKey } from '../stores'
-import type { CategoryKey, Rules } from '../types'
-import { useDialog } from '../useDialog'
-import { WebSearch } from './WebSearch'
+import {type KeyboardEvent, useEffect, useRef, useState} from 'react';
+import {type Basis, type Categories, DEFAULT_ICON, oneIcon} from '../categories';
+import {money} from '../format';
+import {dayLabel} from '../periods';
+import type {StoreToSort} from '../report';
+import {storeKey} from '../stores';
+import type {CategoryKey, Rules} from '../types';
+import {useDialog} from '../useDialog';
+import {WebSearch} from './WebSearch';
 
 interface Props {
   /**
    * The stores to go through, kept as they were when the deck opened (so the count and Back stay put while sorting):
    * the ones Tillroll is unsure about, and every store still on an automatic category.
    */
-  queues: { unsure: StoreToSort[]; automatic: StoreToSort[] }
-  categories: Categories
-  rules: Rules
-  onPick: (storeKey: string, category: CategoryKey) => void
-  onNewCategory: (storeKey: string, label: string, icon: string) => void
-  onRename: (storeKey: string, name: string, newName: string) => void
-  onClose: () => void
+  queues: {unsure: StoreToSort[]; automatic: StoreToSort[]};
+  categories: Categories;
+  rules: Rules;
+  onPick: (storeKey: string, category: CategoryKey) => void;
+  onNewCategory: (storeKey: string, label: string, icon: string) => void;
+  onRename: (storeKey: string, name: string, newName: string) => void;
+  onClose: () => void;
 }
 
 const REASON: Partial<Record<Basis, string>> = {
@@ -29,84 +29,84 @@ const REASON: Partial<Record<Basis, string>> = {
   keyword: 'guessed from its name',
   code: 'guessed from its shop code',
   kind: 'guessed from the kind of payment',
-}
+};
 
 /**
  * One store at a time, biggest first: one tap files all its payments, past and future. Keep accepts the guess.
  * On a keyboard, 1 to 9 pick the first nine categories, Enter keeps, the arrows go back and on.
  */
-export function Sorter({ queues, categories, rules, onPick, onNewCategory, onRename, onClose }: Props) {
-  const { ref: dialogRef, onKeyDown: onDialogKeyDown, close: closeDialog } = useDialog()
-  const [mode, setMode] = useState<'unsure' | 'automatic'>(queues.unsure.length > 0 ? 'unsure' : 'automatic')
-  const [position, setPosition] = useState(0)
+export function Sorter({queues, categories, rules, onPick, onNewCategory, onRename, onClose}: Props) {
+  const {ref: dialogRef, onKeyDown: onDialogKeyDown, close: closeDialog} = useDialog();
+  const [mode, setMode] = useState<'unsure' | 'automatic'>(queues.unsure.length > 0 ? 'unsure' : 'automatic');
+  const [position, setPosition] = useState(0);
   // The store's card and its choices scroll: each new store starts at the top, its name in view.
-  const bodyRef = useRef<HTMLDivElement>(null)
+  const bodyRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    bodyRef.current?.scrollTo({ top: 0 })
-  }, [position, mode])
-  const [filed, setFiled] = useState(0)
-  const [newName, setNewName] = useState('')
-  const [newIcon, setNewIcon] = useState('')
+    bodyRef.current?.scrollTo({top: 0});
+  }, [position, mode]);
+  const [filed, setFiled] = useState(0);
+  const [newName, setNewName] = useState('');
+  const [newIcon, setNewIcon] = useState('');
   // Names given during this session: the queue holds the names it was opened with.
-  const [renamed, setRenamed] = useState<Record<string, string>>({})
-  const [renaming, setRenaming] = useState<string | null>(null)
+  const [renamed, setRenamed] = useState<Record<string, string>>({});
+  const [renaming, setRenaming] = useState<string | null>(null);
 
-  const queue = queues[mode]
-  const store = queue[position]
+  const queue = queues[mode];
+  const store = queue[position];
   // A store renamed here gets the key of its new name: its category goes there.
-  const name = store ? (renamed[store.key] ?? store.name) : ''
-  const key = store ? (renamed[store.key] ? storeKey(renamed[store.key]) : store.key) : ''
-  const picked = store ? rules[key] : undefined
-  const guess = store ? categories.byKey[store.category] : undefined
-  const next = () => setPosition(position + 1)
+  const name = store ? (renamed[store.key] ?? store.name) : '';
+  const key = store ? (renamed[store.key] ? storeKey(renamed[store.key]) : store.key) : '';
+  const picked = store ? rules[key] : undefined;
+  const guess = store ? categories.byKey[store.category] : undefined;
+  const next = () => setPosition(position + 1);
 
   function pick(category: CategoryKey) {
-    if (!store) return
-    onPick(key, category)
-    setFiled(filed + 1)
-    next()
+    if (!store) return;
+    onPick(key, category);
+    setFiled(filed + 1);
+    next();
   }
 
   function addCategory() {
-    const label = newName.trim()
-    if (!store || !label) return
-    onNewCategory(key, label, newIcon || DEFAULT_ICON)
-    setNewName('')
-    setNewIcon('')
-    setFiled(filed + 1)
-    next()
+    const label = newName.trim();
+    if (!store || !label) return;
+    onNewCategory(key, label, newIcon || DEFAULT_ICON);
+    setNewName('');
+    setNewIcon('');
+    setFiled(filed + 1);
+    next();
   }
 
   function rename() {
-    if (!store || renaming === null) return
-    const newStoreName = renaming.trim()
+    if (!store || renaming === null) return;
+    const newStoreName = renaming.trim();
     if (newStoreName && newStoreName !== name) {
-      onRename(key, name, newStoreName)
-      setRenamed({ ...renamed, [store.key]: newStoreName })
+      onRename(key, name, newStoreName);
+      setRenamed({...renamed, [store.key]: newStoreName});
     }
-    setRenaming(null)
+    setRenaming(null);
   }
 
   function switchMode(next: 'unsure' | 'automatic') {
-    setMode(next)
-    setPosition(0)
-    setRenaming(null)
+    setMode(next);
+    setPosition(0);
+    setRenaming(null);
   }
 
   /** The keyboard shortcuts, unless a field has the focus. */
   function onKeyDown(event: KeyboardEvent<HTMLDialogElement>) {
-    onDialogKeyDown(event)
-    const target = event.target as HTMLElement
-    if (!store || event.defaultPrevented || target.tagName === 'INPUT') return
-    const digit = Number(event.key)
+    onDialogKeyDown(event);
+    const target = event.target as HTMLElement;
+    if (!store || event.defaultPrevented || target.tagName === 'INPUT') return;
+    const digit = Number(event.key);
     if (digit >= 1 && digit <= 9 && categories.alphabetical[digit - 1]) {
-      event.preventDefault()
-      pick(categories.alphabetical[digit - 1].key)
+      event.preventDefault();
+      pick(categories.alphabetical[digit - 1].key);
     } else if (event.key === 'Enter' && target.tagName !== 'BUTTON' && guess) {
-      event.preventDefault()
-      pick(picked ?? store.category)
-    } else if (event.key === 'ArrowRight') next()
-    else if (event.key === 'ArrowLeft' && position > 0) setPosition(position - 1)
+      event.preventDefault();
+      pick(picked ?? store.category);
+    } else if (event.key === 'ArrowRight') next();
+    else if (event.key === 'ArrowLeft' && position > 0) setPosition(position - 1);
   }
 
   return (
@@ -137,7 +137,7 @@ export function Sorter({ queues, categories, rules, onPick, onNewCategory, onRen
         </p>
         {queue.length > 0 && (
           <div className="sorter-progress" aria-hidden="true">
-            <span style={{ width: `${(Math.min(position, queue.length) / queue.length) * 100}%` }} />
+            <span style={{width: `${(Math.min(position, queue.length) / queue.length) * 100}%`}} />
           </div>
         )}
       </header>
@@ -149,9 +149,9 @@ export function Sorter({ queues, categories, rules, onPick, onNewCategory, onRen
               {renaming !== null ? (
                 <form
                   className="sorter-rename"
-                  onSubmit={(event) => {
-                    event.preventDefault()
-                    rename()
+                  onSubmit={event => {
+                    event.preventDefault();
+                    rename();
                   }}
                 >
                   <input
@@ -160,12 +160,12 @@ export function Sorter({ queues, categories, rules, onPick, onNewCategory, onRen
                     value={renaming}
                     maxLength={80}
                     autoFocus
-                    onFocus={(event) => event.target.select()}
-                    onChange={(event) => setRenaming(event.target.value)}
-                    onKeyDown={(event) => {
+                    onFocus={event => event.target.select()}
+                    onChange={event => setRenaming(event.target.value)}
+                    onKeyDown={event => {
                       if (event.key === 'Escape') {
-                        event.preventDefault()
-                        setRenaming(null)
+                        event.preventDefault();
+                        setRenaming(null);
                       }
                     }}
                   />
@@ -189,7 +189,7 @@ export function Sorter({ queues, categories, rules, onPick, onNewCategory, onRen
               · last on {dayLabel(store.lastDate, true)}
             </p>
             <ul className="sorter-examples" aria-label="What the bank says">
-              {store.examples.map((text) => (
+              {store.examples.map(text => (
                 <li key={text}>{text}</li>
               ))}
             </ul>
@@ -208,7 +208,7 @@ export function Sorter({ queues, categories, rules, onPick, onNewCategory, onRen
           </div>
           <div className="chip-grid" role="group" aria-label="Or another category">
             {categories.alphabetical.map((category, index) => {
-              const current = (picked ?? store.category) === category.key
+              const current = (picked ?? store.category) === category.key;
               return (
                 <button
                   key={category.key}
@@ -226,14 +226,14 @@ export function Sorter({ queues, categories, rules, onPick, onNewCategory, onRen
                     </kbd>
                   )}
                 </button>
-              )
+              );
             })}
           </div>
           <form
             className="category-add"
-            onSubmit={(event) => {
-              event.preventDefault()
-              addCategory()
+            onSubmit={event => {
+              event.preventDefault();
+              addCategory();
             }}
           >
             <input
@@ -241,7 +241,7 @@ export function Sorter({ queues, categories, rules, onPick, onNewCategory, onRen
               aria-label="Icon of the new category"
               value={newIcon}
               placeholder={DEFAULT_ICON}
-              onChange={(event) => setNewIcon(oneIcon(event.target.value, newIcon))}
+              onChange={event => setNewIcon(oneIcon(event.target.value, newIcon))}
             />
             <input
               className="text-input"
@@ -249,7 +249,7 @@ export function Sorter({ queues, categories, rules, onPick, onNewCategory, onRen
               placeholder="Or a new category for it"
               value={newName}
               maxLength={40}
-              onChange={(event) => setNewName(event.target.value)}
+              onChange={event => setNewName(event.target.value)}
             />
             <button type="submit" className="button" disabled={!newName.trim()}>
               Add
@@ -290,5 +290,5 @@ export function Sorter({ queues, categories, rules, onPick, onNewCategory, onRen
         )}
       </footer>
     </dialog>
-  )
+  );
 }

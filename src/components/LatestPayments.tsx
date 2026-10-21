@@ -1,32 +1,32 @@
-import { useState } from 'react'
-import type { Categories } from '../categories'
-import { money } from '../format'
-import { dayLabel, weekdayLabel } from '../periods'
-import type { Row } from '../report'
-import { loadPaymentsEverything, savePaymentsEverything } from '../storage'
-import type { CategoryKey, Labels } from '../types'
-import { BankBadge } from './BankBadge'
-import { CategorySheet } from './CategorySheet'
-import { LabelOptions, PaymentLabels } from './PaymentLabels'
+import {useState} from 'react';
+import type {Categories} from '../categories';
+import {money} from '../format';
+import {dayLabel, weekdayLabel} from '../periods';
+import type {Row} from '../report';
+import {loadPaymentsEverything, savePaymentsEverything} from '../storage';
+import type {CategoryKey, Labels} from '../types';
+import {BankBadge} from './BankBadge';
+import {CategorySheet} from './CategorySheet';
+import {LabelOptions, PaymentLabels} from './PaymentLabels';
 
 interface Props {
   /** The period's payments, newest first. */
-  rows: Row[]
-  categories: Categories
-  onSeeAll: () => void
+  rows: Row[];
+  categories: Categories;
+  onSeeAll: () => void;
   /** The category of a payment, for its store or for this payment only (scope "store" or "payment"). */
-  onCategorize: (rows: Row[], category: CategoryKey | null, scope: string) => void
-  onCreateCategory: (rows: Row[], label: string, icon: string, scope: string) => void
+  onCategorize: (rows: Row[], category: CategoryKey | null, scope: string) => void;
+  onCreateCategory: (rows: Row[], label: string, icon: string, scope: string) => void;
   /** The payments come from more than one bank: each shows its bank's letter. */
-  showBanks: boolean
+  showBanks: boolean;
   /** Every label in use, offered while typing one. */
-  labelNames: string[]
+  labelNames: string[];
   /** Each changed payment's full list of labels. */
-  onLabels: (changes: Labels) => void
-  onFocusLabel: (label: string) => void
+  onLabels: (changes: Labels) => void;
+  onFocusLabel: (label: string) => void;
 }
 
-const SHOWN = 6
+const SHOWN = 6;
 
 /** The overview's last few payments of the period, each with its category to change, and the way to the full list. */
 export function LatestPayments({
@@ -40,11 +40,11 @@ export function LatestPayments({
   onLabels,
   onFocusLabel,
 }: Props) {
-  const [sheet, setSheet] = useState<Row | null>(null)
+  const [sheet, setSheet] = useState<Row | null>(null);
   // The same choice as the payment list's, remembered in each browser.
-  const [everything, setEverything] = useState(loadPaymentsEverything)
-  const shown = everything ? rows : rows.filter((row) => row.counts)
-  const latest = shown.slice(0, SHOWN)
+  const [everything, setEverything] = useState(loadPaymentsEverything);
+  const shown = everything ? rows : rows.filter(row => row.counts);
+  const latest = shown.slice(0, SHOWN);
   return (
     <section className="card is-preview latest">
       <header className="card-head">
@@ -53,9 +53,9 @@ export function LatestPayments({
           <input
             type="checkbox"
             checked={everything}
-            onChange={(event) => {
-              setEverything(event.target.checked)
-              savePaymentsEverything(event.target.checked)
+            onChange={event => {
+              setEverything(event.target.checked);
+              savePaymentsEverything(event.target.checked);
             }}
           />
           Show transfers and money in
@@ -70,8 +70,8 @@ export function LatestPayments({
         <p className="empty">No payments in this period.</p>
       ) : (
         <ul>
-          {latest.map((row) => {
-            const category = categories.byKey[row.category]
+          {latest.map(row => {
+            const category = categories.byKey[row.category];
             return (
               <li key={row.id} className={row.counts ? undefined : 'is-muted'}>
                 <span className="latest-store">
@@ -102,7 +102,7 @@ export function LatestPayments({
                   {money(row.amount, row.currency, true)}
                 </span>
               </li>
-            )
+            );
           })}
         </ul>
       )}
@@ -112,8 +112,8 @@ export function LatestPayments({
           title={sheet.store}
           detail={`${dayLabel(sheet.date, true)} · ${money(sheet.amount, sheet.currency, true)}`}
           scopes={[
-            { key: 'store', label: `Every payment at ${sheet.store}, past and future` },
-            { key: 'payment', label: 'Only this payment' },
+            {key: 'store', label: `Every payment at ${sheet.store}, past and future`},
+            {key: 'payment', label: 'Only this payment'},
           ]}
           categories={categories}
           current={sheet.category}
@@ -123,5 +123,5 @@ export function LatestPayments({
         />
       )}
     </section>
-  )
+  );
 }

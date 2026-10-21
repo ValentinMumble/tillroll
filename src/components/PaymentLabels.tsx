@@ -1,45 +1,45 @@
-import { useState } from 'react'
-import { tidyLabel, withLabel, withoutLabel } from '../labels'
-import type { Row } from '../report'
-import type { Labels } from '../types'
+import {useState} from 'react';
+import {tidyLabel, withLabel, withoutLabel} from '../labels';
+import type {Row} from '../report';
+import type {Labels} from '../types';
 
 /** The list of labels in use that a label field offers while typing. */
-const LABEL_OPTIONS = 'tillroll-labels'
+const LABEL_OPTIONS = 'tillroll-labels';
 
 /** The labels in use, offered by every label field of the view. Render it once per view. */
-export function LabelOptions({ names }: { names: string[] }) {
+export function LabelOptions({names}: {names: string[]}) {
   return (
     <datalist id={LABEL_OPTIONS}>
-      {names.map((label) => (
+      {names.map(label => (
         <option key={label} value={label} />
       ))}
     </datalist>
-  )
+  );
 }
 
 interface Props {
-  row: Row
-  onLabels: (changes: Labels) => void
-  onFocusLabel: (label: string) => void
+  row: Row;
+  onLabels: (changes: Labels) => void;
+  onFocusLabel: (label: string) => void;
 }
 
 /**
  * A payment's labels: a chip each (a click shows every payment with it, × takes it off), then a # that opens a
  * field to add one, offering the labels in use.
  */
-export function PaymentLabels({ row, onLabels, onFocusLabel }: Props) {
+export function PaymentLabels({row, onLabels, onFocusLabel}: Props) {
   // The label being typed, while the field is open.
-  const [text, setText] = useState<string | null>(null)
+  const [text, setText] = useState<string | null>(null);
 
   function add() {
-    const label = tidyLabel(text ?? '')
-    if (label) onLabels({ [row.id]: withLabel(row.labels, label) })
-    setText(null)
+    const label = tidyLabel(text ?? '');
+    if (label) onLabels({[row.id]: withLabel(row.labels, label)});
+    setText(null);
   }
 
   return (
     <>
-      {row.labels.map((label) => (
+      {row.labels.map(label => (
         <span key={label} className="label-chip">
           <button type="button" title="Show every payment with this label" onClick={() => onFocusLabel(label)}>
             # {label}
@@ -47,7 +47,7 @@ export function PaymentLabels({ row, onLabels, onFocusLabel }: Props) {
           <button
             type="button"
             aria-label={`Take the label ${label} off`}
-            onClick={() => onLabels({ [row.id]: withoutLabel(row.labels, label) })}
+            onClick={() => onLabels({[row.id]: withoutLabel(row.labels, label)})}
           >
             ×
           </button>
@@ -56,9 +56,9 @@ export function PaymentLabels({ row, onLabels, onFocusLabel }: Props) {
       {text !== null ? (
         <form
           className="label-form"
-          onSubmit={(event) => {
-            event.preventDefault()
-            add()
+          onSubmit={event => {
+            event.preventDefault();
+            add();
           }}
         >
           <input
@@ -69,11 +69,11 @@ export function PaymentLabels({ row, onLabels, onFocusLabel }: Props) {
             value={text}
             maxLength={40}
             autoFocus
-            onChange={(event) => setText(event.target.value)}
-            onKeyDown={(event) => {
+            onChange={event => setText(event.target.value)}
+            onKeyDown={event => {
               if (event.key === 'Escape') {
-                event.preventDefault()
-                setText(null)
+                event.preventDefault();
+                setText(null);
               }
             }}
           />
@@ -99,5 +99,5 @@ export function PaymentLabels({ row, onLabels, onFocusLabel }: Props) {
         )
       )}
     </>
-  )
+  );
 }

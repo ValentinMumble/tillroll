@@ -1,17 +1,17 @@
-import { ImportButton } from './ImportButton'
+import {ImportButton} from './ImportButton';
 
-const REPOSITORY = 'https://github.com/ValentinMumble/tillroll'
+const REPOSITORY = 'https://github.com/ValentinMumble/tillroll';
 
 interface Props {
-  isOwner: boolean
-  busy: string | null
-  onSample: () => void
-  onImport: (file: File) => void
-  onConnect: () => void
+  isOwner: boolean;
+  busy: string | null;
+  onSample: () => void;
+  onImport: (file: File) => void;
+  onConnect: () => void;
 }
 
 /** The first screen, before there is any data. */
-export function Landing({ isOwner, busy, onSample, onImport, onConnect }: Props) {
+export function Landing({isOwner, busy, onSample, onImport, onConnect}: Props) {
   return (
     <section className="landing">
       <div className="landing-copy">
@@ -57,5 +57,5 @@ export function Landing({ isOwner, busy, onSample, onImport, onConnect }: Props)
         )}
       </div>
     </section>
-  )
+  );
 }
