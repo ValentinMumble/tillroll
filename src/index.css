@@ -1151,6 +1151,10 @@ main {
   border-top: 1px solid var(--line);
 }
 
+.latest li.is-muted .latest-store {
+  color: var(--muted);
+}
+
 .latest-store {
   overflow: hidden;
   font-weight: 500;

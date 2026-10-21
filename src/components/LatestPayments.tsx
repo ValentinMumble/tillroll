@@ -3,6 +3,7 @@ import type { Categories } from '../categories'
 import { money } from '../format'
 import { dayLabel, weekdayLabel } from '../periods'
 import type { Row } from '../report'
+import { loadPaymentsEverything, savePaymentsEverything } from '../storage'
 import type { CategoryKey } from '../types'
 import { CategorySheet } from './CategorySheet'
 
@@ -21,15 +22,28 @@ const SHOWN = 6
 /** The overview's last few payments of the period, each with its category to change, and the way to the full list. */
 export function LatestPayments({ rows, categories, onSeeAll, onCategorize, onCreateCategory }: Props) {
   const [sheet, setSheet] = useState<Row | null>(null)
-  const spending = rows.filter((row) => row.counts)
-  const latest = spending.slice(0, SHOWN)
+  // The same choice as the payment list's, remembered in each browser.
+  const [everything, setEverything] = useState(loadPaymentsEverything)
+  const shown = everything ? rows : rows.filter((row) => row.counts)
+  const latest = shown.slice(0, SHOWN)
   return (
     <section className="card is-preview latest">
       <header className="card-head">
         <h2>Latest payments</h2>
-        {spending.length > SHOWN && (
+        <label className="toggle">
+          <input
+            type="checkbox"
+            checked={everything}
+            onChange={(event) => {
+              setEverything(event.target.checked)
+              savePaymentsEverything(event.target.checked)
+            }}
+          />
+          Show transfers and money in
+        </label>
+        {shown.length > SHOWN && (
           <button type="button" className="link-button" onClick={onSeeAll}>
-            All {spending.length} payments →
+            All {shown.length} payments →
           </button>
         )}
       </header>
@@ -40,7 +54,7 @@ export function LatestPayments({ rows, categories, onSeeAll, onCategorize, onCre
           {latest.map((row) => {
             const category = categories.byKey[row.category]
             return (
-              <li key={row.id}>
+              <li key={row.id} className={row.counts ? undefined : 'is-muted'}>
                 <span className="latest-store">
                   {row.store}
                   {row.pending && <span className="tag">pending</span>}
