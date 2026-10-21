@@ -346,6 +346,27 @@ function totalsOf(rows: Row[]): Totals {
   return totals;
 }
 
+/**
+ * What some payments (a store's, a category's) cost each month, from their first month to their last, months with
+ * nothing included: the last `count` months of it.
+ */
+export function spendByMonth(rows: Row[], count = 24) {
+  const totals = new Map<string, number>();
+  for (const row of rows) {
+    if (row.spend !== 0) totals.set(row.date.slice(0, 7), (totals.get(row.date.slice(0, 7)) ?? 0) + row.spend);
+  }
+  if (totals.size === 0) return [];
+  const sorted = [...totals.keys()].sort();
+  let month = sorted[0];
+  const last = sorted[sorted.length - 1];
+  const list: {month: string; total: number}[] = [];
+  while (month <= last) {
+    list.push({month, total: totals.get(month) ?? 0});
+    month = shiftPeriod(month, 'month', 1);
+  }
+  return list.slice(-count);
+}
+
 /** Rows from one day to another, both counted. Rows are sorted newest first. */
 export function rowsBetween(rows: Row[], from: string, to: string) {
   return rows.filter(row => row.date >= from && row.date <= to);

@@ -2,7 +2,9 @@ import {useState} from 'react';
 import type {Categories} from '../categories';
 import {money} from '../format';
 import type {Report} from '../report';
+import {type CategoryView, loadCategoryView, saveCategoryView} from '../storage';
 import type {CategoryKey} from '../types';
+import {CategoryTrends} from './CategoryTrends';
 import {Delta} from './Delta';
 
 /** What the payment list is narrowed to: a category, a store, or a label (over all time). */
@@ -63,10 +65,14 @@ export function CategoryBreakdown({
   onFocus,
   preview,
   onEdit,
-}: Props & {onEdit: () => void}) {
+  onOpenCategory,
+}: Props & {onEdit: () => void; onOpenCategory?: (category: CategoryKey) => void}) {
   const {current, baseline, series} = report;
   // The categories that are not spending (transfers, money in, left out), shown on request.
   const [everyCategory, setEveryCategory] = useState(false);
+  // A list, or a small chart per category (the full view only).
+  const [view, setView] = useState<CategoryView>(loadCategoryView);
+  const trends = !preview && onOpenCategory && view === 'trends';
   const items = [...current.categories]
     .filter(([, value]) => value >= 0.5)
     .sort((first, second) => second[1] - first[1]);
@@ -87,21 +93,42 @@ export function CategoryBreakdown({
           items.length > preview.limit && <SeeAll count={items.length} noun="categories" onClick={preview.onSeeAll} />
         ) : (
           <>
-            <label className="toggle">
-              <input
-                type="checkbox"
-                checked={everyCategory}
-                onChange={event => setEveryCategory(event.target.checked)}
-              />
-              Show every category
-            </label>
+            {onOpenCategory && (
+              <div className="segmented is-small" role="group" aria-label="Show the categories as">
+                {(['list', 'trends'] as const).map(item => (
+                  <button
+                    key={item}
+                    type="button"
+                    aria-pressed={view === item}
+                    onClick={() => {
+                      setView(item);
+                      saveCategoryView(item);
+                    }}
+                  >
+                    {item === 'list' ? 'List' : 'Trends'}
+                  </button>
+                ))}
+              </div>
+            )}
+            {!trends && (
+              <label className="toggle">
+                <input
+                  type="checkbox"
+                  checked={everyCategory}
+                  onChange={event => setEveryCategory(event.target.checked)}
+                />
+                Show every category
+              </label>
+            )}
             <button type="button" className="link-button" onClick={onEdit}>
               Edit categories
             </button>
           </>
         )}
       </header>
-      {items.length === 0 ? (
+      {trends ? (
+        <CategoryTrends report={report} categories={categories} currency={currency} onOpen={onOpenCategory} />
+      ) : items.length === 0 ? (
         <p className="empty">No spending in this period.</p>
       ) : (
         <ul className="bars">
@@ -140,7 +167,7 @@ export function CategoryBreakdown({
           })}
         </ul>
       )}
-      {!preview && everyCategory && others.length > 0 && (
+      {!preview && !trends && everyCategory && others.length > 0 && (
         <>
           <h3 className="bars-heading">Not counted as spending</h3>
           <ul className="bars">

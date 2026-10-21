@@ -1,8 +1,8 @@
 import {useMemo, useState} from 'react';
 import type {Categories} from '../categories';
 import {money} from '../format';
-import {periodLabel, shiftPeriod} from '../periods';
-import type {Row} from '../report';
+import {periodLabel, shortMonth} from '../periods';
+import {type Row, spendByMonth} from '../report';
 import type {StoreInfo} from '../duplicates';
 import type {CategoryKey, Merges, Rules} from '../types';
 import {useDialog} from '../useDialog';
@@ -23,33 +23,6 @@ interface Props {
   onSeparate: (storeKey: string) => void;
   onMergeInto: (storeKey: string, into: string) => void;
   onClose: () => void;
-}
-
-/** "Aug 25": the axis spans years, so every label carries its own. */
-function shortMonth(month: string) {
-  return new Date(`${month}-01T00:00:00Z`).toLocaleDateString('en-GB', {
-    month: 'short',
-    year: '2-digit',
-    timeZone: 'UTC',
-  });
-}
-
-/** What went to a store each month, from its first month to its last (24 at most). */
-function monthsOf(rows: Row[]) {
-  const totals = new Map<string, number>();
-  for (const row of rows) {
-    if (row.spend !== 0) totals.set(row.date.slice(0, 7), (totals.get(row.date.slice(0, 7)) ?? 0) + row.spend);
-  }
-  if (totals.size === 0) return [];
-  const sorted = [...totals.keys()].sort();
-  let month = sorted[0];
-  const last = sorted[sorted.length - 1];
-  const list: {month: string; total: number}[] = [];
-  while (month <= last) {
-    list.push({month, total: totals.get(month) ?? 0});
-    month = shiftPeriod(month, 'month', 1);
-  }
-  return list.slice(-24);
 }
 
 /**
@@ -85,7 +58,7 @@ export function StoreDialog({
       guessed: [...counts].sort((first, second) => second[1] - first[1])[0]?.[0] ?? 'other',
       texts: [...new Set(own.map(row => row.description))].slice(0, 3),
       // Month by month, the last 24 months the store was used in at most, months with nothing included.
-      months: monthsOf(own),
+      months: spendByMonth(own),
       // The stores merged into this one: their own names, before the merge.
       parts: [...new Map(own.filter(row => row.ownStoreKey !== store.key).map(row => [row.ownStoreKey, row.ownStore]))]
         .filter(([key]) => merges[key])

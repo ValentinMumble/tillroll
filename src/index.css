@@ -2559,6 +2559,113 @@ main {
   font-size: 14px;
 }
 
+/* A category: its month by month and its stores, scrolling under a fixed footer. */
+.category-dialog-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  min-height: 0;
+  padding-bottom: 16px;
+  overflow: hidden auto;
+}
+
+.category-dialog .empty {
+  margin: 0 20px;
+}
+
+/* Trends: a small chart per category, its own scale, the period shown in the strong blue. */
+.trends-hint {
+  margin: 0 0 12px;
+}
+
+.trends {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.trend-card {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.trend-card:hover {
+  border-color: var(--axis);
+}
+
+.trend-card-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.trend-card-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Two by two on a phone: small charts side by side read best. */
+@media (max-width: 560px) {
+  .trends {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .trend-card {
+    padding: 10px;
+  }
+
+  .trend-card-bars {
+    height: 48px;
+  }
+}
+
+.trend-card-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 56px;
+}
+
+.trend-card-bar {
+  flex: 1;
+  min-height: 2px;
+  border-radius: 2px 2px 0 0;
+  background: var(--bar);
+}
+
+.trend-card-bar.is-marked {
+  background: var(--bar-strong);
+}
+
+.trend-card-total {
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.trend-card-total small {
+  color: var(--muted);
+  font-weight: 400;
+}
+
 .store-dialog-more {
   margin-right: auto;
   font-size: 13px;

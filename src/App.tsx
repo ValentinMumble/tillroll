@@ -17,6 +17,7 @@ import {
 } from './api';
 import {type Category, categoriesFrom, editsFrom, newCategoryKey} from './categories';
 import {CategoryBreakdown, type Focus, StoreBreakdown} from './components/Breakdown';
+import {CategoryDialog} from './components/CategoryDialog';
 import {Calendar} from './components/Calendar';
 import {BankDialog} from './components/BankDialog';
 import {CategoryEditor} from './components/CategoryEditor';
@@ -79,6 +80,8 @@ type Dialog =
   | {type: 'stores'; store: string | null}
   /** One store, opened with a double-click. */
   | {type: 'store'; store: {key: string; name: string}}
+  /** One category's month by month, opened from its trend. */
+  | {type: 'category'; category: CategoryKey}
   /** The bank picker, to connect another bank. */
   | {type: 'banks'}
   /** The duplicates deck keeps the pairs it opened with. */
@@ -1029,7 +1032,11 @@ export default function App() {
           {tab === 'stats' && <FunStats rows={currencyRows} currency={currency} />}
           {tab === 'categories' && (
             <>
-              <CategoryBreakdown {...breakdown} onEdit={() => setDialog({type: 'categories', store: null})} />
+              <CategoryBreakdown
+                {...breakdown}
+                onEdit={() => setDialog({type: 'categories', store: null})}
+                onOpenCategory={category => setDialog({type: 'category', category})}
+              />
               <LabelList
                 rows={currencyRows}
                 currency={currency}
@@ -1111,6 +1118,18 @@ export default function App() {
             .map(pair => (pair.first.key === dialog.store.key ? pair.second : pair.first))}
           onSeparate={storeKey => void separateStore(storeKey)}
           onMergeInto={(storeKey, into) => void mergeStores([storeKey], into)}
+          onClose={() => setDialog(null)}
+        />
+      )}
+      {dialog?.type === 'category' && (
+        <CategoryDialog
+          category={dialog.category}
+          rows={currencyRows}
+          categories={categories}
+          currency={currency}
+          onOpenPayments={() => focusOn({type: 'category', key: dialog.category})}
+          // The store dialog takes this one's place.
+          onOpenStore={store => setDialog({type: 'store', store})}
           onClose={() => setDialog(null)}
         />
       )}

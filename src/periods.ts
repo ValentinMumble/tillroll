@@ -107,4 +107,13 @@ export function weekdayLabel(date: string, withYear = false) {
     .replace(',', '');
 }
 
+/** "Aug 25": an axis that spans years, each label with its own. */
+export function shortMonth(month: string) {
+  return new Date(`${month}-01T00:00:00Z`).toLocaleDateString('en-GB', {
+    month: 'short',
+    year: '2-digit',
+    timeZone: 'UTC',
+  });
+}
+
 export const WEEKDAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];

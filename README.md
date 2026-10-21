@@ -42,7 +42,9 @@ Overview, Categories, Stores and Payments, and the ⋯ menu opens the Calendar a
   days, like a trip, and its payments can get one label together, unticking the ones that do not belong. A month's
   name opens it in the overview.
 - **Categories**: the total, each category with its trend over the chart's periods, and the **Labels**: each label with
-  its total, payments and dates, to open, rename or delete everywhere.
+  its total, payments and dates, to open, rename or delete everywhere. **Trends** shows a small bar chart per category
+  instead (twelve months in the month view, each its own scale, two by two on a phone); one opens the category: its
+  month by month, its average and where the money went over the last twelve months.
 - **Stores**: with a search, a pencil on each store (name and category, the stores merged into it, look-alikes to merge
   in), and the **possible duplicates** deck.
 - **Payments**: the total, by day like a bank statement or by amount or store, with a search and a category filter.
