@@ -164,6 +164,18 @@ export default function App() {
   const [dialog, setDialog] = useState<Dialog | null>(null)
   // One view at a time: picked in the sidebar on wide screens, in the tab bar on a phone.
   const [tab, setTab] = useState<Tab>(() => placeFromHistory().tab)
+  // Bumped to start the payment list over: a new key gives it a fresh search and no ticks.
+  const [paymentsRun, setPaymentsRun] = useState(0)
+
+  /** A view picked in the sidebar or the tab bar. Picking Payments again clears its filter and search. */
+  function openTab(next: Tab) {
+    if (next === 'payments' && tab === 'payments') {
+      setFocus(null)
+      setPaymentsRun((run) => run + 1)
+      window.scrollTo({ top: 0 })
+    }
+    setTab(next)
+  }
 
   // Each view and filter is a step of the browser's history, in the address too (#payments): Back and Forward move
   // between them. The step Back lands on already holds the place, so it adds none.
@@ -794,7 +806,7 @@ export default function App() {
 
   return (
     <div className="shell">
-      <Sidebar tab={tab} onTab={setTab} toSort={toSort.length} onSort={openSorter}>
+      <Sidebar tab={tab} onTab={openTab} toSort={toSort.length} onSort={openSorter}>
         {status && <p className="status">{status}</p>}
         <div className="side-actions">
           {bankAction}
@@ -918,6 +930,7 @@ export default function App() {
           )}
           {tab === 'payments' && (
             <Payments
+              key={paymentsRun}
               rows={focus?.type === 'label' ? currencyRows : periodRows}
               categories={categories}
               focus={focus}
@@ -939,7 +952,7 @@ export default function App() {
         </footer>
       </div>
 
-      <TabBar tab={tab} onTab={setTab} />
+      <TabBar tab={tab} onTab={openTab} />
 
       {dialog?.type === 'categories' && (
         <CategoryEditor
