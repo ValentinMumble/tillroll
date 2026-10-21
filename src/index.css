@@ -2577,6 +2577,33 @@ main {
   margin-bottom: 12px;
 }
 
+/* The total, the page's headline: a big figure, each account under it. */
+.savings-total {
+  padding-block: 24px;
+}
+
+.savings-total .card-head {
+  margin-bottom: 18px;
+}
+
+.savings-total .view-total {
+  font-size: 36px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.savings-total .savings-years {
+  gap: 8px 24px;
+  margin: 0;
+  font-size: 15px;
+}
+
+.savings-total .savings-years + .hint {
+  margin-top: 12px;
+}
+
 /* What was paid in, under the value in the header. */
 .savings-paid {
   margin: -6px 0 14px;

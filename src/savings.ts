@@ -66,6 +66,9 @@ function livretName(moves: Row[]) {
 
 const escaped = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
+/** Interest paid to a savings account ("Net interest paid to …") is growth, not money moved to it. */
+const INTEREST = /\binterest\b|\bint[ée]r[êe]ts?\b/i;
+
 /**
  * A bank names a transfer between two accounts of one holder after the holder, as it writes their name ("VIR SEPA M
  * DUPONT JEAN"), not after the livret: Crédit Coopératif's bank sync does for every move, its statements for the
@@ -97,13 +100,16 @@ export function savingsAccounts(
     }));
   return [...FOUND_ACCOUNTS, ...added]
     .map(({key, name, pattern}): SavingsAccount | null => {
-      const named = rows.filter(row => pattern.test(row.description) && !row.pending);
+      const named = rows.filter(
+        row => pattern.test(row.description) && !row.pending && !INTEREST.test(row.description),
+      );
       const bank = mostCommon(named.map(row => row.bank ?? 'Revolut'));
       const bankHolders = key === 'livret' && bank ? (holders[bank] ?? []) : [];
       const moves = bankHolders.length
         ? rows.filter(
             row =>
               !row.pending &&
+              !INTEREST.test(row.description) &&
               (pattern.test(row.description) || ((row.bank ?? 'Revolut') === bank && namesHolder(row, bankHolders))),
           )
         : named;
@@ -137,6 +143,15 @@ export function savingsAccounts(
       };
     })
     .filter((account): account is SavingsAccount => account !== null);
+}
+
+/**
+ * Its value now, estimated: the latest value typed, plus what was paid in since and less what was taken out. A move
+ * on the day of the value is in the value already. Growth since then is not: the next value typed brings it in.
+ */
+export function estimateNow(account: SavingsAccount, latest: SavingsValue) {
+  const moved = account.moves.filter(row => row.date > latest.date).reduce((sum, row) => sum - row.amount, 0);
+  return {value: latest.value + moved, moved, isEstimate: Math.abs(moved) >= 0.005};
 }
 
 /**

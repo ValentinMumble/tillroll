@@ -3,7 +3,7 @@ import {BANK_NAMES} from '../banks';
 import {money} from '../format';
 import {dayLabel, periodLabel, shortMonth, today} from '../periods';
 import type {Row} from '../report';
-import {addedAccountKey, growthBetween, type SavingsAccount, savingsAccounts} from '../savings';
+import {addedAccountKey, estimateNow, growthBetween, type SavingsAccount, savingsAccounts} from '../savings';
 import type {SavingsRecord, SavingsValue, SavingsValues} from '../types';
 import {BankBadge} from './BankBadge';
 import {BarStrip} from './BarStrip';
@@ -60,6 +60,7 @@ function AccountCard({
   const sorted = byDate(values);
   const latest = sorted[sorted.length - 1];
   const growth = sorted.length > 1 ? growthBetween(account, sorted[0], latest) : null;
+  const estimate = latest ? estimateNow(account, latest) : null;
   const bank = bankOf(account);
   const paidIn =
     account.first &&
@@ -82,10 +83,17 @@ function AccountCard({
           {bank && <BankBadge bank={bank} />}
           {account.name}
         </h2>
-        {latest ? (
+        {latest && estimate ? (
           <>
-            <span className="view-total">{money(latest.value, currency, true)}</span>
-            <span className="hint">on {dayLabel(latest.date, true)}</span>
+            <span className="view-total">{money(estimate.value, currency, true)}</span>
+            <span className="hint">
+              {estimate.isEstimate
+                ? `estimate: ${money(latest.value, currency, true)} on ${dayLabel(latest.date, true)}, ` +
+                  (estimate.moved > 0
+                    ? `plus ${money(estimate.moved, currency, true)} paid in since`
+                    : `less ${money(-estimate.moved, currency, true)} taken out since`)
+                : `on ${dayLabel(latest.date, true)}`}
+            </span>
           </>
         ) : paidIn ? (
           <>
@@ -207,13 +215,18 @@ export function Savings({rows, currency, values, holders, onSave}: Props) {
   const accounts = savingsAccounts(rows, today().slice(0, 7), values, holders);
   const [name, setName] = useState('');
   const [value, setValue] = useState('');
-  // The total: each account's latest value typed. One with no value yet is left out, and named.
-  const latest = accounts.map(account => ({account, value: byDate(values[account.key]?.values ?? []).at(-1)}));
-  const valued = latest.filter(item => item.value !== undefined);
-  const missing = latest.filter(item => item.value === undefined).map(item => item.account.name);
-  const total = valued.reduce((sum, item) => sum + (item.value?.value ?? 0), 0);
+  // The total: each account's value now, estimated from its latest value typed. One with no value yet is left out,
+  // and named.
+  const latest = accounts.map(account => {
+    const typed = byDate(values[account.key]?.values ?? []).at(-1);
+    return {account, typed, estimate: typed ? estimateNow(account, typed) : null};
+  });
+  const valued = latest.filter(item => item.estimate !== null);
+  const missing = latest.filter(item => item.estimate === null).map(item => item.account.name);
+  const total = valued.reduce((sum, item) => sum + (item.estimate?.value ?? 0), 0);
+  const estimated = valued.some(item => item.estimate?.isEstimate);
   const newest = valued
-    .map(item => item.value?.date ?? '')
+    .map(item => item.typed?.date ?? '')
     .sort()
     .at(-1);
 
@@ -229,19 +242,27 @@ export function Savings({rows, currency, values, holders, onSave}: Props) {
   return (
     <div className="savings">
       {valued.length > 0 && (
-        <section className="card">
+        <section className="card savings-total">
           <header className="card-head">
             <h2>Total savings</h2>
             <span className="view-total">{money(total, currency, true)}</span>
-            {newest && <span className="hint">latest value on {dayLabel(newest, true)}</span>}
+            {estimated ? (
+              <span className="hint">estimate: the values typed, plus the payments since (≈)</span>
+            ) : (
+              newest && <span className="hint">latest value on {dayLabel(newest, true)}</span>
+            )}
           </header>
           <p className="savings-years">
-            {valued.map(({account, value: item}) => {
+            {valued.map(({account, estimate}) => {
               const bank = bankOf(account);
               return (
                 <span key={account.key}>
                   {bank && <BankBadge bank={bank} />}
-                  {account.name} <strong>{money(item?.value ?? 0, currency, true)}</strong>
+                  {account.name}{' '}
+                  <strong>
+                    {estimate?.isEstimate && '≈ '}
+                    {money(estimate?.value ?? 0, currency, true)}
+                  </strong>
                 </span>
               );
             })}
