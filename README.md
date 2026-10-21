@@ -88,7 +88,7 @@ card payments keep the day they were made ("FACT 270826"), not the day the card 
 the bank only says "PayPal". A bank payment to PayPal of the same amount, up to 4 days apart, is the money that paid
 it: it goes to Between my accounts, so the purchase counts once, at its shop. In another currency the shop's name
 matches them instead. Money between PayPal and the bank, and currency conversions, are between one's accounts too.
-Payments and the latest payments show each payment's bank as a small logo (the banks' site icons, in public/banks).
+Payments and the latest payments show each payment's bank as a coloured initial: R, C, P.
 
 ## Run your own
 

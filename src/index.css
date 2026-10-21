@@ -1514,30 +1514,40 @@ main {
   letter-spacing: 0.04em;
 }
 
-/* The bank a payment comes from: its logo on a small white tile (Revolut's black R stays visible in the dark), or
-   its first letter; the bank's name on hover. */
+/* The bank a payment comes from: its initial in the bank's colour (Revolut's is the ink: white on a dark page), the
+   bank's name on hover. */
 .bank-badge {
-  display: inline-grid;
+  display: inline-block;
   flex: none;
-  place-items: center;
-  box-sizing: border-box;
-  width: 18px;
-  height: 18px;
+  width: 12px;
   margin-right: 8px;
-  padding: 1px;
-  border: 1px solid var(--line);
-  border-radius: 5px;
-  background: #ffffff;
-  color: #52514e;
-  font-size: 10px;
-  font-weight: 700;
-  line-height: 1;
-  vertical-align: -3px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  text-align: center;
   cursor: default;
 }
 
-img.bank-badge {
-  object-fit: contain;
+.bank-badge.is-revolut {
+  color: var(--ink);
+}
+
+.bank-badge.is-paypal {
+  color: #0070e0;
+}
+
+.bank-badge.is-credit-cooperatif {
+  color: #d1203a;
+}
+
+@media (prefers-color-scheme: dark) {
+  .bank-badge.is-paypal {
+    color: #4f9bff;
+  }
+
+  .bank-badge.is-credit-cooperatif {
+    color: #ff5c70;
+  }
 }
 
 .tag.is-refund {
