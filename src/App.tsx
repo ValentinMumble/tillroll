@@ -6,6 +6,7 @@ import {
   RequestError,
   saveCategories,
   saveDistinct,
+  saveSavingsValues,
   saveLabels,
   savePaymentCategories,
   saveMerge,
@@ -31,6 +32,7 @@ import {LatestPayments} from './components/LatestPayments';
 import {Menu} from './components/Menu';
 import {Payments} from './components/Payments';
 import {Sidebar} from './components/Sidebar';
+import {Savings} from './components/Savings';
 import {OverviewSkeleton} from './components/Skeleton';
 import {Sorter} from './components/Sorter';
 import {StoreDialog} from './components/StoreDialog';
@@ -58,6 +60,8 @@ import type {
   Merges,
   PaymentCategories,
   Rules,
+  SavingsRecord,
+  SavingsValues,
   Transaction,
 } from './types';
 
@@ -71,6 +75,8 @@ interface Data {
   paymentCategories: PaymentCategories;
   /** Pairs of stores marked "not the same" in the duplicates deck. */
   distinct: string[];
+  /** Savings accounts' values typed by hand. */
+  savingsValues: SavingsValues;
   connections: Connection[];
 }
 
@@ -288,6 +294,7 @@ export default function App() {
         labels: owner.labels ?? {},
         paymentCategories: owner.paymentCategories ?? {},
         distinct: owner.distinct ?? [],
+        savingsValues: owner.savingsValues ?? {},
         connections: owner.connections ?? [],
       });
       return owner;
@@ -483,6 +490,15 @@ export default function App() {
     });
   }
 
+  /** A savings account's values typed by hand, all of them, or an account added by hand (null takes it off). */
+  async function setSavings(account: string, record: SavingsRecord | null) {
+    if (!data) return;
+    const savingsValues = {...data.savingsValues};
+    if (record) savingsValues[account] = record;
+    else delete savingsValues[account];
+    await change({savingsValues}, () => saveSavingsValues(account, record));
+  }
+
   /** A pair of stores marked "not the same" in the duplicates deck. */
   async function markDistinct(pair: string) {
     if (!data) return;
@@ -643,6 +659,7 @@ export default function App() {
               labels: data.labels,
               paymentCategories: data.paymentCategories,
               distinct: data.distinct,
+              savingsValues: data.savingsValues,
             }
           : loadLocalSorting();
         setData({source: 'statement', transactions: merged, ...sorting, connections: []});
@@ -1030,6 +1047,14 @@ export default function App() {
             />
           )}
           {tab === 'stats' && <FunStats rows={currencyRows} currency={currency} />}
+          {tab === 'savings' && (
+            <Savings
+              rows={currencyRows}
+              currency={currency}
+              values={data?.savingsValues ?? {}}
+              onSave={(account, record) => void setSavings(account, record)}
+            />
+          )}
           {tab === 'categories' && (
             <>
               <CategoryBreakdown

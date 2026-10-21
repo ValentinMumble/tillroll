@@ -32,8 +32,8 @@ that come back every month.
 
 The screenshots show the sample data (Try it with sample data on the first screen), in your theme, light or dark.
 
-Six views, under a period bar that stays at the top: in a sidebar on wide screens; on a phone, a tab bar holds
-Overview, Categories, Stores and Payments, and the ⋯ menu opens the Calendar and Fun stats:
+Seven views, under a period bar that stays at the top: in a sidebar on wide screens; on a phone, a tab bar holds
+Overview, Categories, Stores and Payments, and the ⋯ menu opens the Calendar, Savings and Fun stats:
 
 - **Overview**: the total and the chart, the top categories and stores, the latest payments (each with its category to
   change) and a few quiet notes on what stands out.
@@ -48,6 +48,11 @@ Overview, Categories, Stores and Payments, and the ⋯ menu opens the Calendar a
 - **Stores**: with a search, a pencil on each store (name and category, the stores merged into it, look-alikes to merge
   in), and the **possible duplicates** deck.
 - **Payments**: the total, by day like a bank statement or by amount or store, with a search and a category filter.
+- **Savings**: each account money is put aside in, found from the money moved to and from it (an assurance vie,
+  a livret, Revolut's savings): what went in and out month by month and year by year. Its value, typed now and then
+  from its app or statement, shows how much it grew beyond what was paid in. An account no payment shows (a livret at
+  another bank) can be added by hand. Open Banking only reaches payment accounts, so an assurance vie or a livret
+  cannot be connected itself.
 - **Fun stats**: an average day by weekday, spending by hour (when the payments have times), the biggest day, the
   weekend share, the longest runs with and without spending, the most loyal store, coffees, the typical payment,
   the payday effect.

@@ -19,6 +19,8 @@ export const RULES = 'tillroll:rules';
 export const CATEGORIES = 'tillroll:categories';
 /** Pairs of stores marked "not the same" in the duplicates deck ("<key>|<key>", keys sorted). */
 export const DISTINCT = 'tillroll:distinct';
+/** The values typed for each savings account, by account key: a list of {date, value}. */
+export const SAVINGS_VALUES = 'tillroll:savings-values';
 /** Categories picked for one payment only, by transaction id. */
 export const PAYMENT_CATEGORIES = 'tillroll:payment-categories';
 /** Labels put on payments by hand, by transaction id. */

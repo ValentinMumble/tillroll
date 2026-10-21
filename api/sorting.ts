@@ -1,7 +1,7 @@
 import type {CategoryEdit} from '../src/types';
 import {handle, HttpError, json, readJson} from './_lib/http.js';
 import {requireOwner} from './_lib/owner.js';
-import {CATEGORIES, DISTINCT, LABELS, MERGES, PAYMENT_CATEGORIES, redis, RULES} from './_lib/store.js';
+import {CATEGORIES, DISTINCT, LABELS, MERGES, PAYMENT_CATEGORIES, redis, RULES, SAVINGS_VALUES} from './_lib/store.js';
 
 /*
  * Everything the owner sorts by hand, saved through one route: the Hobby plan takes 12 functions at most.
@@ -106,6 +106,33 @@ const PARTS: Record<string, (body: Record<string, unknown>) => Promise<unknown>>
     );
   },
 
+  /**
+   * { account, name?, values: [{date, value}] }: a savings account's values typed by hand, all of them, and the name of
+   * one added by hand. No values and no name takes it off.
+   */
+  async 'savings-values'({account, name, values}) {
+    const valid =
+      typeof account === 'string' &&
+      /^[a-z0-9-]{2,60}$/.test(account) &&
+      (name === undefined || (typeof name === 'string' && name.trim().length > 0 && name.length <= 60)) &&
+      Array.isArray(values) &&
+      values.length <= 500 &&
+      values.every(
+        item =>
+          typeof item === 'object' &&
+          item !== null &&
+          /^\d{4}-\d{2}-\d{2}$/.test(item.date) &&
+          Number.isFinite(item.value) &&
+          Math.abs(item.value) < 1e9,
+      );
+    if (!valid) throw new HttpError(400, 'Expected a savings account and its values');
+    const list = (values as {date: string; value: number}[]).map(({date, value}) => ({date, value}));
+    if (list.length === 0 && name === undefined) return redis().hdel(SAVINGS_VALUES, account);
+    return redis().hset(SAVINGS_VALUES, {
+      [account]: name === undefined ? {values: list} : {name: name.trim(), values: list},
+    });
+  },
+
   /** { pairs }: pairs of stores marked "not the same", so the duplicates deck never shows them again. */
   async distinct({pairs}) {
     if (
@@ -121,7 +148,7 @@ const PARTS: Record<string, (body: Record<string, unknown>) => Promise<unknown>>
   },
 };
 
-/** PUT /api/sorting?part=<rules|categories|merges|payment-categories|labels|distinct>, with that part's body. */
+/** PUT /api/sorting?part=<rules|categories|merges|payment-categories|labels|distinct|savings-values>, with that part's body. */
 export function PUT(request: Request) {
   return handle(async () => {
     requireOwner(request);

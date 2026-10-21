@@ -6,6 +6,8 @@ import type {
   Merges,
   PaymentCategories,
   Rules,
+  SavingsRecord,
+  SavingsValues,
   Transaction,
 } from './types';
 
@@ -49,6 +51,7 @@ export interface OwnerData {
   paymentCategories: PaymentCategories;
   /** Pairs of stores marked "not the same". */
   distinct: string[];
+  savingsValues: SavingsValues;
   connections: Connection[];
 }
 
@@ -101,6 +104,14 @@ export function savePaymentCategories(categories: Record<string, CategoryKey | n
 }
 
 /** Pairs of stores marked "not the same" in the duplicates deck. */
+/** A savings account's values typed by hand, all of them, and the name of one added by hand (null takes it off). */
+export function saveSavingsValues(account: string, record: SavingsRecord | null) {
+  return request<{ok: true}>('/api/sorting?part=savings-values', {
+    method: 'PUT',
+    body: JSON.stringify({account, ...(record ?? {values: []})}),
+  });
+}
+
 export function saveDistinct(pairs: string[]) {
   return request<{ok: true}>('/api/sorting?part=distinct', {method: 'PUT', body: JSON.stringify({pairs})});
 }

@@ -55,6 +55,21 @@ export type PaymentCategories = Record<string, CategoryKey>;
 /** Labels put on payments by hand (a trip, a gift, a shared bill), by transaction id. */
 export type Labels = Record<string, string[]>;
 
+/** A savings account's value on a day, typed by hand (an assurance vie's statement, a livret's balance). */
+export interface SavingsValue {
+  date: string;
+  value: number;
+}
+
+/** A savings account's values typed by hand, and the name of an account added by hand (one no payment shows). */
+export interface SavingsRecord {
+  name?: string;
+  values: SavingsValue[];
+}
+
+/** By account key (see src/savings.ts): the found accounts' values, and the accounts added by hand. */
+export type SavingsValues = Record<string, SavingsRecord>;
+
 /** Stores merged into another, by store key: the name of the store they are now part of. */
 export type Merges = Record<string, string>;
 
