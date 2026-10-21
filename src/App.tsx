@@ -47,7 +47,7 @@ import { findDuplicates, type Pair } from './duplicates'
 import { withLabel, withoutLabel } from './labels'
 import { storeKey as keyOfStore } from './stores'
 import { loadGrain, loadLocalData, loadLocalSorting, saveGrain, saveLocalData, saveLocalSorting } from './storage'
-import type { Tab } from './tabs'
+import { type Tab, TABS } from './tabs'
 import type {
   CategoryEdit,
   CategoryKey,
@@ -118,6 +118,23 @@ function withoutOverlap(transactions: Transaction[]) {
   })
 }
 
+/** Where the page is: its view, and the filter of the payment list. One step of the browser's history each. */
+interface Place {
+  tab: Tab
+  focus: Focus | null
+}
+
+/**
+ * The place this history step holds (a reload keeps it), else the view in the address (#payments), else the
+ * overview.
+ */
+function placeFromHistory(): Place {
+  const saved = window.history.state as Place | null
+  if (saved?.tab) return saved
+  const name = window.location.hash.slice(1)
+  return { tab: TABS.some((item) => item.key === name) ? (name as Tab) : 'overview', focus: null }
+}
+
 /** The message /api/callback leaves in the address when the bank sends the owner back. */
 function noticeFromAddress(): Notice | null {
   const query = new URLSearchParams(window.location.search)
@@ -143,10 +160,30 @@ export default function App() {
   const [grain, setGrain] = useState<Grain>(loadGrain)
   const [chosenPeriod, setChosenPeriod] = useState<string | null>(null)
   const [chosenCurrency, setChosenCurrency] = useState<string | null>(null)
-  const [focus, setFocus] = useState<Focus | null>(null)
+  const [focus, setFocus] = useState<Focus | null>(() => placeFromHistory().focus)
   const [dialog, setDialog] = useState<Dialog | null>(null)
   // One view at a time: picked in the sidebar on wide screens, in the tab bar on a phone.
-  const [tab, setTab] = useState<Tab>('overview')
+  const [tab, setTab] = useState<Tab>(() => placeFromHistory().tab)
+
+  // Each view and filter is a step of the browser's history, in the address too (#payments): Back and Forward move
+  // between them. The step Back lands on already holds the place, so it adds none.
+  useEffect(() => {
+    const place: Place = { tab, focus }
+    if (JSON.stringify(window.history.state) === JSON.stringify(place)) return
+    const address = `${window.location.pathname}${window.location.search}${tab === 'overview' ? '' : `#${tab}`}`
+    if (window.history.state === null) window.history.replaceState(place, '', address)
+    else window.history.pushState(place, '', address)
+  }, [tab, focus])
+
+  useEffect(() => {
+    function onPopState() {
+      const place = placeFromHistory()
+      setTab(place.tab)
+      setFocus(place.focus)
+    }
+    window.addEventListener('popstate', onPopState)
+    return () => window.removeEventListener('popstate', onPopState)
+  }, [])
 
   /** Back to the public version, for instance after the owner key changed. */
   const leaveOwnerMode = useCallback((message: string) => {

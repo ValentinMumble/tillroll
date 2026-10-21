@@ -79,6 +79,26 @@ function paidOn({ date, description }: Transaction) {
 const cents = (amount: number) => Math.round(Math.abs(amount) * 100)
 
 /**
+ * A payment with no category of its own takes the one picked for earlier payments of the same store and amount: two
+ * monthly transfers to one account, the loan and the charges, sort themselves. Two picks at least, all the same, so
+ * one gift among a store's purchases does not spread to every payment of that price.
+ */
+function followPicks(rows: Row[]) {
+  const picks = new Map<string, CategoryKey[]>()
+  const keyOf = (row: Row) => `${row.storeKey}|${row.currency}|${Math.sign(row.amount)}${cents(row.amount)}`
+  for (const row of rows) {
+    if (!row.ownCategory) continue
+    picks.set(keyOf(row), [...(picks.get(keyOf(row)) ?? []), row.category])
+  }
+  for (const row of rows) {
+    const picked = picks.get(keyOf(row))
+    if (row.ownCategory || !picked || picked.length < 2 || picked.some((category) => category !== picked[0])) continue
+    row.category = picked[0]
+    row.basis = 'picked'
+  }
+}
+
+/**
  * Money between one's own accounts at two banks shows on both. The side that says so (a top-up, one's own name)
  * makes the other one, the same amount the other way at another bank a few days apart, a move between one's
  * accounts too: a card payment to Revolut from the other bank, say. A category picked by hand stays.
@@ -202,6 +222,7 @@ export function toRows(
       ownCategory,
     }
   })
+  followPicks(rows)
   linkOwnTransfers(rows)
   matchRefunds(rows, categories)
   for (const row of rows) {
