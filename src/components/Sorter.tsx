@@ -114,6 +114,9 @@ export function Sorter({ queues, categories, rules, onPick, onNewCategory, onRen
     >
       <header className="dialog-head">
         <h2 id="sorter-title">Stores to sort</h2>
+        <button type="button" className="dialog-close" aria-label="Close" onClick={closeDialog}>
+          ✕
+        </button>
         <div className="segmented is-small" role="group" aria-label="Which stores">
           <button type="button" aria-pressed={mode === 'unsure'} onClick={() => switchMode('unsure')}>
             To sort ({queues.unsure.length})
@@ -275,9 +278,11 @@ export function Sorter({ queues, categories, rules, onPick, onNewCategory, onRen
             </button>
           </>
         )}
-        <button type="button" className="button is-quiet" onClick={closeDialog}>
-          Close
-        </button>
+        {!store && (
+          <button type="button" className="button is-primary" onClick={closeDialog}>
+            Close
+          </button>
+        )}
       </footer>
     </dialog>
   )

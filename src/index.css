@@ -332,6 +332,10 @@ main {
   margin-left: auto;
 }
 
+.card-head > .toggle + .link-button {
+  margin-left: 0;
+}
+
 .card h2 {
   font-size: 13px;
   font-weight: 600;
@@ -742,6 +746,24 @@ main {
   color: var(--muted);
   font-weight: 400;
   font-size: 12px;
+}
+
+/* The categories that are not spending: what went out and came in, no bar. */
+.bars-heading {
+  margin: 18px 10px 6px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.bar-row.is-other {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.bar-value .is-in {
+  color: var(--down);
 }
 
 .bar-change {
@@ -1259,7 +1281,7 @@ main {
 
 /* Payments */
 
-.payments .toggle {
+.toggle {
   display: inline-flex;
   align-items: center;
   gap: 8px;

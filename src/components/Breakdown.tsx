@@ -65,9 +65,14 @@ export function CategoryBreakdown({
   onEdit,
 }: Props & { onEdit: () => void }) {
   const { current, baseline, series } = report
+  // The categories that are not spending (transfers, money in, left out), shown on request.
+  const [everyCategory, setEveryCategory] = useState(false)
   const items = [...current.categories]
     .filter(([, value]) => value >= 0.5)
     .sort((first, second) => second[1] - first[1])
+  const others = [...current.others]
+    .filter(([, value]) => value.out + value.in >= 0.5)
+    .sort((first, second) => second[1].out + second[1].in - (first[1].out + first[1].in))
   const shown = preview ? items.slice(0, preview.limit) : items
   const max = Math.max(1, ...items.map(([, value]) => value))
   // The chosen period's place in the chart's series (all time marks nothing).
@@ -81,9 +86,19 @@ export function CategoryBreakdown({
         {preview ? (
           items.length > preview.limit && <SeeAll count={items.length} noun="categories" onClick={preview.onSeeAll} />
         ) : (
-          <button type="button" className="link-button" onClick={onEdit}>
-            Edit categories
-          </button>
+          <>
+            <label className="toggle">
+              <input
+                type="checkbox"
+                checked={everyCategory}
+                onChange={(event) => setEveryCategory(event.target.checked)}
+              />
+              Show every category
+            </label>
+            <button type="button" className="link-button" onClick={onEdit}>
+              Edit categories
+            </button>
+          </>
         )}
       </header>
       {items.length === 0 ? (
@@ -124,6 +139,39 @@ export function CategoryBreakdown({
             )
           })}
         </ul>
+      )}
+      {!preview && everyCategory && others.length > 0 && (
+        <>
+          <h3 className="bars-heading">Not counted as spending</h3>
+          <ul className="bars">
+            {others.map(([key, value]) => {
+              const category = categories.byKey[key]
+              const active = focus?.type === 'category' && focus.key === key
+              return (
+                <li key={key}>
+                  <button
+                    type="button"
+                    className={`bar-row is-other${active ? ' is-active' : ''}`}
+                    aria-pressed={active}
+                    onClick={() => onFocus(active ? null : { type: 'category', key })}
+                  >
+                    <span className="bar-label">
+                      <span className="bar-icon" aria-hidden="true">
+                        {category?.icon}
+                      </span>
+                      {category?.label ?? key}
+                    </span>
+                    <span className="bar-value">
+                      {value.out >= 0.5 && `${money(value.out, currency)} out`}
+                      {value.out >= 0.5 && value.in >= 0.5 && <small> · </small>}
+                      {value.in >= 0.5 && <span className="is-in">{money(value.in, currency)} in</span>}
+                    </span>
+                  </button>
+                </li>
+              )
+            })}
+          </ul>
+        </>
       )}
     </section>
   )

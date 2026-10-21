@@ -217,11 +217,27 @@ export interface Totals {
   /** Money moved out without being spent (transfers, savings). */
   movedOut: number
   moneyIn: number
+  /** What went out and came in for each category that is not spending, the left-out ones too. */
+  others: Map<CategoryKey, { out: number; in: number }>
 }
 
 function totalsOf(rows: Row[]): Totals {
-  const totals: Totals = { total: 0, payments: 0, categories: new Map(), stores: new Map(), movedOut: 0, moneyIn: 0 }
+  const totals: Totals = {
+    total: 0,
+    payments: 0,
+    categories: new Map(),
+    stores: new Map(),
+    movedOut: 0,
+    moneyIn: 0,
+    others: new Map(),
+  }
   for (const row of rows) {
+    if (!row.counts) {
+      const other = totals.others.get(row.category) ?? { out: 0, in: 0 }
+      if (row.amount < 0) other.out -= row.amount
+      else other.in += row.amount
+      totals.others.set(row.category, other)
+    }
     if (row.leftOut) continue
     if (!row.counts) {
       if (row.amount < 0) totals.movedOut -= row.amount
