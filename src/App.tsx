@@ -30,6 +30,7 @@ import { LatestPayments } from './components/LatestPayments'
 import { Menu } from './components/Menu'
 import { Payments } from './components/Payments'
 import { Sidebar } from './components/Sidebar'
+import { OverviewSkeleton } from './components/Skeleton'
 import { Sorter } from './components/Sorter'
 import { StoreDialog } from './components/StoreDialog'
 import { StoreEditor } from './components/StoreEditor'
@@ -47,7 +48,7 @@ import { findDuplicates, type Pair } from './duplicates'
 import { withLabel, withoutLabel } from './labels'
 import { storeKey as keyOfStore } from './stores'
 import { loadGrain, loadLocalData, loadLocalSorting, saveGrain, saveLocalData, saveLocalSorting } from './storage'
-import { type Tab, TABS } from './tabs'
+import { MENU_ONLY, type Tab, TABS } from './tabs'
 import type {
   CategoryEdit,
   CategoryKey,
@@ -835,6 +836,20 @@ export default function App() {
               </select>
             </label>
           )}
+          {hasData &&
+            TABS.filter((item) => MENU_ONLY.includes(item.key)).map((item) => (
+              <button
+                key={item.key}
+                type="button"
+                className={`button is-quiet${tab === item.key ? ' is-current' : ''}`}
+                onClick={() => {
+                  openTab(item.key)
+                  window.scrollTo({ top: 0 })
+                }}
+              >
+                {item.label}
+              </button>
+            ))}
           {addBank}
           {dataActions}
           {linkList}
@@ -860,23 +875,36 @@ export default function App() {
     />
   )
 
-  if (loading || !hasData) {
+  // While the owner's payments load: the app's own frame (sidebar or tab bar, header) around the overview's outline.
+  if (loading) {
+    return (
+      <div className="shell">
+        <Sidebar tab={tab} onTab={openTab} toSort={0} onSort={() => undefined}>
+          <span className="skeleton is-line" style={{ width: '70%' }} />
+        </Sidebar>
+        <div className="main">
+          {header}
+          {noticeBar}
+          <OverviewSkeleton />
+        </div>
+        <TabBar tab={tab} onTab={openTab} />
+      </div>
+    )
+  }
+
+  if (!hasData) {
     return (
       <div className="page">
         {header}
         {noticeBar}
         <main>
-          {loading ? (
-            <p className="loading">Loading your spending…</p>
-          ) : (
-            <Landing
-              isOwner={isOwner}
-              busy={busy}
-              onSample={showSample}
-              onImport={importFile}
-              onConnect={() => setDialog({ type: 'banks' })}
-            />
-          )}
+          <Landing
+            isOwner={isOwner}
+            busy={busy}
+            onSample={showSample}
+            onImport={importFile}
+            onConnect={() => setDialog({ type: 'banks' })}
+          />
         </main>
         {bankDialog}
         <footer className="foot">
@@ -966,6 +994,9 @@ export default function App() {
                 onCategorize={(targets, category, scope) => void categorize(targets, category, scope)}
                 onCreateCategory={(targets, label, icon, scope) => void createCategoryFor(targets, label, icon, scope)}
                 showBanks={showBanks}
+                labelNames={labelNames}
+                onLabels={(changes) => void setLabels(changes)}
+                onFocusLabel={(label) => focusOn({ type: 'label', key: label })}
                 onSeeAll={() => {
                   setFocus(null)
                   setTab('payments')

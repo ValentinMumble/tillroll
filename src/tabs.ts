@@ -10,3 +10,7 @@ export const TABS: { key: Tab; label: string; icon: string }[] = [
   { key: 'payments', label: 'Payments', icon: 'M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01' },
   { key: 'stats', label: 'Fun stats', icon: 'M12 3l2.2 5.6L20 11l-5.8 2.4L12 19l-2.2-5.6L4 11l5.8-2.4z' },
 ]
+
+/** A phone's tab bar holds the views used most; the others open from its ⋯ menu. */
+export const MENU_ONLY: Tab[] = ['calendar', 'stats']
+export const PHONE_TABS = TABS.filter((item) => !MENU_ONLY.includes(item.key))

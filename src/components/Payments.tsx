@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { Categories } from '../categories'
 import { money } from '../format'
-import { tidyLabel, withLabel, withoutLabel } from '../labels'
+import { tidyLabel, withLabel } from '../labels'
 import { dayLabel, today, weekdayLabel } from '../periods'
 import type { Row } from '../report'
 import {
@@ -15,6 +15,7 @@ import type { CategoryKey, Labels } from '../types'
 import { BankBadge } from './BankBadge'
 import type { Focus } from './Breakdown'
 import { CategorySheet, type Scope } from './CategorySheet'
+import { LabelOptions, PaymentLabels } from './PaymentLabels'
 import { WebSearch } from './WebSearch'
 
 interface Props {
@@ -94,9 +95,6 @@ export function Payments({
   const [limit, setLimit] = useState(PAGE)
   const [sort, setSort] = useState<PaymentSort>(loadPaymentSort)
   const [query, setQuery] = useState('')
-  // The payment whose label field is open, and what is typed in it.
-  const [labeling, setLabeling] = useState<string | null>(null)
-  const [labelText, setLabelText] = useState('')
   // Ticked payments, the last one ticked (for shift-click runs), and the label typed for them.
   const [picked, setPicked] = useState<Set<string>>(new Set())
   const [lastPicked, setLastPicked] = useState<string | null>(null)
@@ -171,13 +169,6 @@ export function Payments({
     else next.delete(row.id)
     setPicked(next)
     setLastPicked(row.id)
-  }
-
-  function addLabel(row: Row) {
-    const label = tidyLabel(labelText)
-    if (label) onLabels({ [row.id]: withLabel(row.labels, label) })
-    setLabeling(null)
-    setLabelText('')
   }
 
   function labelPicked() {
@@ -384,82 +375,7 @@ export function Payments({
                         {row.spend === 0 ? 'refunded' : `${money(row.refunded, row.currency, true)} refunded`}
                       </span>
                     )}
-                    {row.labels.map((label) => (
-                      <span key={label} className="label-chip">
-                        <button
-                          type="button"
-                          title="Show every payment with this label"
-                          onClick={() => onFocusLabel(label)}
-                        >
-                          # {label}
-                        </button>
-                        <button
-                          type="button"
-                          aria-label={`Take the label ${label} off`}
-                          onClick={() => onLabels({ [row.id]: withoutLabel(row.labels, label) })}
-                        >
-                          ×
-                        </button>
-                      </span>
-                    ))}
-                    {labeling === row.id ? (
-                      <form
-                        className="label-form"
-                        onSubmit={(event) => {
-                          event.preventDefault()
-                          addLabel(row)
-                        }}
-                      >
-                        <input
-                          className="text-input"
-                          list="tillroll-labels"
-                          aria-label={`Label for this payment at ${row.store}`}
-                          placeholder="Label"
-                          value={labelText}
-                          maxLength={40}
-                          autoFocus
-                          onChange={(event) => setLabelText(event.target.value)}
-                          onKeyDown={(event) => {
-                            if (event.key === 'Escape') {
-                              event.preventDefault()
-                              setLabeling(null)
-                            }
-                          }}
-                        />
-                        <button
-                          type="submit"
-                          className="label-ok"
-                          aria-label="Add the label"
-                          disabled={!tidyLabel(labelText)}
-                        >
-                          ✓
-                        </button>
-                        <button
-                          type="button"
-                          className="label-ok"
-                          aria-label="Cancel"
-                          onClick={() => setLabeling(null)}
-                        >
-                          ✕
-                        </button>
-                      </form>
-                    ) : (
-                      // A pending payment gets a new id once the bank books it: its label would be lost.
-                      !row.pending && (
-                        <button
-                          type="button"
-                          className="label-add"
-                          aria-label={`Add a label to this payment at ${row.store}`}
-                          title="Add a label"
-                          onClick={() => {
-                            setLabeling(row.id)
-                            setLabelText('')
-                          }}
-                        >
-                          #
-                        </button>
-                      )
-                    )}
+                    <PaymentLabels row={row} onLabels={onLabels} onFocusLabel={onFocusLabel} />
                   </td>
                   <td className="payment-category">
                     <button
@@ -539,11 +455,7 @@ export function Payments({
           </button>
         </div>
       )}
-      <datalist id="tillroll-labels">
-        {labelNames.map((label) => (
-          <option key={label} value={label} />
-        ))}
-      </datalist>
+      <LabelOptions names={labelNames} />
       {sheet && (
         <CategorySheet
           title={sheet.length === 1 ? sheet[0].store : `${sheet.length} payments`}

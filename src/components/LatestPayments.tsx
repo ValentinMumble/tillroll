@@ -4,9 +4,10 @@ import { money } from '../format'
 import { dayLabel, weekdayLabel } from '../periods'
 import type { Row } from '../report'
 import { loadPaymentsEverything, savePaymentsEverything } from '../storage'
-import type { CategoryKey } from '../types'
+import type { CategoryKey, Labels } from '../types'
 import { BankBadge } from './BankBadge'
 import { CategorySheet } from './CategorySheet'
+import { LabelOptions, PaymentLabels } from './PaymentLabels'
 
 interface Props {
   /** The period's payments, newest first. */
@@ -18,12 +19,27 @@ interface Props {
   onCreateCategory: (rows: Row[], label: string, icon: string, scope: string) => void
   /** The payments come from more than one bank: each shows its bank's letter. */
   showBanks: boolean
+  /** Every label in use, offered while typing one. */
+  labelNames: string[]
+  /** Each changed payment's full list of labels. */
+  onLabels: (changes: Labels) => void
+  onFocusLabel: (label: string) => void
 }
 
 const SHOWN = 6
 
 /** The overview's last few payments of the period, each with its category to change, and the way to the full list. */
-export function LatestPayments({ rows, categories, onSeeAll, onCategorize, onCreateCategory, showBanks }: Props) {
+export function LatestPayments({
+  rows,
+  categories,
+  onSeeAll,
+  onCategorize,
+  onCreateCategory,
+  showBanks,
+  labelNames,
+  onLabels,
+  onFocusLabel,
+}: Props) {
   const [sheet, setSheet] = useState<Row | null>(null)
   // The same choice as the payment list's, remembered in each browser.
   const [everything, setEverything] = useState(loadPaymentsEverything)
@@ -60,8 +76,9 @@ export function LatestPayments({ rows, categories, onSeeAll, onCategorize, onCre
               <li key={row.id} className={row.counts ? undefined : 'is-muted'}>
                 <span className="latest-store">
                   {showBanks && <BankBadge bank={row.bank} />}
-                  {row.store}
+                  <span className="latest-name">{row.store}</span>
                   {row.pending && <span className="tag">pending</span>}
+                  <PaymentLabels row={row} onLabels={onLabels} onFocusLabel={onFocusLabel} />
                 </span>
                 <span className="latest-day">
                   {weekdayLabel(row.date)}
@@ -89,6 +106,7 @@ export function LatestPayments({ rows, categories, onSeeAll, onCategorize, onCre
           })}
         </ul>
       )}
+      {latest.length > 0 && <LabelOptions names={labelNames} />}
       {sheet && (
         <CategorySheet
           title={sheet.store}

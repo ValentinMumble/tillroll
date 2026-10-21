@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react'
-import { type Tab, TABS } from '../tabs'
+import { PHONE_TABS, type Tab } from '../tabs'
 
 interface Props {
   tab: Tab
@@ -15,17 +15,20 @@ export function TabIcon({ path }: { path: string }) {
   )
 }
 
-/** The phone layout's tab bar: a frosted capsule with a lens that slides under the chosen tab. */
+/**
+ * The phone layout's tab bar: a frosted capsule with a lens that slides under the chosen tab. A view opened from the
+ * menu (Calendar, Fun stats) has no tab: no lens then.
+ */
 export function TabBar({ tab, onTab }: Props) {
-  const index = TABS.findIndex((item) => item.key === tab)
+  const index = PHONE_TABS.findIndex((item) => item.key === tab)
   return (
     <nav
       className="tabbar glass"
       aria-label="Sections"
-      style={{ '--count': TABS.length, '--index': index } as CSSProperties}
+      style={{ '--count': PHONE_TABS.length, '--index': index } as CSSProperties}
     >
-      <span className="tab-glow" aria-hidden="true" />
-      {TABS.map((item) => (
+      {index >= 0 && <span className="tab-glow" aria-hidden="true" />}
+      {PHONE_TABS.map((item) => (
         <button
           key={item.key}
           type="button"
