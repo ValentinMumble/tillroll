@@ -39,14 +39,22 @@ export function addedAccountKey(name: string, taken: string[]) {
 export interface SavingsAccount {
   key: string;
   name: string;
-  /** The bank text of the money moved to and from it; an added account matches its own name. */
-  pattern: RegExp;
+  /** The money moved to and from it, newest first. */
+  moves: Row[];
   added: boolean;
+  /** The bank the money moved from (the most moves); none for an account no payment shows. */
+  bank: string | null;
   /** Paid in and taken out each month, from the first move to this month; none for an account no payment shows. */
   months: {month: string; paidIn: number; takenOut: number}[];
   paidIn: number;
   takenOut: number;
   first: string | null;
+}
+
+function mostCommon(items: string[]) {
+  const counts = new Map<string, number>();
+  for (const item of items) counts.set(item, (counts.get(item) ?? 0) + 1);
+  return [...counts].sort((first, second) => second[1] - first[1])[0]?.[0] ?? null;
 }
 
 /** A livret is called what the bank's text calls it: LDDS, LEP, or Livret when it says neither. */
@@ -59,10 +67,27 @@ function livretName(moves: Row[]) {
 const escaped = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 /**
- * Every savings account: the ones found from the payments (of one currency) and the ones added by hand. A found
- * account with no money moved is left out, an added one always shows.
+ * A bank names a transfer between two accounts of one holder after the holder, as it writes their name ("VIR SEPA M
+ * DUPONT JEAN"), not after the livret: Crédit Coopératif's bank sync does for every move, its statements for the
+ * standing orders set up lately. At the livret's own bank, such a transfer is a move to or from the livret. A name
+ * of one word (an account named after its currency) says nothing.
  */
-export function savingsAccounts(rows: Row[], thisMonth: string, stored: SavingsValues): SavingsAccount[] {
+function namesHolder(row: Row, holders: string[]) {
+  const text = row.description.toLowerCase();
+  return holders.some(holder => holder.trim().includes(' ') && text.includes(holder.trim().toLowerCase()));
+}
+
+/**
+ * Every savings account: the ones found from the payments (of one currency) and the ones added by hand. A found
+ * account with no money moved is left out, an added one always shows. `holders` are the account holders each bank
+ * names, as the bank connections give them.
+ */
+export function savingsAccounts(
+  rows: Row[],
+  thisMonth: string,
+  stored: SavingsValues,
+  holders: Record<string, string[]> = {},
+): SavingsAccount[] {
   const added = Object.entries(stored)
     .filter(([key, record]) => isAddedAccount(key) && record.name)
     .map(([key, record]) => ({
@@ -72,7 +97,16 @@ export function savingsAccounts(rows: Row[], thisMonth: string, stored: SavingsV
     }));
   return [...FOUND_ACCOUNTS, ...added]
     .map(({key, name, pattern}): SavingsAccount | null => {
-      const moves = rows.filter(row => pattern.test(row.description) && !row.pending);
+      const named = rows.filter(row => pattern.test(row.description) && !row.pending);
+      const bank = mostCommon(named.map(row => row.bank ?? 'Revolut'));
+      const bankHolders = key === 'livret' && bank ? (holders[bank] ?? []) : [];
+      const moves = bankHolders.length
+        ? rows.filter(
+            row =>
+              !row.pending &&
+              (pattern.test(row.description) || ((row.bank ?? 'Revolut') === bank && namesHolder(row, bankHolders))),
+          )
+        : named;
       const isAdded = isAddedAccount(key);
       if (moves.length === 0 && !isAdded) return null;
       const byMonth = new Map<string, {paidIn: number; takenOut: number}>();
@@ -93,8 +127,9 @@ export function savingsAccounts(rows: Row[], thisMonth: string, stored: SavingsV
       return {
         key,
         name: key === 'livret' ? livretName(moves) : name,
-        pattern,
+        moves,
         added: isAdded,
+        bank,
         months,
         paidIn: months.reduce((sum, month) => sum + month.paidIn, 0),
         takenOut: months.reduce((sum, month) => sum + month.takenOut, 0),
@@ -108,9 +143,9 @@ export function savingsAccounts(rows: Row[], thisMonth: string, stored: SavingsV
  * How much an account grew between two values typed by hand: the change in value, less what was paid in (and plus
  * what was taken out) in between. It needs no history before the first value.
  */
-export function growthBetween(account: SavingsAccount, from: SavingsValue, to: SavingsValue, rows: Row[]) {
-  const moved = rows
-    .filter(row => account.pattern.test(row.description) && !row.pending && row.date > from.date && row.date <= to.date)
+export function growthBetween(account: SavingsAccount, from: SavingsValue, to: SavingsValue) {
+  const moved = account.moves
+    .filter(row => row.date > from.date && row.date <= to.date)
     .reduce((sum, row) => sum - row.amount, 0);
   return to.value - from.value - moved;
 }

@@ -368,6 +368,18 @@ export default function App() {
     });
   }, [data, categories]);
 
+  // The account holders each bank names, as it writes them: a livret's moves name them at its own bank.
+  const holders = useMemo(() => {
+    const byBank: Record<string, string[]> = {};
+    for (const connection of data?.connections ?? []) {
+      byBank[connection.bank] = [
+        ...(byBank[connection.bank] ?? []),
+        ...connection.accounts.map(account => account.name),
+      ];
+    }
+    return byBank;
+  }, [data?.connections]);
+
   // Currencies by number of payments: the main account first.
   const currencies = useMemo(() => {
     const counts = new Map<string, number>();
@@ -1052,6 +1064,7 @@ export default function App() {
               rows={currencyRows}
               currency={currency}
               values={data?.savingsValues ?? {}}
+              holders={holders}
               onSave={(account, record) => void setSavings(account, record)}
             />
           )}

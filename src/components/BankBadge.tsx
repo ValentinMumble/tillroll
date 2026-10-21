@@ -1,9 +1,4 @@
-/** Banks known by their initial and colour; any other shows its first letter. */
-const BANKS: Record<string, {letter: string; tone: string}> = {
-  Revolut: {letter: 'R', tone: 'revolut'},
-  'Crédit Coopératif': {letter: 'C', tone: 'credit-cooperatif'},
-  PayPal: {letter: 'P', tone: 'paypal'},
-};
+import {BANKS} from '../banks';
 
 /** The bank a payment comes from, as a coloured letter before its name (the name on hover). No bank is Revolut. */
 export function BankBadge({bank = 'Revolut'}: {bank?: string}) {

@@ -1676,6 +1676,10 @@ main {
   color: #d1203a;
 }
 
+.bank-badge.is-la-nef {
+  color: #23408e;
+}
+
 @media (prefers-color-scheme: dark) {
   .bank-badge.is-paypal {
     color: #4f9bff;
@@ -1683,6 +1687,10 @@ main {
 
   .bank-badge.is-credit-cooperatif {
     color: #ff5c70;
+  }
+
+  .bank-badge.is-la-nef {
+    color: #8aa8ff;
   }
 }
 
@@ -2567,6 +2575,11 @@ main {
 
 .savings-card .stat-bars {
   margin-bottom: 12px;
+}
+
+/* What was paid in, under the value in the header. */
+.savings-paid {
+  margin: -6px 0 14px;
 }
 
 .savings-years {
