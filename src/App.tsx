@@ -299,6 +299,8 @@ export default function App() {
   }, [rows])
   const currency = chosenCurrency && currencies.includes(chosenCurrency) ? chosenCurrency : (currencies[0] ?? 'EUR')
   const currencyRows = useMemo(() => rows.filter((row) => row.currency === currency), [rows, currency])
+  // With payments from several banks, each payment shows its bank's letter.
+  const showBanks = useMemo(() => new Set(rows.map((row) => row.bank ?? 'Revolut')).size > 1, [rows])
 
   const lastDay = currencyRows[0]?.date ?? today()
   const firstDay = currencyRows.at(-1)?.date ?? lastDay
@@ -875,6 +877,7 @@ export default function App() {
                 categories={categories}
                 onCategorize={(targets, category, scope) => void categorize(targets, category, scope)}
                 onCreateCategory={(targets, label, icon, scope) => void createCategoryFor(targets, label, icon, scope)}
+                showBanks={showBanks}
                 onSeeAll={() => {
                   setFocus(null)
                   setTab('payments')
@@ -943,6 +946,7 @@ export default function App() {
               onLabels={(changes) => void setLabels(changes)}
               onFocusLabel={(label) => focusOn({ type: 'label', key: label })}
               onFocusCategory={(category) => setFocus(category ? { type: 'category', key: category } : null)}
+              showBanks={showBanks}
             />
           )}
         </main>

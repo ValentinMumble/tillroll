@@ -77,11 +77,18 @@ In Enable Banking's free mode, link the bank's accounts in the Control Panel (Ac
 connecting it here.
 
 Statements fill the history before a bank's sync starts (where they overlap, the synced rows win, bank by bank).
-Import Revolut's (Excel or CSV) or Crédit Coopératif's CSV export. Crédit Coopératif's export uses the bank's own
+Import Revolut's (Excel or CSV), Crédit Coopératif's CSV export, or PayPal's activity download (paypal.com, Activity,
+Statements, Activity download, as CSV; in English or French). Crédit Coopératif's export uses the bank's own
 category as a clue, and words each line like the sync does ("PRLV BPCE Vie", "VIR SEPA AKENEO"), so stores sorted
 on synced rows stay sorted in the older months. Its deferred debit card does not list card payments one by one: each
 month's debit becomes one payment, "Carte ...7497 (débit différé)", on the last day of the month it pays for. Synced
 card payments keep the day they were made ("FACT 270826"), not the day the card is debited.
+
+**PayPal** connects like a bank (or comes in through its activity download) and names the shop of each payment, where
+the bank only says "PayPal". A bank payment to PayPal of the same amount, up to 4 days apart, is the money that paid
+it: it goes to Between my accounts, so the purchase counts once, at its shop. In another currency the shop's name
+matches them instead. Money between PayPal and the bank, and currency conversions, are between one's accounts too.
+Payments and the latest payments show each payment's bank as a small logo (the banks' site icons, in public/banks).
 
 ## Run your own
 

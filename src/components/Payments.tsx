@@ -12,6 +12,7 @@ import {
   savePaymentsEverything,
 } from '../storage'
 import type { CategoryKey, Labels } from '../types'
+import { BankBadge } from './BankBadge'
 import type { Focus } from './Breakdown'
 import { CategorySheet, type Scope } from './CategorySheet'
 import { WebSearch } from './WebSearch'
@@ -35,6 +36,8 @@ interface Props {
   onFocusLabel: (label: string) => void
   /** The category filter above the list; null shows every category. */
   onFocusCategory: (category: CategoryKey | null) => void
+  /** The payments come from more than one bank: each shows its bank's letter. */
+  showBanks: boolean
 }
 
 const PAGE = 60
@@ -85,6 +88,7 @@ export function Payments({
   onLabels,
   onFocusLabel,
   onFocusCategory,
+  showBanks,
 }: Props) {
   const [everything, setEverything] = useState(loadPaymentsEverything)
   const [limit, setLimit] = useState(PAGE)
@@ -351,6 +355,7 @@ export function Payments({
                   )}
                   {byDay && withTimes && <td className="payment-day">{row.time ?? ''}</td>}
                   <td className="payment-store">
+                    {showBanks && <BankBadge bank={row.bank} />}
                     <button
                       type="button"
                       className="payment-store-name"

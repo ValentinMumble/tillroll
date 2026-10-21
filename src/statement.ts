@@ -4,7 +4,8 @@ import { readZip } from './zip'
 /**
  * Reads a bank statement, in the browser. A Revolut account statement (in the app: the account, ···, Statement,
  * Excel or CSV), as CSV or as an Excel workbook: Type, Product, Started Date, Completed Date, Description, Amount,
- * Fee, Currency, State, Balance. Or Crédit Coopératif's CSV export (see fromCreditCooperatif).
+ * Fee, Currency, State, Balance. Or Crédit Coopératif's CSV export (see fromCreditCooperatif), or PayPal's activity
+ * download (see fromPayPal).
  */
 
 const COLUMNS = {
@@ -243,13 +244,80 @@ function fromCreditCooperatif(rows: string[][], headerIndex: number): Transactio
   return transactions
 }
 
+/** PayPal's activity download columns, in English or in French. */
+const PAYPAL = {
+  date: ['date'],
+  time: ['time', 'heure'],
+  name: ['name', 'nom'],
+  type: ['type'],
+  status: ['status', 'etat', 'statut'],
+  currency: ['currency', 'devise'],
+  net: ['net'],
+  gross: ['gross', 'brut', 'avant commission'],
+  id: ['transaction id', 'numero de transaction', 'id de transaction'],
+  impact: ['balance impact', 'impact sur le solde'],
+}
+
+/**
+ * PayPal's activity download (paypal.com, Activity, Statements, Activity download, as CSV): one line per movement of
+ * the PayPal account. A purchase names its shop. Money from or to the bank, and the two sides of a currency
+ * conversion, move between one's own accounts. Holds and authorizations move no money ("Memo"): left out.
+ */
+function fromPayPal(rows: string[][], headerIndex: number): Transaction[] {
+  const header = rows[headerIndex].map(plain)
+  const column = Object.fromEntries(
+    Object.entries(PAYPAL).map(([name, aliases]) => [name, header.findIndex((cell) => aliases.includes(cell))]),
+  ) as Record<keyof typeof PAYPAL, number>
+  const cell = (row: string[], name: keyof typeof PAYPAL) => (column[name] >= 0 ? (row[column[name]] ?? '').trim() : '')
+  const transactions: Transaction[] = []
+  for (const row of rows.slice(headerIndex + 1)) {
+    const date = parseDate(cell(row, 'date'))
+    const amount = Math.round(parseAmount(cell(row, 'net') || cell(row, 'gross')) * 100) / 100
+    const currency = cell(row, 'currency').toUpperCase()
+    const status = plain(cell(row, 'status'))
+    const type = plain(cell(row, 'type'))
+    if (!date || !amount || !/^[A-Z]{3}$/.test(currency)) continue
+    if (/^(memo|pour memoire)$/.test(plain(cell(row, 'impact'))) || /hold|attente|authori|autoris/.test(type)) continue
+    if (/denied|refus|cancel|annul|removed|reversed|failed|echou/.test(status)) continue
+    const kind: Kind = /conversion/.test(type)
+      ? 'exchange'
+      : /refund|rembours/.test(type) && amount > 0
+        ? 'refund'
+        : /deposit|depot|withdraw|retrait|bank|bancaire|banque|card funding|financement/.test(type)
+          ? 'topup'
+          : amount < 0
+            ? 'card'
+            : 'income'
+    const time = /^(\d{1,2}):(\d{2})/.exec(cell(row, 'time'))
+    // PayPal's transaction id is stable; a line without one falls back on its content.
+    const key = cell(row, 'id') || [cell(row, 'date'), cell(row, 'time'), amount, currency, type].join('|')
+    transactions.push({
+      id: `statement:${hash(`paypal|${key}`)}`,
+      date,
+      ...(time && { time: `${time[1].padStart(2, '0')}:${time[2]}` }),
+      amount,
+      currency,
+      description: cell(row, 'name') || cell(row, 'type') || 'PayPal',
+      kind,
+      mcc: null,
+      pending: /pending|en attente|en cours/.test(status),
+      source: 'statement',
+      bank: 'PayPal',
+    })
+  }
+  if (!transactions.length) throw new Error('No transactions found in this file')
+  return transactions
+}
+
 function fromRows(rows: string[][]): Transaction[] {
   const creditCooperatif = rows.findIndex((row) => row.some((cell) => plain(cell) === CREDIT_COOPERATIF.label))
   if (creditCooperatif >= 0) return fromCreditCooperatif(rows, creditCooperatif)
+  const paypal = rows.findIndex((row) => row.some((cell) => PAYPAL.id.includes(plain(cell))))
+  if (paypal >= 0) return fromPayPal(rows, paypal)
   const headerIndex = rows.findIndex((row) => row.some((cell) => plain(cell) === 'description'))
   if (headerIndex < 0) {
     throw new Error(
-      'This file does not look like a Revolut or Crédit Coopératif statement: it has no Description column',
+      'This file does not look like a Revolut, Crédit Coopératif or PayPal statement: it has no Description column',
     )
   }
   const header = rows[headerIndex].map(plain)

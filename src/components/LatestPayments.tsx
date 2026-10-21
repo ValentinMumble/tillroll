@@ -5,6 +5,7 @@ import { dayLabel, weekdayLabel } from '../periods'
 import type { Row } from '../report'
 import { loadPaymentsEverything, savePaymentsEverything } from '../storage'
 import type { CategoryKey } from '../types'
+import { BankBadge } from './BankBadge'
 import { CategorySheet } from './CategorySheet'
 
 interface Props {
@@ -15,12 +16,14 @@ interface Props {
   /** The category of a payment, for its store or for this payment only (scope "store" or "payment"). */
   onCategorize: (rows: Row[], category: CategoryKey | null, scope: string) => void
   onCreateCategory: (rows: Row[], label: string, icon: string, scope: string) => void
+  /** The payments come from more than one bank: each shows its bank's letter. */
+  showBanks: boolean
 }
 
 const SHOWN = 6
 
 /** The overview's last few payments of the period, each with its category to change, and the way to the full list. */
-export function LatestPayments({ rows, categories, onSeeAll, onCategorize, onCreateCategory }: Props) {
+export function LatestPayments({ rows, categories, onSeeAll, onCategorize, onCreateCategory, showBanks }: Props) {
   const [sheet, setSheet] = useState<Row | null>(null)
   // The same choice as the payment list's, remembered in each browser.
   const [everything, setEverything] = useState(loadPaymentsEverything)
@@ -56,6 +59,7 @@ export function LatestPayments({ rows, categories, onSeeAll, onCategorize, onCre
             return (
               <li key={row.id} className={row.counts ? undefined : 'is-muted'}>
                 <span className="latest-store">
+                  {showBanks && <BankBadge bank={row.bank} />}
                   {row.store}
                   {row.pending && <span className="tag">pending</span>}
                 </span>

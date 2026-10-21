@@ -1514,6 +1514,32 @@ main {
   letter-spacing: 0.04em;
 }
 
+/* The bank a payment comes from: its logo on a small white tile (Revolut's black R stays visible in the dark), or
+   its first letter; the bank's name on hover. */
+.bank-badge {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  box-sizing: border-box;
+  width: 18px;
+  height: 18px;
+  margin-right: 8px;
+  padding: 1px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: #ffffff;
+  color: #52514e;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  vertical-align: -3px;
+  cursor: default;
+}
+
+img.bank-badge {
+  object-fit: contain;
+}
+
 .tag.is-refund {
   color: var(--down);
 }

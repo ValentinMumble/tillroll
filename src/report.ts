@@ -107,7 +107,8 @@ function linkOwnTransfers(rows: Row[]) {
   if (new Set(rows.map(bankOf)).size < 2) return
   const open = new Map<string, Row[]>()
   for (const row of rows) {
-    if (row.category === 'own' || row.basis === 'picked') continue
+    // PayPal's payments pair with the bank's own way (see linkPayPal).
+    if (row.category === 'own' || row.basis === 'picked' || row.bank === 'PayPal') continue
     const key = `${row.currency}|${cents(row.amount)}`
     const list = open.get(key) ?? []
     list.push(row)
@@ -126,6 +127,40 @@ function linkOwnTransfers(rows: Row[]) {
     other.category = 'own'
     other.basis = 'kind'
     candidates.splice(candidates.indexOf(other), 1)
+  }
+}
+
+/** A PayPal payment and the bank payment behind it are this many days apart at most. */
+const PAYPAL_DAYS = 4
+
+/**
+ * PayPal, synced like a bank, names the shop of each payment, where the bank only says "PayPal". A bank payment to
+ * PayPal of the same amount, up to 4 days apart, is the money that paid it: it moves between one's own accounts, and
+ * the purchase counts once, at its shop. A payment in another currency matches on the shop's first word instead
+ * ("Paypal *veloviewer" and "VeloViewer Ltd"). Money PayPal pays out to the bank is between one's accounts on both
+ * sides. A category picked for the bank payment itself stays.
+ */
+function linkPayPal(rows: Row[]) {
+  const paypal = rows
+    .filter((row) => row.bank === 'PayPal')
+    .sort((first, second) => (first.date < second.date ? -1 : 1))
+  if (!paypal.length) return
+  const open = rows.filter((row) => row.bank !== 'PayPal' && /paypal/i.test(row.description) && !row.ownCategory)
+  const firstWord = (row: Row) => row.storeKey.split(' ')[0]
+  for (const payment of paypal) {
+    const twin = open.find((row) => {
+      if (Math.abs(Date.parse(row.date) - Date.parse(payment.date)) > PAYPAL_DAYS * 86_400_000) return false
+      if (row.currency === payment.currency) return cents(row.amount) === cents(payment.amount)
+      return row.amount < 0 && payment.amount < 0 && firstWord(row).length >= 4 && firstWord(row) === firstWord(payment)
+    })
+    if (!twin) continue
+    twin.category = 'own'
+    twin.basis = 'kind'
+    if (Math.sign(twin.amount) !== Math.sign(payment.amount) && !payment.ownCategory) {
+      payment.category = 'own'
+      payment.basis = 'kind'
+    }
+    open.splice(open.indexOf(twin), 1)
   }
 }
 
@@ -224,6 +259,7 @@ export function toRows(
   })
   followPicks(rows)
   linkOwnTransfers(rows)
+  linkPayPal(rows)
   matchRefunds(rows, categories)
   for (const row of rows) {
     row.leftOut = LEFT_OUT.includes(row.category)
