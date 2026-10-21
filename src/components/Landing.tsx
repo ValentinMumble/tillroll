@@ -24,7 +24,7 @@ export function Landing({ isOwner, busy, onSample, onImport, onConnect }: Props)
         <div className="landing-actions">
           {isOwner ? (
             <button type="button" className="button is-primary" disabled={busy !== null} onClick={onConnect}>
-              {busy === 'connect' ? 'Opening Revolut…' : 'Connect Revolut'}
+              {busy === 'connect' ? 'Opening the bank…' : 'Connect a bank'}
             </button>
           ) : (
             <button type="button" className="button is-primary" onClick={onSample}>
@@ -33,9 +33,6 @@ export function Landing({ isOwner, busy, onSample, onImport, onConnect }: Props)
           )}
           <ImportButton label="Import a Revolut statement" busy={busy === 'import'} onFile={onImport} />
         </div>
-        {!isOwner && (
-          <p className="fine">The statement is read in your browser and stays there. Nothing is uploaded.</p>
-        )}
       </div>
       <div className="landing-side">
         <div className="card">
@@ -50,11 +47,10 @@ export function Landing({ isOwner, busy, onSample, onImport, onConnect }: Props)
         </div>
         {!isOwner && (
           <div className="card">
-            <h2>Live Revolut sync</h2>
+            <h2>Live bank sync</h2>
             <p>
-              Tillroll can also read a Revolut account directly, through Open Banking (Enable Banking). Its free mode
-              only reaches the accounts of the person who runs the site, so here it is for the owner only. To sync your
-              own account, run your own copy: it takes a free Enable Banking app, a Vercel project and about 15 minutes.
+              This site syncs live with its owner's bank only. To sync yours, run your own copy: about 15 minutes, all
+              free.
             </p>
             <a href={`${REPOSITORY}#run-your-own`}>How to set it up</a>
           </div>

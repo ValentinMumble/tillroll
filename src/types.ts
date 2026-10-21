@@ -18,6 +18,8 @@ export interface Transaction {
   mcc: string | null
   pending: boolean
   source: 'bank' | 'statement' | 'sample'
+  /** The bank a synced payment comes from (Revolut, Crédit Coopératif...); older synced rows have none: Revolut. */
+  bank?: string
 }
 
 /** A built-in category's key, or "custom-..." for one added by hand. */
@@ -59,8 +61,10 @@ export interface CategoryEdit {
   spending: boolean
 }
 
-/** The owner's bank connection, as the page sees it. */
+/** One of the owner's bank connections, as the page sees it. */
 export interface Connection {
+  /** "<bank>|<country>", as the server keeps it. */
+  id: string
   bank: string
   validUntil: string
   expired: boolean

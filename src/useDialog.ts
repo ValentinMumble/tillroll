@@ -8,7 +8,14 @@ export function useDialog() {
   const ref = useRef<HTMLDialogElement>(null)
 
   useEffect(() => {
-    ref.current?.showModal()
+    const dialog = ref.current
+    if (!dialog) return
+    dialog.showModal()
+    // On a touch screen, opening must not focus a field (and pop the keyboard): the dialog itself takes the focus.
+    if (window.matchMedia('(pointer: coarse)').matches) {
+      dialog.tabIndex = -1
+      dialog.focus()
+    }
   }, [])
 
   function onKeyDown(event: KeyboardEvent<HTMLDialogElement>) {

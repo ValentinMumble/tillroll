@@ -17,6 +17,8 @@ export interface Session {
   requiredHeaders: string[]
   accounts: { uid: string; hash: string; name: string; currency: string }[]
   expired?: boolean
+  /** When the last sync of this bank ran (ISO date-time), null before the first. */
+  syncedAt?: string | null
 }
 
 interface Aspsp {
@@ -73,7 +75,13 @@ function token() {
   const body = encode({ iss: 'enablebanking.com', aud: 'api.enablebanking.com', iat: now, exp: now + 3600 })
   // A .env file may hold the key on one line, with \n for the line breaks.
   const key = env('ENABLE_BANKING_PRIVATE_KEY').replace(/\\n/g, '\n')
-  const signature = createSign('RSA-SHA256').update(`${header}.${body}`).sign(key, 'base64url')
+  let signature: string
+  try {
+    signature = createSign('RSA-SHA256').update(`${header}.${body}`).sign(key, 'base64url')
+  } catch {
+    // A Vercel secret pulled into .env.local comes as an empty placeholder: the bank calls run on the site.
+    throw new HttpError(503, 'The Enable Banking key is not readable here: connect and sync banks on the site')
+  }
   return `${header}.${body}.${signature}`
 }
 
@@ -95,21 +103,38 @@ async function call<T>(path: string, init: { method?: string; body?: unknown; he
   return data as T
 }
 
-/** The bank to connect, as Enable Banking lists it for the country (BANK_NAME, BANK_COUNTRY). */
-async function findBank() {
-  const wanted = (process.env.BANK_NAME || 'Revolut').toLowerCase()
-  const country = (process.env.BANK_COUNTRY || 'FR').toUpperCase()
-  const { aspsps } = await call<{ aspsps: Aspsp[] }>(`/aspsps?country=${country}&psu_type=personal&service=AIS`)
+/** The banks Enable Banking can read personal accounts of, in a country. */
+async function banksIn(country: string) {
+  const { aspsps } = await call<{ aspsps: Aspsp[] }>(
+    `/aspsps?country=${encodeURIComponent(country.toUpperCase())}&psu_type=personal&service=AIS`,
+  )
+  return aspsps
+}
+
+/** The names of the banks of a country, for the page's bank picker. */
+export async function bankNames(country: string) {
+  return (await banksIn(country)).map((bank) => bank.name).sort((first, second) => first.localeCompare(second))
+}
+
+/** The bank to connect, as Enable Banking lists it for the country (BANK_NAME and BANK_COUNTRY by default). */
+async function findBank(name?: string, country?: string) {
+  const wanted = (name || process.env.BANK_NAME || 'Revolut').toLowerCase()
+  const where = (country || process.env.BANK_COUNTRY || 'FR').toUpperCase()
+  const aspsps = await banksIn(where)
   const bank =
     aspsps.find((item) => item.name.toLowerCase() === wanted) ??
     aspsps.find((item) => item.name.toLowerCase().includes(wanted))
-  if (!bank) throw new HttpError(502, `Enable Banking lists no bank named ${wanted} in ${country}`)
+  if (!bank) throw new HttpError(502, `Enable Banking lists no bank named ${wanted} in ${where}`)
   return bank
 }
 
 /** Starts an authorization: the owner goes to the returned address, logs in to the bank and comes back. */
-export async function startAuthorization(redirectUrl: string, state: string) {
-  const bank = await findBank()
+export async function startAuthorization(
+  redirectUrl: string,
+  state: string,
+  wanted?: { name?: string; country?: string },
+) {
+  const bank = await findBank(wanted?.name, wanted?.country)
   // The longest access the bank allows (often 180 days), less a minute for the clock difference.
   const validUntil = new Date(Date.now() + bank.maximum_consent_validity * 1000 - 60_000).toISOString()
   const { url } = await call<{ url: string }>('/auth', {
@@ -144,6 +169,7 @@ export async function createSession(code: string, requiredHeaders: string[]): Pr
       name: account.name || account.product || account.currency,
       currency: account.currency,
     })),
+    syncedAt: null,
   }
 }
 
@@ -204,7 +230,7 @@ function kindOf(item: BankTransaction, amount: number, text: string): Kind {
 }
 
 /** The bank's transaction in Tillroll's shape, or null for a cancelled or rejected one. */
-export function toTransaction(item: BankTransaction, accountHash: string): Transaction | null {
+export function toTransaction(item: BankTransaction, accountHash: string, bank: string): Transaction | null {
   if (['RJCT', 'CNCL'].includes(item.status)) return null
   const date = item.transaction_date ?? item.booking_date ?? item.value_date
   if (!date) return null
@@ -228,5 +254,6 @@ export function toTransaction(item: BankTransaction, accountHash: string): Trans
     mcc: item.merchant_category_code ?? null,
     pending: item.status === 'PDNG',
     source: 'bank',
+    bank,
   }
 }

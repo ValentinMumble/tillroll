@@ -18,6 +18,7 @@ import {
 import { type Category, categoriesFrom, editsFrom, newCategoryKey } from './categories'
 import { CategoryBreakdown, type Focus, StoreBreakdown } from './components/Breakdown'
 import { Calendar } from './components/Calendar'
+import { BankDialog } from './components/BankDialog'
 import { CategoryEditor } from './components/CategoryEditor'
 import { DuplicatesDeck } from './components/DuplicatesDeck'
 import { FunStats } from './components/FunStats'
@@ -68,7 +69,7 @@ interface Data {
   paymentCategories: PaymentCategories
   /** Pairs of stores marked "not the same" in the duplicates deck. */
   distinct: string[]
-  connection: Connection | null
+  connections: Connection[]
 }
 
 /** The open dialog, with the store it was opened for. */
@@ -77,6 +78,8 @@ type Dialog =
   | { type: 'stores'; store: string | null }
   /** One store, opened with a double-click. */
   | { type: 'store'; store: { key: string; name: string } }
+  /** The bank picker, to connect another bank. */
+  | { type: 'banks' }
   /** The duplicates deck keeps the pairs it opened with. */
   | { type: 'duplicates'; pairs: Pair[] }
   /** The sorting deck keeps the list of stores it opened with. */
@@ -94,15 +97,19 @@ function localData(): Data | null {
   const saved = loadLocalData()
   if (!saved) return null
   const transactions = saved.source === 'sample' ? sampleTransactions() : saved.transactions
-  return { source: saved.source, transactions, ...loadLocalSorting(), connection: null }
+  return { source: saved.source, transactions, ...loadLocalSorting(), connections: [] }
 }
 
-/** The owner's statement rows stop where the bank's history starts, per currency, so nothing counts twice. */
+/**
+ * The owner's statement rows (Revolut's) stop where Revolut's synced history starts, per currency, so nothing counts
+ * twice. Synced rows of an older version have no bank: they are Revolut's.
+ */
 function withoutOverlap(transactions: Transaction[]) {
   const bankStart = new Map<string, string>()
   for (const item of transactions) {
     const start = bankStart.get(item.currency)
-    if (item.source === 'bank' && (!start || item.date < start)) bankStart.set(item.currency, item.date)
+    const revolut = !item.bank || item.bank === 'Revolut'
+    if (item.source === 'bank' && revolut && (!start || item.date < start)) bankStart.set(item.currency, item.date)
   }
   return transactions.filter((item) => {
     const start = bankStart.get(item.currency)
@@ -118,7 +125,10 @@ function noticeFromAddress(): Notice | null {
   if (!error && !connected) return null
   window.history.replaceState(null, '', window.location.pathname + window.location.hash)
   if (error) return { tone: 'error', text: error }
-  return { tone: 'info', text: `Revolut is connected: ${query.get('count') ?? 'its'} transactions synced.` }
+  return {
+    tone: 'info',
+    text: `${query.get('name') ?? 'The bank'} is connected: ${query.get('count') ?? 'its'} transactions synced.`,
+  }
 }
 
 const messageOf = (error: unknown) => (error instanceof Error ? error.message : 'Something went wrong')
@@ -160,6 +170,7 @@ export default function App() {
         labels: owner.labels ?? {},
         paymentCategories: owner.paymentCategories ?? {},
         distinct: owner.distinct ?? [],
+        connections: owner.connections ?? [],
       })
       return owner
     } catch (error) {
@@ -206,9 +217,11 @@ export default function App() {
         }
       }
       const owner = await loadOwner()
-      const connection = owner?.connection
-      const stale = !connection?.syncedAt || Date.now() - Date.parse(connection.syncedAt) > SYNC_AFTER
-      if (connection && !connection.expired && stale) await sync()
+      // A sync when a bank with access was last synced more than 6 hours ago.
+      const stale = (owner?.connections ?? []).some(
+        (item) => !item.expired && (!item.syncedAt || Date.now() - Date.parse(item.syncedAt) > SYNC_AFTER),
+      )
+      if (stale) await sync()
     }
     void start()
   }, [isOwner, leaveOwnerMode, loadOwner, sync])
@@ -501,7 +514,7 @@ export default function App() {
               distinct: data.distinct,
             }
           : loadLocalSorting()
-        setData({ source: 'statement', transactions: merged, ...sorting, connection: null })
+        setData({ source: 'statement', transactions: merged, ...sorting, connections: [] })
       }
       setChosenPeriod(null)
       setFocus(null)
@@ -518,7 +531,7 @@ export default function App() {
 
   function showSample() {
     saveLocalData({ source: 'sample' })
-    setData({ source: 'sample', transactions: sampleTransactions(), ...loadLocalSorting(), connection: null })
+    setData({ source: 'sample', transactions: sampleTransactions(), ...loadLocalSorting(), connections: [] })
     setChosenPeriod(null)
     setNotice(null)
   }
@@ -536,10 +549,10 @@ export default function App() {
     setChosenPeriod(null)
   }
 
-  async function connect() {
+  async function connect(bank?: { name: string; country: string }) {
     setBusy('connect')
     try {
-      window.location.assign(await startBankConnection())
+      window.location.assign(await startBankConnection(bank))
     } catch (error) {
       setNotice({ tone: 'error', text: messageOf(error) })
       setBusy(null)
@@ -565,26 +578,32 @@ export default function App() {
     window.location.reload()
   }
 
-  async function disconnect() {
-    if (!window.confirm('End the access to Revolut? The transactions synced so far stay.')) return
+  async function disconnect(connection: Connection) {
+    if (!window.confirm(`End the access to ${connection.bank}? The payments synced so far stay.`)) return
     try {
-      await disconnectBank()
+      await disconnectBank(connection.id)
       await loadOwner()
     } catch (error) {
       setNotice({ tone: 'error', text: messageOf(error) })
     }
   }
 
-  const connection = data?.connection ?? null
+  const connections = data?.connections ?? []
+  const expired = connections.filter((item) => item.expired)
+  const live = connections.filter((item) => !item.expired)
   const hasData = currencyRows.length > 0
 
   // The account part (where the data comes from, sync, import, owner links): in the sidebar on wide screens, in the
   // header and the footer on a phone and on the first screen.
   const status =
-    isOwner && connection
-      ? connection.expired
-        ? 'Access to Revolut expired'
-        : `${connection.bank} · ${connection.syncedAt ? `synced ${timeAgo(connection.syncedAt)}` : 'not synced yet'}`
+    isOwner && connections.length > 0
+      ? connections
+          .map((item) =>
+            item.expired
+              ? `${item.bank}: access expired`
+              : `${item.bank} · ${item.syncedAt ? `synced ${timeAgo(item.syncedAt)}` : 'not synced yet'}`,
+          )
+          .join(' · ')
       : !isOwner && data
         ? data.source === 'sample'
           ? 'Sample data'
@@ -594,19 +613,30 @@ export default function App() {
   const bankAction = (
     <>
       {isOwner &&
-        connection &&
-        (connection.expired ? (
-          <button type="button" className="button is-primary" disabled={busy !== null} onClick={connect}>
-            Reconnect
-          </button>
-        ) : (
-          <button type="button" className="button" disabled={busy !== null} onClick={() => void sync()}>
-            {busy === 'sync' ? 'Syncing…' : 'Sync'}
+        expired.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            className="button is-primary"
+            disabled={busy !== null}
+            onClick={() => void connect({ name: item.bank, country: item.id.split('|')[1] ?? 'FR' })}
+          >
+            Reconnect {item.bank}
           </button>
         ))}
-      {isOwner && !connection && hasData && (
-        <button type="button" className="button is-primary" disabled={busy !== null} onClick={connect}>
-          Connect Revolut
+      {isOwner && live.length > 0 && (
+        <button type="button" className="button" disabled={busy !== null} onClick={() => void sync()}>
+          {busy === 'sync' ? 'Syncing…' : 'Sync'}
+        </button>
+      )}
+      {isOwner && hasData && (
+        <button
+          type="button"
+          className={`button${connections.length ? ' is-quiet' : ' is-primary'}`}
+          disabled={busy !== null}
+          onClick={() => setDialog({ type: 'banks' })}
+        >
+          {connections.length ? 'Add a bank' : 'Connect a bank'}
         </button>
       )}
     </>
@@ -627,11 +657,18 @@ export default function App() {
         Owner key
       </button>
     ),
-    isOwner && connection && (
-      <button key="disconnect" type="button" className="link-button" onClick={() => void disconnect()}>
-        Disconnect Revolut
-      </button>
-    ),
+    ...(isOwner
+      ? connections.map((item) => (
+          <button
+            key={`disconnect-${item.id}`}
+            type="button"
+            className="link-button"
+            onClick={() => void disconnect(item)}
+          >
+            Disconnect {item.bank}
+          </button>
+        ))
+      : []),
     isOwner && (
       <button key="leave" type="button" className="link-button" onClick={() => void leaveOwnerView()}>
         Leave owner view
@@ -669,6 +706,15 @@ export default function App() {
     </div>
   )
 
+  const bankDialog = dialog?.type === 'banks' && (
+    <BankDialog
+      connected={connections.map((item) => item.bank)}
+      busy={busy !== null}
+      onConnect={(bank) => void connect(bank)}
+      onClose={() => setDialog(null)}
+    />
+  )
+
   if (loading || !hasData) {
     return (
       <div className="page">
@@ -678,9 +724,16 @@ export default function App() {
           {loading ? (
             <p className="loading">Loading your spending…</p>
           ) : (
-            <Landing isOwner={isOwner} busy={busy} onSample={showSample} onImport={importFile} onConnect={connect} />
+            <Landing
+              isOwner={isOwner}
+              busy={busy}
+              onSample={showSample}
+              onImport={importFile}
+              onConnect={() => setDialog({ type: 'banks' })}
+            />
           )}
         </main>
+        {bankDialog}
         <footer className="foot">
           <p>
             {footnote} {links}
@@ -887,6 +940,7 @@ export default function App() {
           onClose={() => setDialog(null)}
         />
       )}
+      {bankDialog}
       {dialog?.type === 'duplicates' && (
         <DuplicatesDeck
           pairs={dialog.pairs}

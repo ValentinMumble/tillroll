@@ -1,7 +1,7 @@
 const formats = new Map<string, Intl.NumberFormat>()
 
-/** "€1,234" (whole units from 100 up) or "€12.50". */
-export function money(value: number, currency: string, cents = Math.abs(value) < 100) {
+/** "€1,234", or "€12.50" with cents: payment rows ask for cents, summaries and breakdowns round. */
+export function money(value: number, currency: string, cents = false) {
   const key = `${currency}|${cents}`
   let format = formats.get(key)
   if (!format) {

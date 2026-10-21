@@ -132,7 +132,7 @@ export function CategoryEditor({ categories, forStore, onSave, onClose }: Props)
                 checked={category.spending}
                 onChange={(event) => update(category.key, { spending: event.target.checked })}
               />
-              Spending
+              Counts as spending
             </label>
             {category.custom ? (
               <button

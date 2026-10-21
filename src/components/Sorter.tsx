@@ -116,10 +116,10 @@ export function Sorter({ queues, categories, rules, onPick, onNewCategory, onRen
         <h2 id="sorter-title">Stores to sort</h2>
         <div className="segmented is-small" role="group" aria-label="Which stores">
           <button type="button" aria-pressed={mode === 'unsure'} onClick={() => switchMode('unsure')}>
-            Unsure ({queues.unsure.length})
+            To sort ({queues.unsure.length})
           </button>
           <button type="button" aria-pressed={mode === 'automatic'} onClick={() => switchMode('automatic')}>
-            All automatic ({queues.automatic.length})
+            All guessed ({queues.automatic.length})
           </button>
         </div>
         <p className="hint">
@@ -276,7 +276,7 @@ export function Sorter({ queues, categories, rules, onPick, onNewCategory, onRen
           </>
         )}
         <button type="button" className="button is-quiet" onClick={closeDialog}>
-          {store ? 'Done for now' : 'Close'}
+          Close
         </button>
       </footer>
     </dialog>

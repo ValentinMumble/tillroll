@@ -49,7 +49,7 @@ export interface OwnerData {
   paymentCategories: PaymentCategories
   /** Pairs of stores marked "not the same". */
   distinct: string[]
-  connection: Connection | null
+  connections: Connection[]
 }
 
 /** Owner only, like every call below. */
@@ -57,17 +57,26 @@ export function fetchOwnerData() {
   return request<OwnerData>('/api/data')
 }
 
-/** The address of the bank's login page. */
-export async function startBankConnection() {
-  return (await request<{ url: string }>('/api/connect', { method: 'POST', body: '{}' })).url
+/** The address of the bank's login page, for a bank by its Enable Banking name and country. */
+export async function startBankConnection(bank?: { name: string; country: string }) {
+  return (await request<{ url: string }>('/api/connect', { method: 'POST', body: JSON.stringify(bank ?? {}) })).url
+}
+
+/** The banks Enable Banking reads personal accounts of in a country. */
+export async function fetchBanks(country: string) {
+  return (await request<{ banks: string[] }>(`/api/banks?country=${encodeURIComponent(country)}`)).banks
 }
 
 export function syncBank() {
-  return request<{ syncedAt: string; booked: number; pending: number }>('/api/sync', { method: 'POST', body: '{}' })
+  return request<{ syncedAt: string; booked: number; pending: number; errors: string[] }>('/api/sync', {
+    method: 'POST',
+    body: '{}',
+  })
 }
 
-export function disconnectBank() {
-  return request<{ ok: true }>('/api/disconnect', { method: 'POST', body: '{}' })
+/** Ends the access to one bank, by its connection id. */
+export function disconnectBank(bank: string) {
+  return request<{ ok: true }>('/api/disconnect', { method: 'POST', body: JSON.stringify({ bank }) })
 }
 
 export function saveRule(store: string, category: CategoryKey | null) {

@@ -50,13 +50,18 @@ export function PeriodChart({ series, selected, grain, currency, usual, onSelect
                 type="button"
                 className={`chart-column${item.period === selected ? ' is-selected' : ''}`}
                 aria-pressed={item.period === selected}
-                aria-label={`${periodLabel(item.period, grain)}: ${money(item.total, currency)}`}
+                aria-label={`${periodLabel(item.period, grain)}: ${money(item.total, currency)}${
+                  item.partial === 'ongoing' ? ' so far' : item.partial === 'first' ? ', partly covered' : ''
+                }`}
                 onClick={() => onSelect(item.period)}
                 onMouseEnter={() => setHovered(index)}
                 onFocus={() => setHovered(index)}
                 onBlur={() => setHovered(null)}
               >
-                <span className="chart-bar" style={{ height: height(item.total) }} />
+                <span
+                  className={`chart-bar${item.partial ? ' is-partial' : ''}`}
+                  style={{ height: height(item.total) }}
+                />
                 {hovered === index && (
                   <span
                     className={`chart-tip${edge}`}
@@ -67,6 +72,9 @@ export function PeriodChart({ series, selected, grain, currency, usual, onSelect
                     <span>
                       {money(item.total, currency)} · {item.payments} payments
                     </span>
+                    {item.partial && (
+                      <span>{item.partial === 'ongoing' ? 'so far' : 'only partly covered by your data'}</span>
+                    )}
                   </span>
                 )}
               </button>
@@ -81,6 +89,12 @@ export function PeriodChart({ series, selected, grain, currency, usual, onSelect
           </span>
         ))}
       </div>
+      {series.some((item) => item.partial) && (
+        <p className="chart-key">
+          <span className="chart-key-swatch" aria-hidden="true" />
+          Striped: a {grain === 'all' ? 'year' : grain} still going, or only partly in your data
+        </p>
+      )}
     </figure>
   )
 }

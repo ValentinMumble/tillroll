@@ -4,7 +4,7 @@ import { money } from '../format'
 import { tidyLabel, withLabel } from '../labels'
 import { dayLabel, periodEnd, today, weekdayLabel, weekdayOf } from '../periods'
 import type { Row } from '../report'
-import type { Labels } from '../types'
+import type { CategoryKey, Labels } from '../types'
 
 interface Props {
   /** The payments of one currency, newest first. */
@@ -22,8 +22,20 @@ interface Props {
 
 const MONTHS = Array.from({ length: 12 }, (_value, index) => String(index + 1).padStart(2, '0'))
 const WEEKDAY_INITIALS = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
-/** Days are coloured in five steps, from the year's quietest spending days to its biggest. */
+/** Days are coloured in five steps, from the quietest spending days to the biggest. */
 const STEPS = 5
+/** Big planned payments that can be left out, so the everyday spending shows. */
+const FIXED_COSTS: CategoryKey[] = ['bills', 'home']
+
+/** A round amount near a value, for the scale: 12 → 10, 37 → 40, 140 → 150. */
+function roundAmount(value: number) {
+  if (value <= 0) return 0
+  const magnitude = 10 ** Math.floor(Math.log10(value))
+  const factor = [1, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10].reduce((best, item) =>
+    Math.abs(item * magnitude - value) < Math.abs(best * magnitude - value) ? item : best,
+  )
+  return factor * magnitude
+}
 
 function monthName(year: string, month: string) {
   return new Date(Date.UTC(Number(year), Number(month) - 1, 1)).toLocaleDateString('en-GB', {
@@ -49,31 +61,35 @@ export function Calendar({ rows, categories, currency, initialYear, onOpenMonth,
   // Payments of the range left out of the label.
   const [unticked, setUnticked] = useState<Set<string>>(new Set())
   const [labelText, setLabelText] = useState('')
+  const [withoutFixed, setWithoutFixed] = useState(false)
   const now = today()
 
-  // What went out each day of the year, and the payments behind it.
-  const days = useMemo(() => {
+  // What went out each day, over every year, and the payments behind it.
+  const allDays = useMemo(() => {
     const byDay = new Map<string, { total: number; rows: Row[] }>()
     for (const row of rows) {
-      if (!row.date.startsWith(year) || !row.counts) continue
+      if (!row.counts || (withoutFixed && FIXED_COSTS.includes(row.category))) continue
       const day = byDay.get(row.date) ?? { total: 0, rows: [] }
       day.total += row.spend
       day.rows.push(row)
       byDay.set(row.date, day)
     }
     return byDay
-  }, [rows, year])
+  }, [rows, withoutFixed])
+  const days = useMemo(() => new Map([...allDays].filter(([date]) => date.startsWith(year))), [allDays, year])
 
-  // The step limits: the year's spending days split in five equal groups.
+  // The step limits, round amounts that split the spending days of every year in five groups: the same scale for
+  // each year, so their colours compare.
   const limits = useMemo(() => {
-    const totals = [...days.values()].map((day) => day.total).filter((total) => total > 0)
+    const totals = [...allDays.values()].map((day) => day.total).filter((total) => total > 0)
     totals.sort((first, second) => first - second)
-    return Array.from(
-      { length: STEPS - 1 },
-      (_value, index) => totals[Math.floor(((index + 1) * totals.length) / STEPS)] ?? 0,
+    const rounded = Array.from({ length: STEPS - 1 }, (_value, index) =>
+      roundAmount(totals[Math.floor(((index + 1) * totals.length) / STEPS)] ?? 0),
     )
-  }, [days])
+    return [...new Set(rounded)].filter((limit) => limit > 0)
+  }, [allDays])
   const stepOf = (total: number) => (total <= 0 ? 0 : 1 + limits.filter((limit) => total > limit).length)
+  const whole = (value: number) => money(value, currency)
 
   const firstDay = rows.at(-1)?.date ?? now
   const yearTotal = [...days.values()].reduce((sum, day) => sum + day.total, 0)
@@ -127,7 +143,8 @@ export function Calendar({ rows, categories, currency, initialYear, onOpenMonth,
         </div>
       </header>
       <p className="calendar-summary">
-        <strong>{money(yearTotal, currency)}</strong> in {year} · {payments} payments
+        <strong>{money(yearTotal, currency)}</strong> in {year}
+        {withoutFixed && ' without bills and rent'} · {payments} payments
         {busiest && busiest[1].total > 0 && (
           <>
             {' '}
@@ -195,12 +212,38 @@ export function Calendar({ rows, categories, currency, initialYear, onOpenMonth,
               )
             })}
           </div>
-          <div className="calendar-legend" aria-hidden="true">
-            <span>Less</span>
-            {Array.from({ length: STEPS + 1 }, (_value, step) => (
-              <span key={step} className={`day step-${step}`} />
-            ))}
-            <span>More</span>
+          <div className="calendar-foot">
+            <label
+              className="check"
+              title={`Leaves out ${FIXED_COSTS.map((key) => categories.byKey[key]?.label).join(' and ')}`}
+            >
+              <input
+                type="checkbox"
+                checked={withoutFixed}
+                onChange={(event) => setWithoutFixed(event.target.checked)}
+              />
+              Leave out bills and rent
+            </label>
+            <ul className="calendar-legend" aria-label="Colour scale, spent in a day">
+              {limits.length > 0 && (
+                <li>
+                  <span className="day step-1" aria-hidden="true" />
+                  up to {whole(limits[0])}
+                </li>
+              )}
+              {limits.slice(1).map((limit, index) => (
+                <li key={limit}>
+                  <span className={`day step-${index + 2}`} aria-hidden="true" />
+                  {whole(limits[index])} to {whole(limit)}
+                </li>
+              ))}
+              {limits.length > 0 && (
+                <li>
+                  <span className={`day step-${limits.length + 1}`} aria-hidden="true" />
+                  over {whole(limits[limits.length - 1])}
+                </li>
+              )}
+            </ul>
           </div>
         </div>
 
@@ -223,7 +266,7 @@ export function Calendar({ rows, categories, currency, initialYear, onOpenMonth,
                 </button>
               </header>
               <p className="muted">
-                {money(pickedTotal, currency)} · {picked.length === 1 ? '1 payment' : `${picked.length} payments`}
+                {money(pickedTotal, currency, true)} · {picked.length === 1 ? '1 payment' : `${picked.length} payments`}
                 {!oneDay && ` · ${Math.round((Date.parse(range.to) - Date.parse(range.from)) / 86_400_000) + 1} days`}
               </p>
               {oneDay && (

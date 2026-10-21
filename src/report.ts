@@ -161,7 +161,15 @@ export interface Report {
   /** What the period is compared with: the previous one cut at the same point, or the usual period. */
   baseline: { total: number; categories: Map<CategoryKey, number>; label: string } | null
   /** The chart's periods, with what each category cost in them (for the trend lines). */
-  series: { period: string; total: number; payments: number; categories: Map<CategoryKey, number> }[]
+  series: {
+    period: string
+    total: number
+    payments: number
+    categories: Map<CategoryKey, number>
+    stores: Map<string, StoreTotal>
+    /** Still going (holds today), or only partly covered by the data (the first one): not a full period yet. */
+    partial: 'ongoing' | 'first' | null
+  }[]
   /** The chart's periods: years for all time, else the chosen grain. */
   chartGrain: Grain
   usual: number | null
@@ -261,8 +269,17 @@ export function buildReport(rows: Row[], period: string, grain: Grain, now: stri
   for (let step = count - 1; step >= 0; step -= 1) {
     const item = shiftPeriod(last, chartGrain, -step)
     if (periodEnd(item, chartGrain) < firstDay) continue
-    const totals = totalsOf(rowsBetween(rows, periodStart(item, chartGrain), periodEnd(item, chartGrain)))
-    series.push({ period: item, total: totals.total, payments: totals.payments, categories: totals.categories })
+    const itemStart = periodStart(item, chartGrain)
+    const itemEnd = periodEnd(item, chartGrain)
+    const totals = totalsOf(rowsBetween(rows, itemStart, itemEnd))
+    series.push({
+      period: item,
+      total: totals.total,
+      payments: totals.payments,
+      categories: totals.categories,
+      stores: totals.stores,
+      partial: now >= itemStart && now <= itemEnd ? 'ongoing' : itemStart < firstDay ? 'first' : null,
+    })
   }
 
   // Regular payments, as of the last month of the period that has data.

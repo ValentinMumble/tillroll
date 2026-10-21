@@ -514,6 +514,39 @@ main {
   background: var(--bar-strong);
 }
 
+/* Not a full period yet: striped, so it does not read as a drop. */
+.chart-bar.is-partial,
+.chart-key-swatch {
+  background: repeating-linear-gradient(
+    135deg,
+    var(--bar) 0 3px,
+    color-mix(in srgb, var(--bar) 40%, transparent) 3px 6px
+  );
+}
+
+.chart-column.is-selected .chart-bar.is-partial {
+  background: repeating-linear-gradient(
+    135deg,
+    var(--bar-strong) 0 3px,
+    color-mix(in srgb, var(--bar-strong) 40%, transparent) 3px 6px
+  );
+}
+
+.chart-key {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.chart-key-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+}
+
 .chart-tip {
   position: absolute;
   left: 50%;
@@ -878,18 +911,34 @@ main {
   outline-offset: 1px;
 }
 
+.calendar-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 18px;
+  margin-top: 18px;
+}
+
 .calendar-legend {
   display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 4px;
-  margin-top: 18px;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
   color: var(--muted);
   font-size: 12px;
 }
 
+.calendar-legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
 .calendar-legend .day {
-  width: 14px;
+  width: 12px;
   cursor: default;
 }
 
@@ -1539,6 +1588,34 @@ main {
   font-size: 18px;
 }
 
+/* A ✕ in the corner, for the decks whose footer is full of answers. */
+.dialog-head:has(.dialog-close) {
+  position: relative;
+  padding-right: 56px;
+}
+
+.dialog-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--muted);
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.dialog-close:hover {
+  background: var(--surface-sunk);
+  color: var(--ink);
+}
+
 .dialog > .text-input,
 .category-add,
 .keep-name,
@@ -1695,6 +1772,40 @@ main {
   flex-wrap: wrap;
   gap: 4px 16px;
   margin-left: auto;
+}
+
+/* The bank picker */
+.bank-filters {
+  display: grid;
+  grid-template-columns: minmax(0, 160px) minmax(0, 1fr);
+  gap: 8px;
+  margin: 8px 20px;
+}
+
+.bank-list {
+  flex: 1;
+  min-height: 160px;
+  margin: 0;
+  padding: 0 20px;
+  overflow: auto;
+  list-style: none;
+}
+
+.bank-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-top: 1px solid var(--line);
+}
+
+.bank-list .empty {
+  display: block;
+}
+
+.bank-list .button {
+  min-height: 32px;
 }
 
 /* The duplicates deck: the two stores side by side, the one kept outlined. */
@@ -2123,7 +2234,21 @@ main {
 /* One store's dialog: name and category */
 
 .store-dialog {
-  width: min(440px, calc(100vw - 32px));
+  width: min(560px, calc(100vw - 32px));
+}
+
+/* The dialog can outgrow a small screen: its content scrolls inside. */
+.store-dialog-form {
+  min-height: 0;
+  overflow: auto;
+}
+
+.store-months {
+  margin: 0 20px;
+}
+
+.store-months .stat-bars-plot {
+  height: 120px;
 }
 
 .store-dialog-form {

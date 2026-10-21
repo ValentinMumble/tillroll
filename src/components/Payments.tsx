@@ -457,6 +457,7 @@ export function Payments({
             {money(
               selection.reduce((sum, row) => sum + row.spend, 0),
               currency,
+              true,
             )}
           </span>
           <button type="button" className="button" onClick={() => setSheet(selection)}>
@@ -501,6 +502,7 @@ export function Payments({
               : `${sheetStores.length === 1 ? sheetStores[0] : `${sheetStores.length} stores`} · ${money(
                   sheet.reduce((sum, row) => sum + row.spend, 0),
                   currency,
+                  true,
                 )}`
           }
           scopes={scopes}

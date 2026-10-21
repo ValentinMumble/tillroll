@@ -26,7 +26,9 @@ const plain = (text: string) =>
     .toLowerCase()
 
 function share(part: number, whole: number) {
-  return whole > 0 ? `${Math.round((part / whole) * 100)}%` : ''
+  if (whole <= 0) return ''
+  const percent = (part / whole) * 100
+  return percent > 0 && percent < 1 ? '<1%' : `${Math.round(percent)}%`
 }
 
 /** A category's spending over the chart's periods, the chosen one marked. */
@@ -197,7 +199,7 @@ export function StoreBreakdown({
               <li key={store.key} className="bar-item">
                 <button
                   type="button"
-                  className={`bar-row${active ? ' is-active' : ''}`}
+                  className={`bar-row${active ? ' is-active' : ''}${preview ? '' : ' has-trend'}`}
                   aria-pressed={active}
                   onClick={() => onFocus(active ? null : { type: 'store', key: store.key, name: store.name })}
                 >
@@ -207,6 +209,12 @@ export function StoreBreakdown({
                     </span>
                     <span className="bar-name">{store.name}</span>
                   </span>
+                  {!preview && (
+                    <Trend
+                      values={report.series.map((item) => item.stores.get(store.key)?.total ?? 0)}
+                      marked={report.series.findIndex((item) => item.period === report.period)}
+                    />
+                  )}
                   <span className="bar-value">{money(store.total, currency)}</span>
                   <span className="bar-change muted">
                     {store.visits === 1 ? '1 payment' : `${store.visits} payments`}

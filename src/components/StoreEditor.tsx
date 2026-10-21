@@ -242,7 +242,7 @@ export function StoreEditor(props: Props) {
       )}
       <footer className="dialog-foot">
         <button type="button" className="button is-primary" onClick={closeDialog}>
-          Done
+          Close
         </button>
       </footer>
     </dialog>

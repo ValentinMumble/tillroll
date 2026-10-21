@@ -50,6 +50,14 @@ In Safari, Share, then Add to Home Screen: Tillroll opens full screen like an ap
 sections (Overview, Categories, Stores, Payments). A home-screen app keeps its own cookies, apart from Safari's: the
 owner enters their key once there, through the Owner key link at the bottom of the page.
 
+## Several banks
+
+The owner can connect more than one bank (Add a bank, in the sidebar or the ⋯ menu): Revolut and Crédit Coopératif
+come first in the picker, any bank Enable Banking covers in the chosen country works. Each bank keeps its own session,
+access end date and last sync; Sync and the daily run sync them all, and one bank failing does not stop the others.
+In Enable Banking's free mode, link the bank's accounts in the Control Panel (Activate by linking accounts) before
+connecting it here. Statements are Revolut's: where they overlap Revolut's synced history, the synced rows win.
+
 ## Run your own
 
 You need an Enable Banking account (free), a Vercel account (free) and about 15 minutes.

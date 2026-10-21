@@ -69,6 +69,9 @@ export function DuplicatesDeck({ pairs, categories, onMerge, onDistinct, onClose
     >
       <header className="dialog-head">
         <h2 id="duplicates-title">Possible duplicates</h2>
+        <button type="button" className="dialog-close" aria-label="Close" onClick={closeDialog}>
+          ✕
+        </button>
         <p className="hint">
           {pairs.length === 0
             ? 'No look-alike stores found.'

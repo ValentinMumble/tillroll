@@ -2,12 +2,17 @@ import { Redis } from '@upstash/redis'
 import type { Transaction } from '../../src/types'
 import { HttpError } from './http.js'
 
-/** The bank session (see Session in bank.ts). */
+/** The bank sessions (see Session in bank.ts), by "<bank>|<country>". */
+export const SESSIONS = 'tillroll:sessions'
+/** The one bank session kept before several banks were possible: moved into SESSIONS on first read. */
 export const SESSION = 'tillroll:session'
 /** Booked transactions, by id. */
 export const TRANSACTIONS = 'tillroll:transactions'
-/** Pending transactions from the last sync: they have no lasting id, so each sync replaces them all. */
-export const PENDING = 'tillroll:pending'
+/**
+ * Pending transactions from the last sync of each bank ({ "<bank>|<country>": [...] }): they have no lasting id, so
+ * each sync replaces its bank's. (An older version kept one list under tillroll:pending, left for it to read.)
+ */
+export const PENDING = 'tillroll:pending-by-bank'
 /** Categories picked by hand, by store key. */
 export const RULES = 'tillroll:rules'
 /** Categories changed or added by hand (a list of CategoryEdit). */
@@ -20,7 +25,7 @@ export const PAYMENT_CATEGORIES = 'tillroll:payment-categories'
 export const LABELS = 'tillroll:labels'
 /** Stores merged into another, by store key: the name of the store they are part of. */
 export const MERGES = 'tillroll:merges'
-/** When the last sync ran (ISO date-time). */
+/** When the last sync ran, before each session kept its own (see Session.syncedAt). */
 export const SYNCED_AT = 'tillroll:synced-at'
 /** A bank authorization in progress, by its random state: proves the callback answers a request of the owner. */
 export const authState = (state: string) => `tillroll:auth:${state}`

@@ -1,7 +1,7 @@
 import { createSession } from './_lib/bank.js'
 import { HttpError } from './_lib/http.js'
-import { authState, redis, SESSION, SYNCED_AT } from './_lib/store.js'
-import { sync } from './_lib/sync.js'
+import { authState, redis } from './_lib/store.js'
+import { bankKey, saveSession, sync } from './_lib/sync.js'
 
 function backToPage(query: Record<string, string>) {
   return new Response(null, {
@@ -12,8 +12,8 @@ function backToPage(query: Record<string, string>) {
 
 /**
  * GET /api/callback?code=&state=: where the bank sends the owner back. The state proves the owner started the
- * authorization (see /api/connect). The new session's first sync runs at once, while the bank still gives the
- * whole history, then the owner lands on the page.
+ * authorization (see /api/connect). The new session joins the others (or replaces the same bank's), and its first
+ * sync runs at once, while the bank still gives the whole history, then the owner lands on the page.
  */
 export async function GET(request: Request) {
   const query = new URL(request.url).searchParams
@@ -26,10 +26,9 @@ export async function GET(request: Request) {
     const code = query.get('code')
     if (!started || !code) throw new HttpError(400, 'This link has expired: start the connection again')
     const session = await createSession(code, started.requiredHeaders)
-    await store.set(SESSION, session)
-    await store.del(SYNCED_AT)
-    const result = await sync(request)
-    return backToPage({ bank: 'connected', count: String(result.booked) })
+    await saveSession(session)
+    const result = await sync(request, bankKey(session.bank))
+    return backToPage({ bank: 'connected', name: session.bank.name, count: String(result.booked) })
   } catch (error) {
     if (!(error instanceof HttpError)) console.error(error)
     const message = error instanceof HttpError ? error.message : 'The connection failed, try again later'
