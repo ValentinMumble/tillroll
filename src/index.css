@@ -1176,13 +1176,48 @@ main {
   justify-self: start;
 }
 
+/* On a phone, two lines per payment: the store and the amount, then the day and the category. */
 @media (max-width: 560px) {
   .latest ul {
-    grid-template-columns: minmax(0, 1fr) auto auto;
+    display: block;
+  }
+
+  .latest li {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'store amount'
+      'day category';
+    gap: 2px 8px;
+  }
+
+  .latest-store {
+    grid-area: store;
   }
 
   .latest-day {
-    display: none;
+    grid-area: day;
+    font-size: 12px;
+  }
+
+  .latest .category-button {
+    grid-area: category;
+    justify-self: end;
+  }
+
+  .latest .payment-amount {
+    grid-area: amount;
+    justify-self: end;
+  }
+
+  /* The title and the link on one line, the switch under them. */
+  .latest .card-head > .link-button {
+    order: 1;
+    margin-left: auto;
+  }
+
+  .latest .card-head > .toggle {
+    order: 2;
+    margin-left: 0;
   }
 }
 
@@ -1217,6 +1252,8 @@ main {
 .stat-bar {
   display: grid;
   flex: 1;
+  /* The column's own width: a label wider than it spills over, without widening its bar. */
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: 16px minmax(0, 1fr) 18px;
   align-items: end;
   justify-items: center;
@@ -2585,8 +2622,13 @@ main {
 }
 
 @media (max-width: 560px) {
+  /* The tick-all box beside the search, the category filter under them. */
   .payments-filters {
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .payments-filters > :last-child {
+    grid-column: 1 / -1;
   }
 }
 
@@ -2790,8 +2832,14 @@ main {
     display: none;
   }
 
+  /* Bars: the name gets the room; the change takes what it needs, a store's number of payments goes. */
+  .bar-row,
   .bar-row.has-trend {
-    grid-template-columns: minmax(0, 1fr) auto 84px;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+  }
+
+  .bar-visits {
+    display: none;
   }
 
   .trend {
@@ -2801,13 +2849,21 @@ main {
   .payments tr.day-row {
     grid-template-areas: none;
     grid-template-columns: minmax(0, 1fr) auto;
-    padding-top: 16px;
+    padding-top: 14px;
     border-top: 0;
+  }
+
+  /* The day on the left, what went out that day on the right. */
+  .payments tr.day-row th,
+  .payments tr.day-row td {
+    grid-row: 1;
+    padding: 0 0 4px;
   }
 
   .payments tr.day-row .payment-amount {
     grid-area: auto;
     grid-row: 1;
+    grid-column: 2;
   }
 
   .facts {
@@ -2846,7 +2902,7 @@ main {
 
   .main > .toolbar .segmented button {
     min-height: 30px;
-    padding: 0 10px;
+    padding: 0 8px;
   }
 
   .main > .toolbar .stepper {
@@ -2862,6 +2918,8 @@ main {
   .stepper-label {
     flex: 1;
     min-width: 0;
+    font-size: 14px;
+    white-space: nowrap;
   }
 
   .payments table,
@@ -2886,26 +2944,27 @@ main {
     border: 0;
   }
 
-  .payment-pick {
+  /* The table's cells only: the overview and the calendar list payments with the same classes, in their own grids. */
+  .payments .payment-pick {
     grid-area: pick;
     padding-top: 2px;
   }
 
-  .payment-day {
+  .payments .payment-day {
     grid-area: meta;
     width: auto;
   }
 
-  .payment-store {
+  .payments .payment-store {
     grid-area: store;
   }
 
-  .payment-amount {
+  .payments .payment-amount {
     grid-area: amount;
     width: auto;
   }
 
-  .payment-category {
+  .payments .payment-category {
     grid-area: category;
     width: auto;
     justify-self: end;

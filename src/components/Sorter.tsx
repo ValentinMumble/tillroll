@@ -1,4 +1,4 @@
-import { type KeyboardEvent, useState } from 'react'
+import { type KeyboardEvent, useEffect, useRef, useState } from 'react'
 import { type Basis, type Categories, DEFAULT_ICON, oneIcon } from '../categories'
 import { money } from '../format'
 import { dayLabel } from '../periods'
@@ -39,6 +39,11 @@ export function Sorter({ queues, categories, rules, onPick, onNewCategory, onRen
   const { ref: dialogRef, onKeyDown: onDialogKeyDown, close: closeDialog } = useDialog()
   const [mode, setMode] = useState<'unsure' | 'automatic'>(queues.unsure.length > 0 ? 'unsure' : 'automatic')
   const [position, setPosition] = useState(0)
+  // The store's card and its choices scroll: each new store starts at the top, its name in view.
+  const bodyRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    bodyRef.current?.scrollTo({ top: 0 })
+  }, [position, mode])
   const [filed, setFiled] = useState(0)
   const [newName, setNewName] = useState('')
   const [newIcon, setNewIcon] = useState('')
@@ -138,7 +143,7 @@ export function Sorter({ queues, categories, rules, onPick, onNewCategory, onRen
       </header>
 
       {store ? (
-        <div className="sorter-body">
+        <div className="sorter-body" ref={bodyRef}>
           <div className="sorter-store">
             <div className="sorter-name">
               {renaming !== null ? (

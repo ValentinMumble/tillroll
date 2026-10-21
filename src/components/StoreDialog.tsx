@@ -163,8 +163,9 @@ export function StoreDialog({
                 facts.currency,
               )} on average`}
               values={facts.months.map((item) => Math.max(0, item.total))}
+              // Every third month, counted back from the last one, so the last label never runs into another.
               labels={facts.months.map((item, index) =>
-                index % 3 === 0 || index === facts.months.length - 1 ? shortMonth(item.month) : '',
+                (facts.months.length - 1 - index) % 3 === 0 ? shortMonth(item.month) : '',
               )}
               titles={facts.months.map((item) => periodLabel(item.month, 'month'))}
               currency={facts.currency}

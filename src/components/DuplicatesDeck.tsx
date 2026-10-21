@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { Categories } from '../categories'
 import { type Pair, pairKey, type StoreInfo } from '../duplicates'
 import { money } from '../format'
@@ -118,6 +118,11 @@ function StoreCard({
 export function DuplicatesDeck({ pairs, categories, onMerge, onDistinct, onCategory, onRename, onClose }: Props) {
   const { ref: dialogRef, onKeyDown: onDialogKeyDown, close: closeDialog } = useDialog()
   const [position, setPosition] = useState(0)
+  // Each new pair starts at the top, both names in view.
+  const bodyRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    bodyRef.current?.scrollTo({ top: 0 })
+  }, [position])
   // Categories picked and names given here, by store: the pairs keep the ones they opened with.
   const [picked, setPicked] = useState<Record<string, CategoryKey | null>>({})
   const [renamed, setRenamed] = useState<Record<string, string>>({})
@@ -184,7 +189,7 @@ export function DuplicatesDeck({ pairs, categories, onMerge, onDistinct, onCateg
       </header>
 
       {pair ? (
-        <div className="sorter-body">
+        <div className="sorter-body" ref={bodyRef}>
           <p className="twin-shared">
             Both have <strong>{pair.shared.join(', ')}</strong>. Are they the same place?
           </p>

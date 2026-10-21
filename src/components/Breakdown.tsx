@@ -264,7 +264,7 @@ export function StoreBreakdown({
                     />
                   )}
                   <span className="bar-value">{money(store.total, currency)}</span>
-                  <span className="bar-change muted">
+                  <span className="bar-change bar-visits muted">
                     {store.visits === 1 ? '1 payment' : `${store.visits} payments`}
                   </span>
                   <span className="bar-track">
