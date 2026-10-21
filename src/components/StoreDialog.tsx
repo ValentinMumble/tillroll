@@ -1,8 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useMemo, useState } from 'react'
 import type { Categories } from '../categories'
 import { money } from '../format'
 import type { Row } from '../report'
-import type { CategoryKey, Rules } from '../types'
+import type { StoreInfo } from '../duplicates'
+import type { CategoryKey, Merges, Rules } from '../types'
+import { useDialog } from '../useDialog'
+import { WebSearch } from './WebSearch'
 
 interface Props {
   store: { key: string; name: string }
@@ -12,19 +15,35 @@ interface Props {
   onSave: (newName: string, category: CategoryKey | null) => void
   /** Opens the full store editor, to merge this store with others. */
   onMore: () => void
+  merges: Merges
+  /** Look-alike stores (names sharing a rare word), from the duplicates finder. */
+  similar: StoreInfo[]
+  onSeparate: (storeKey: string) => void
+  onMergeInto: (storeKey: string, into: string) => void
   onClose: () => void
 }
 
-/** One store, opened with a double-click: its name and its category. */
-export function StoreDialog({ store, rows, rules, categories, onSave, onMore, onClose }: Props) {
-  const dialog = useRef<HTMLDialogElement>(null)
+/**
+ * One store, opened from its pencil or its name: its name and its category, the stores merged into it (each can be
+ * separated again) and look-alike stores to merge in with one tap.
+ */
+export function StoreDialog({
+  store,
+  rows,
+  rules,
+  categories,
+  onSave,
+  onMore,
+  merges,
+  similar,
+  onSeparate,
+  onMergeInto,
+  onClose,
+}: Props) {
+  const { ref: dialogRef, onKeyDown: onDialogKeyDown, close: closeDialog } = useDialog()
   const picked = rules[store.key] && categories.byKey[rules[store.key]] ? rules[store.key] : ''
   const [name, setName] = useState(store.name)
   const [category, setCategory] = useState<CategoryKey>(picked)
-
-  useEffect(() => {
-    dialog.current?.showModal()
-  }, [])
 
   const facts = useMemo(() => {
     const own = rows.filter((row) => row.storeKey === store.key)
@@ -36,18 +55,30 @@ export function StoreDialog({ store, rows, rules, categories, onSave, onMore, on
       currency: own[0]?.currency ?? 'EUR',
       guessed: [...counts].sort((first, second) => second[1] - first[1])[0]?.[0] ?? 'other',
       texts: [...new Set(own.map((row) => row.description))].slice(0, 3),
+      // The stores merged into this one: their own names, before the merge.
+      parts: [
+        ...new Map(own.filter((row) => row.ownStoreKey !== store.key).map((row) => [row.ownStoreKey, row.ownStore])),
+      ]
+        .filter(([key]) => merges[key])
+        .map(([key, name]) => ({ key, name })),
     }
-  }, [rows, store.key])
+  }, [rows, store.key, merges])
   const auto = categories.byKey[facts.guessed]
 
   function save() {
     const newName = name.trim() || store.name
     if (newName !== store.name || category !== picked) onSave(newName, category || null)
-    dialog.current?.close()
+    closeDialog()
   }
 
   return (
-    <dialog ref={dialog} className="dialog store-dialog" aria-labelledby="store-dialog-title" onClose={onClose}>
+    <dialog
+      ref={dialogRef}
+      onKeyDown={onDialogKeyDown}
+      className="dialog store-dialog"
+      aria-labelledby="store-dialog-title"
+      onClose={onClose}
+    >
       <form
         className="store-dialog-form"
         onSubmit={(event) => {
@@ -56,7 +87,9 @@ export function StoreDialog({ store, rows, rules, categories, onSave, onMore, on
         }}
       >
         <header className="dialog-head">
-          <h2 id="store-dialog-title">{store.name}</h2>
+          <h2 id="store-dialog-title">
+            {store.name} <WebSearch name={store.name} />
+          </h2>
           <p className="hint">
             {facts.payments === 1 ? '1 payment' : `${facts.payments} payments`}
             {facts.spent > 0 && ` · ${money(facts.spent, facts.currency)}`}
@@ -91,6 +124,39 @@ export function StoreDialog({ store, rows, rules, categories, onSave, onMore, on
             ))}
           </select>
         </label>
+        {facts.parts.length > 0 && (
+          <section className="store-parts">
+            <h3>Includes</h3>
+            <ul>
+              {facts.parts.map((part) => (
+                <li key={part.key}>
+                  {part.name}
+                  <button type="button" className="link-button" onClick={() => onSeparate(part.key)}>
+                    Separate
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+        {similar.length > 0 && (
+          <section className="store-parts">
+            <h3>Looks like</h3>
+            <ul>
+              {similar.slice(0, 5).map((other) => (
+                <li key={other.key}>
+                  <span>
+                    {other.name}{' '}
+                    <span className="muted">{other.payments === 1 ? '1 payment' : `${other.payments} payments`}</span>
+                  </span>
+                  <button type="button" className="link-button" onClick={() => onMergeInto(other.key, store.name)}>
+                    Merge into this
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
         <footer className="dialog-foot">
           <button
             type="button"
@@ -100,7 +166,7 @@ export function StoreDialog({ store, rows, rules, categories, onSave, onMore, on
           >
             Merge with other stores…
           </button>
-          <button type="button" className="button is-quiet" onClick={() => dialog.current?.close()}>
+          <button type="button" className="button is-quiet" onClick={closeDialog}>
             Cancel
           </button>
           <button type="submit" className="button is-primary">

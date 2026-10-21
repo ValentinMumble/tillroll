@@ -1,8 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useMemo, useState } from 'react'
 import type { Categories } from '../categories'
 import { money } from '../format'
 import type { Row } from '../report'
 import type { CategoryKey, Merges, Rules } from '../types'
+import { useDialog } from '../useDialog'
+import { WebSearch } from './WebSearch'
 
 interface Props {
   rows: Row[]
@@ -42,15 +44,12 @@ function mostCommon(counts: Map<CategoryKey, number>) {
 /** Every store: rename it, pick its category, or tick the ones that are the same place and merge them. */
 export function StoreEditor(props: Props) {
   const { rows, rules, categories, merges, preselected, onRename, onCategory, onMerge, onSeparate, onClose } = props
-  const dialog = useRef<HTMLDialogElement>(null)
+  const { ref: dialogRef, onKeyDown: onDialogKeyDown, close: closeDialog } = useDialog()
   const [query, setQuery] = useState('')
   const [picked, setPicked] = useState<string[]>(preselected ? [preselected] : [])
-  const [kept, setKept] = useState<string | null>(null)
+  // The name kept when merging: the store the editor was opened from, unless another is chosen.
+  const [kept, setKept] = useState<string | null>(preselected)
   const [editing, setEditing] = useState<{ key: string; name: string } | null>(null)
-
-  useEffect(() => {
-    dialog.current?.showModal()
-  }, [])
 
   const stores = useMemo(() => {
     const byKey = new Map<string, StoreLine & { guesses: Map<CategoryKey, number> }>()
@@ -81,12 +80,16 @@ export function StoreEditor(props: Props) {
 
   const words = plain(query).split(/\s+/).filter(Boolean)
   const pickedStores = stores.filter((store) => picked.includes(store.key))
-  const shown = [
-    ...pickedStores,
-    ...stores.filter((store) => !picked.includes(store.key) && words.every((word) => plain(store.name).includes(word))),
-  ]
-  // The name kept when merging: the one chosen, or the store with the most money spent.
+  // The store the editor was opened from stays on top; ticked rows stay where they are.
+  const matching = stores.filter((store) => words.every((word) => plain(store.name).includes(word)))
+  const opened = preselected ? stores.find((store) => store.key === preselected) : undefined
+  const shown = opened ? [opened, ...matching.filter((store) => store.key !== opened.key)] : matching
   const target = pickedStores.find((store) => store.key === kept) ?? pickedStores[0]
+  // What the merge gives: all their payments under one name, with the category the store kept has.
+  const mergedPayments = pickedStores.reduce((sum, store) => sum + store.payments, 0)
+  const keptRule = target ? rules[target.key] : undefined
+  const inheritedRule = pickedStores.map((store) => rules[store.key]).find(Boolean)
+  const mergedCategory = target ? categories.byKey[keptRule ?? inheritedRule ?? target.guessed] : undefined
 
   function toggle(key: string) {
     setPicked(picked.includes(key) ? picked.filter((item) => item !== key) : [...picked, key])
@@ -111,7 +114,13 @@ export function StoreEditor(props: Props) {
   }
 
   return (
-    <dialog ref={dialog} className="dialog store-editor" aria-labelledby="store-editor-title" onClose={onClose}>
+    <dialog
+      ref={dialogRef}
+      onKeyDown={onDialogKeyDown}
+      className="dialog store-editor"
+      aria-labelledby="store-editor-title"
+      onClose={onClose}
+    >
       <header className="dialog-head">
         <h2 id="store-editor-title">Stores</h2>
         <p className="hint">
@@ -167,6 +176,7 @@ export function StoreEditor(props: Props) {
                     {store.name} <span aria-hidden="true">✎</span>
                   </button>
                 )}
+                {editing?.key !== store.key && <WebSearch name={store.name} />}
                 <span className="muted">
                   {store.payments === 1 ? '1 payment' : `${store.payments} payments`}
                   {store.total > 0 && ` · ${money(store.total, store.currency)}`}
@@ -191,6 +201,7 @@ export function StoreEditor(props: Props) {
           )
         })}
         {shown.length === 0 && <li className="empty">No store matches.</li>}
+        {shown.length > 80 && <li className="empty">Showing 80 of {shown.length}: search to find the others.</li>}
       </ul>
       {pickedStores.length >= 2 && target && (
         <div className="merge-bar">
@@ -207,6 +218,9 @@ export function StoreEditor(props: Props) {
           <button type="button" className="button is-primary" onClick={merge}>
             Merge {pickedStores.length} stores
           </button>
+          <p className="merge-preview">
+            {target.name} will hold {mergedPayments} payments, in {mergedCategory?.icon} {mergedCategory?.label}.
+          </p>
         </div>
       )}
       {merged.length > 0 && (
@@ -227,7 +241,7 @@ export function StoreEditor(props: Props) {
         </section>
       )}
       <footer className="dialog-foot">
-        <button type="button" className="button is-primary" onClick={() => dialog.current?.close()}>
+        <button type="button" className="button is-primary" onClick={closeDialog}>
           Done
         </button>
       </footer>

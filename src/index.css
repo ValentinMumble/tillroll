@@ -7,17 +7,24 @@
   --surface-sunk: #f0efea;
   --ink: #0b0b0b;
   --ink-soft: #52514e;
-  --muted: #7a7873;
+  --muted: #686661;
   --line: #e1e0d9;
   --axis: #c3c2b7;
   --ring: rgba(11, 11, 11, 0.1);
-  --bar: #86b6ef;
-  --bar-strong: #2a78d6;
-  --accent: #2a78d6;
+  --bar: #4a8fe0;
+  --bar-strong: #1c5cab;
+  --accent: #1f68c2;
   --on-accent: #ffffff;
   --up: #d03b3b;
   --down: #006300;
   --shadow: 0 1px 2px rgba(11, 11, 11, 0.05), 0 8px 24px rgba(11, 11, 11, 0.05);
+  /* The calendar's single blue ramp, from a little (light) to a lot (dark); step 0 is a day with nothing spent. */
+  --heat-0: var(--surface-sunk);
+  --heat-1: #b9d6f8;
+  --heat-2: #9ec5f4;
+  --heat-3: #5598e7;
+  --heat-4: #2a78d6;
+  --heat-5: #1c5cab;
   --font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
   --radius: 14px;
@@ -35,13 +42,19 @@
     --line: #2c2c2a;
     --axis: #383835;
     --ring: rgba(255, 255, 255, 0.1);
-    --bar: #184f95;
+    --bar: #2b67b8;
     --bar-strong: #3987e5;
     --accent: #3987e5;
     --on-accent: #0b0b0b;
     --up: #e66767;
     --down: #0ca30c;
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.3);
+    /* On the dark surface the ramp runs the other way: a lot is the brightest. */
+    --heat-1: #0d366b;
+    --heat-2: #184f95;
+    --heat-3: #256abf;
+    --heat-4: #3987e5;
+    --heat-5: #86b6ef;
   }
 }
 
@@ -345,14 +358,7 @@ main {
   text-transform: uppercase;
 }
 
-/* Overview: the receipt (total and chart) beside the insights */
-
-.overview {
-  display: grid;
-  grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr);
-  gap: 16px;
-  align-items: start;
-}
+/* Overview: the receipt (total and chart), the notes, then the top categories and stores */
 
 .receipt {
   position: relative;
@@ -544,8 +550,9 @@ main {
 .chart-axis span {
   flex: 1;
   min-width: 0;
+  overflow: hidden;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12px;
   text-align: center;
   white-space: nowrap;
 }
@@ -555,26 +562,42 @@ main {
   font-weight: 600;
 }
 
-/* Insights */
+/* What stands out: short notes in a light row under the chart, not a card of their own */
 
-.insights ul {
+.notes {
   display: grid;
-  gap: 14px;
+  gap: 6px;
+  padding: 0 4px;
+}
+
+.notes h2 {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.notes ul {
+  display: grid;
+  gap: 4px;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.insights li {
-  display: grid;
-  grid-template-columns: 24px 1fr;
-  gap: 10px;
-  align-items: start;
+.notes li {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  color: var(--ink-soft);
+  font-size: 13px;
+  line-height: 1.45;
 }
 
-.insight-icon {
-  font-size: 18px;
-  line-height: 1.3;
+.notes .link-button {
+  justify-self: start;
+  font-size: 13px;
 }
 
 /* Breakdowns: one bar color, the length is the value */
@@ -592,6 +615,47 @@ main {
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+/* A store row with its edit pencil beside it. */
+.bar-item {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.bar-item > .bar-row {
+  flex: 1;
+  min-width: 0;
+}
+
+.row-edit {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.row-edit:hover {
+  background: var(--surface-sunk);
+  color: var(--accent);
+}
+
+.row-edit svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .bar-row {
@@ -666,6 +730,484 @@ main {
   background: var(--bar-strong);
 }
 
+/* Calendar: a year, one square per day */
+
+.calendar .card-head .segmented {
+  margin-left: auto;
+}
+
+.calendar-summary {
+  margin-bottom: 18px;
+  color: var(--ink-soft);
+}
+
+.calendar-summary strong {
+  color: var(--ink);
+  font-size: 20px;
+}
+
+/* The months beside the panel of the days picked (a sheet at the bottom on a phone). */
+.calendar-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  align-items: start;
+  gap: 24px;
+}
+
+.months {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px 20px;
+}
+
+.month-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  width: 100%;
+  margin-bottom: 8px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.month-head:hover span:first-child {
+  color: var(--accent);
+}
+
+.month-head .muted {
+  font-size: 12px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.month-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 3px;
+}
+
+.weekday {
+  padding-bottom: 2px;
+  color: var(--muted);
+  font-size: 11px;
+  text-align: center;
+}
+
+.day {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: var(--heat-0);
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.day-number {
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.day.is-outside .day-number {
+  color: var(--muted);
+}
+
+/* Day numbers stay readable on the darker steps. */
+.day.step-3,
+.day.step-4,
+.day.step-5 {
+  color: #ffffff;
+}
+
+@media (prefers-color-scheme: dark) {
+  .day.step-1,
+  .day.step-2,
+  .day.step-3 {
+    color: #f0efec;
+  }
+
+  .day.step-4,
+  .day.step-5 {
+    color: #0b0b0b;
+  }
+}
+
+.day.step-1 {
+  background: var(--heat-1);
+}
+
+.day.step-2 {
+  background: var(--heat-2);
+}
+
+.day.step-3 {
+  background: var(--heat-3);
+}
+
+.day.step-4 {
+  background: var(--heat-4);
+}
+
+.day.step-5 {
+  background: var(--heat-5);
+}
+
+.day.is-outside {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--line);
+  cursor: default;
+}
+
+.day.is-today {
+  box-shadow: inset 0 0 0 2px var(--ink);
+}
+
+.day:hover:not(:disabled),
+.day.is-selected {
+  outline: 2px solid var(--ink);
+  outline-offset: 1px;
+}
+
+.calendar-legend {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  margin-top: 18px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.calendar-legend .day {
+  width: 14px;
+  cursor: default;
+}
+
+.day-detail {
+  position: sticky;
+  top: 90px;
+  display: grid;
+  gap: 10px;
+  max-height: calc(100dvh - 120px);
+  padding: 14px 16px;
+  overflow: auto;
+  border-radius: 12px;
+  background: var(--surface-sunk);
+}
+
+.day-detail p {
+  font-size: 14px;
+}
+
+.day-detail-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.day-detail h3 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.day-detail ul {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.day-detail li {
+  display: grid;
+  grid-template-columns: auto 22px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.day-detail-store {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.label-tag {
+  margin-left: 6px;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.label-range {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+@media (max-width: 860px) {
+  .calendar-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* On a phone the panel is a sheet over the bottom of the screen, above the tab bar, only once a day is picked. */
+  .day-detail {
+    display: none;
+  }
+
+  .day-detail.is-open {
+    position: fixed;
+    right: 12px;
+    bottom: calc(84px + env(safe-area-inset-bottom));
+    left: 12px;
+    z-index: 8;
+    display: grid;
+    max-height: 48dvh;
+    background: var(--surface);
+    box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.25);
+  }
+}
+
+.view-total {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+/* Labels: each one with its total, payments and dates */
+
+.label-lines {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.label-lines li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  padding: 6px 0;
+  border-top: 1px solid var(--line);
+}
+
+.label-open {
+  display: grid;
+  flex: 1;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 4px 12px;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+.label-open:hover {
+  background: var(--surface-sunk);
+}
+
+.label-name {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.label-open .muted {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.label-actions {
+  display: flex;
+  gap: 12px;
+  font-size: 13px;
+}
+
+.label-rename {
+  display: flex;
+  flex: 1;
+  gap: 8px;
+}
+
+.label-rename .text-input {
+  flex: 1;
+}
+
+@media (max-width: 560px) {
+  .label-open {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .label-open .muted {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+}
+
+/* The overview's latest payments */
+
+.latest ul {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.latest li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 180px) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-top: 1px solid var(--line);
+}
+
+.latest-store {
+  overflow: hidden;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.latest-day {
+  color: var(--muted);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.latest .payment-amount {
+  width: auto;
+}
+
+.latest .category-button {
+  justify-self: start;
+}
+
+@media (max-width: 560px) {
+  .latest li {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+  }
+
+  .latest-day {
+    display: none;
+  }
+}
+
+/* Fun stats: bars by weekday and hour, then a grid of facts */
+
+.stat-charts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.stat-bars {
+  margin: 0;
+}
+
+.stat-bars figcaption {
+  margin-bottom: 10px;
+  color: var(--ink-soft);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.stat-bars-plot {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  height: 160px;
+}
+
+.stat-bar {
+  display: grid;
+  flex: 1;
+  grid-template-rows: auto 1fr auto;
+  align-items: end;
+  justify-items: center;
+  min-width: 0;
+}
+
+.stat-bar-value {
+  min-height: 16px;
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.stat-bar-fill {
+  align-self: end;
+  width: min(24px, 80%);
+  min-height: 2px;
+  border-radius: 4px 4px 0 0;
+  background: var(--bar);
+}
+
+.stat-bar-fill.is-best {
+  background: var(--bar-strong);
+}
+
+.stat-bar-label {
+  padding-top: 4px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.facts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.facts-grid li {
+  display: grid;
+  gap: 4px;
+  align-content: start;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: var(--surface-sunk);
+}
+
+.fact-icon {
+  font-size: 22px;
+}
+
+.fact-title {
+  color: var(--ink-soft);
+  font-size: 13px;
+}
+
+.fact-value {
+  font-size: 20px;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.fact-detail {
+  color: var(--muted);
+  font-size: 13px;
+}
+
 /* Payments */
 
 .payments .toggle {
@@ -719,13 +1261,152 @@ main {
 }
 
 .payment-category {
-  width: 250px;
+  width: 220px;
 }
 
-.payment-category .select {
-  width: 100%;
+/* A payment's category: plain text that opens the category sheet; an automatic guess is lighter, a category picked
+   for this payment only has a dot. */
+.category-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
   min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: none;
   font-size: 13px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+}
+
+.category-button:hover {
+  border-color: var(--line);
+  background: var(--surface-sunk);
+}
+
+.category-button.is-auto {
+  color: var(--ink-soft);
+  font-weight: 400;
+}
+
+.category-button-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.own-mark {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.payment-pick {
+  width: 28px;
+}
+
+.payment-pick input,
+.pick-all input {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+.pick-all {
+  display: grid;
+  place-items: center;
+  width: 28px;
+}
+
+.payments tr.is-picked td {
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
+}
+
+/* The bar for the ticked payments, stuck to the bottom of the screen. */
+.selection-bar {
+  position: sticky;
+  bottom: 12px;
+  z-index: 4;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow:
+    0 0 0 1px var(--line),
+    0 10px 30px rgba(0, 0, 0, 0.18);
+}
+
+.selection-label {
+  display: flex;
+  flex: 1;
+  gap: 8px;
+  min-width: 220px;
+}
+
+.selection-label .text-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.label-ok {
+  width: 28px;
+  height: 28px;
+  margin-left: 4px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  cursor: pointer;
+}
+
+/* The category sheet: where the choice applies, then the categories. */
+.category-sheet {
+  width: min(600px, calc(100vw - 32px));
+}
+
+.scopes {
+  display: grid;
+  gap: 6px;
+  margin: 4px 20px 8px;
+  padding: 0;
+  border: 0;
+}
+
+.scope {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.scope.is-on {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+.sheet-body {
+  display: grid;
+  gap: 12px;
+  padding: 4px 20px;
+  overflow: auto;
+}
+
+.sheet-body .category-add {
+  margin: 0;
+}
+
+.sheet-auto {
+  margin-right: auto;
 }
 
 .payment-amount {
@@ -1003,6 +1684,64 @@ main {
   background: var(--surface-sunk);
 }
 
+.merge-preview {
+  flex-basis: 100%;
+  color: var(--ink-soft);
+  font-size: 13px;
+}
+
+.card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin-left: auto;
+}
+
+/* The duplicates deck: the two stores side by side, the one kept outlined. */
+.twin-shared {
+  font-size: 14px;
+}
+
+.twins {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.twin {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  padding: 14px;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  background: var(--surface-sunk);
+}
+
+.twin.is-kept {
+  border-color: var(--accent);
+}
+
+.twin h3 {
+  margin: 0;
+  font-size: 17px;
+  overflow-wrap: anywhere;
+}
+
+.twin-category {
+  font-size: 14px;
+}
+
+.duplicates .scopes {
+  margin: 4px 0 0;
+}
+
+@media (max-width: 560px) {
+  .twins {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 .merge-bar .keep-name {
   flex: 1;
   margin: 0;
@@ -1104,25 +1843,125 @@ main {
   margin: 0;
 }
 
+.sorter .dialog-head .segmented {
+  justify-self: start;
+}
+
+.sorter-keep {
+  justify-self: start;
+  margin-top: 4px;
+}
+
+.sorter-reason {
+  font-weight: 400;
+  opacity: 0.85;
+}
+
+.sorter-rename {
+  display: flex;
+  flex: 1;
+  gap: 8px;
+}
+
+.sorter-rename .text-input {
+  flex: 1;
+}
+
+.chip-key {
+  margin-left: auto;
+  padding: 0 5px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+@media (hover: none) {
+  .chip-key {
+    display: none;
+  }
+}
+
+@media (max-width: 560px) {
+  .sorter .chip-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 .sorter-done {
   padding: 24px 20px;
   text-align: center;
 }
 
-.sort-pill {
-  display: inline-flex;
+/* The stores to sort, at the top of the overview where there is no sidebar to show them. */
+.sort-banner {
+  display: none;
   align-items: center;
-  gap: 6px;
-  min-height: 34px;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--accent) 10%, var(--surface));
+  color: var(--accent);
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sort-banner-go {
   margin-left: auto;
-  padding: 0 14px;
-  border: 1px solid var(--accent);
+  font-size: 20px;
+  line-height: 1;
+}
+
+/* The phone header's ⋯ menu. */
+.menu {
+  position: relative;
+}
+
+.menu-button {
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--line);
   border-radius: 999px;
   background: var(--surface);
-  color: var(--accent);
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 18px;
+  line-height: 1;
   cursor: pointer;
+}
+
+.menu-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 20;
+  display: grid;
+  gap: 6px;
+  min-width: 220px;
+  padding: 10px;
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.22);
+}
+
+.menu-panel[hidden] {
+  display: none;
+}
+
+.menu-panel .button {
+  width: 100%;
+}
+
+.menu-panel .link-button {
+  padding: 8px 4px;
+  text-align: left;
+}
+
+/* A shorter wording on phones (the period bar). */
+.short {
+  display: none;
 }
 
 .payments .card-head > .link-button {
@@ -1143,9 +1982,142 @@ main {
   margin-left: 0;
 }
 
+/* Labels on payments: a tinted chip (click shows every payment with it, × takes it off), and a # to add one, shown on
+   hover where there is a mouse. */
+.label-chip {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+  vertical-align: middle;
+}
+
+.label-chip button {
+  padding: 2px 3px 2px 9px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.label-chip button + button {
+  padding: 2px 8px 2px 3px;
+  opacity: 0.6;
+}
+
+.label-chip button + button:hover {
+  opacity: 1;
+}
+
+.label-add {
+  width: 22px;
+  height: 22px;
+  margin-left: 6px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: none;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  vertical-align: middle;
+  cursor: pointer;
+  opacity: 0;
+}
+
+.payments tr:hover .label-add,
+.label-add:focus-visible {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .label-add {
+    opacity: 1;
+  }
+}
+
+.label-form {
+  display: inline-block;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+.label-form .text-input {
+  width: 150px;
+  min-height: 28px;
+  padding: 0 10px;
+  font-size: 13px;
+}
+
+.payment-day.with-year {
+  width: 112px;
+}
+
+.payment-time {
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+/* The Google search link beside a store's name; in the payment list it shows on hover where there is a mouse. */
+.web-search {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  margin-left: 2px;
+  border-radius: 999px;
+  color: var(--muted);
+  vertical-align: middle;
+}
+
+.web-search:hover {
+  background: var(--surface-sunk);
+  color: var(--accent);
+}
+
+.web-search svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.payments .web-search {
+  opacity: 0;
+}
+
+.payments tr:hover .web-search,
+.payments .web-search:focus-visible {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .payments .web-search {
+    opacity: 1;
+  }
+}
+
 .payment-store-name {
-  cursor: default;
-  user-select: none;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+}
+
+.payment-store-name:hover {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 /* One store's dialog: name and category */
@@ -1169,6 +2141,34 @@ main {
 
 .store-dialog .field .select {
   width: 100%;
+}
+
+.store-parts {
+  margin: 0 20px;
+}
+
+.store-parts h3 {
+  margin: 0 0 6px;
+  color: var(--ink-soft);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.store-parts ul {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.store-parts li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 14px;
 }
 
 .store-dialog-more {
@@ -1217,16 +2217,204 @@ main {
   font-size: 14px;
 }
 
-/* Phone layout: one section at a time, picked in a liquid glass tab bar (like hk's): a frosted capsule, a light
-   top edge and a hairline, with a lens that slides under the chosen tab. Wider screens show every section. */
+/* App shell: one view at a time. Wide screens pick it in a sidebar, which also holds the account; narrower ones in a
+   liquid glass tab bar (like hk's: a frosted capsule, a light top edge and a hairline, with a lens that slides under
+   the chosen tab), with the header and the footer around the view. */
 
-.dashboard {
+.shell {
   display: grid;
+  grid-template-columns: 232px minmax(0, 1fr);
+  gap: 32px;
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.sidebar {
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  height: 100dvh;
+  padding: 22px 0 20px;
+  overflow-y: auto;
+}
+
+.side-nav {
+  display: grid;
+  gap: 2px;
+}
+
+.side-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: var(--ink-soft);
+  font-size: 15px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+}
+
+.side-link svg {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.side-link:hover {
+  background: var(--surface-sunk);
+  color: var(--ink);
+}
+
+.side-link.is-active {
+  background: var(--surface);
+  color: var(--accent);
+  box-shadow: var(--shadow);
+}
+
+.badge {
+  margin-left: auto;
+  min-width: 24px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.side-account {
+  display: grid;
+  gap: 12px;
+  margin-top: auto;
+}
+
+.side-account .status {
+  margin: 0;
+}
+
+.side-actions {
+  display: grid;
+  gap: 8px;
+}
+
+.side-actions .button {
+  width: 100%;
+}
+
+.side-links {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.8;
+}
+
+.side-links .link-button {
+  font-size: 12px;
+}
+
+.main {
+  min-width: 0;
+  padding-bottom: 48px;
+}
+
+/* One shrinkable column: a wide child (the chart's 16 week labels) must not widen the page on a phone. */
+.view {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 16px;
 }
 
+.receipt,
+.card {
+  min-width: 0;
+}
+
+/* The period bar stays at the top while the view scrolls. */
+.main > .toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  margin: 0 -8px 8px;
+  padding: 16px 8px 12px;
+  background: color-mix(in srgb, var(--page) 86%, transparent);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+}
+
+/* Wide screens: the sidebar has the brand, the account, the links and the stores to sort. */
+.main > .top,
+.main > .foot,
 .tabbar {
   display: none;
+}
+
+.card-search {
+  margin-bottom: 12px;
+}
+
+.payments-filters {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) minmax(0, 240px);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+@media (max-width: 560px) {
+  .payments-filters {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.bar-row.has-trend {
+  grid-template-columns: minmax(0, 1fr) 72px auto 84px;
+}
+
+.trend {
+  width: 72px;
+  height: 22px;
+  overflow: visible;
+}
+
+.trend polyline {
+  fill: none;
+  stroke: var(--bar);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.trend circle {
+  fill: var(--bar-strong);
+  stroke: var(--surface);
+  stroke-width: 1.5;
+}
+
+.payments tr.day-row th,
+.payments tr.day-row td {
+  padding: 18px 6px 6px;
+  border-top: 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+}
+
+.payments tr.day-row td {
+  text-align: right;
 }
 
 .glass {
@@ -1257,20 +2445,35 @@ main {
   .store-lines .select {
     grid-column: 2;
   }
+}
 
-  .page {
-    padding-bottom: calc(96px + env(safe-area-inset-bottom));
+@media (max-width: 960px) {
+  .shell {
+    display: block;
+    padding: 0 16px calc(96px + env(safe-area-inset-bottom));
   }
 
-  .dashboard [data-section] {
+  .sidebar {
     display: none;
   }
 
-  .dashboard[data-tab='overview'] [data-section='overview'],
-  .dashboard[data-tab='categories'] [data-section='categories'],
-  .dashboard[data-tab='stores'] [data-section='stores'],
-  .dashboard[data-tab='payments'] [data-section='payments'] {
-    display: grid;
+  .main > .top {
+    display: flex;
+  }
+
+  .main > .foot {
+    display: block;
+  }
+
+  .sort-banner {
+    display: flex;
+  }
+
+  .top .status {
+    max-width: 42vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .tabbar {
@@ -1350,7 +2553,7 @@ main {
   }
 }
 
-@media (max-width: 720px) and (prefers-color-scheme: dark) {
+@media (max-width: 960px) and (prefers-color-scheme: dark) {
   .tab-glow {
     background: rgba(118, 118, 128, 0.24);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
@@ -1360,7 +2563,6 @@ main {
 /* Narrow screens */
 
 @media (max-width: 860px) {
-  .overview,
   .columns,
   .landing {
     grid-template-columns: minmax(0, 1fr);
@@ -1368,6 +2570,35 @@ main {
 }
 
 @media (max-width: 560px) {
+  .months {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px 14px;
+  }
+
+  .day-number {
+    display: none;
+  }
+
+  .bar-row.has-trend {
+    grid-template-columns: minmax(0, 1fr) auto 84px;
+  }
+
+  .trend {
+    display: none;
+  }
+
+  .payments tr.day-row {
+    grid-template-areas: none;
+    grid-template-columns: minmax(0, 1fr) auto;
+    padding-top: 16px;
+    border-top: 0;
+  }
+
+  .payments tr.day-row .payment-amount {
+    grid-area: auto;
+    grid-row: 1;
+  }
+
   .facts {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -1380,12 +2611,46 @@ main {
     --gutter: 40px;
   }
 
+  .chart.is-crowded .chart-axis span:not(:nth-child(4n + 1)) {
+    visibility: hidden;
+  }
+
   .chart.is-dense .chart-axis span:nth-child(even) {
     visibility: hidden;
   }
 
+  /* The period bar on one row: shorter names, smaller buttons. */
+  .long {
+    display: none;
+  }
+
+  .short {
+    display: inline;
+  }
+
+  .main > .toolbar {
+    gap: 8px;
+    padding: 10px 8px 8px;
+  }
+
+  .main > .toolbar .segmented button {
+    min-height: 30px;
+    padding: 0 10px;
+  }
+
+  .main > .toolbar .stepper {
+    flex: 1;
+    justify-content: space-between;
+  }
+
+  .main > .toolbar .stepper button {
+    width: 32px;
+    height: 32px;
+  }
+
   .stepper-label {
-    min-width: 120px;
+    flex: 1;
+    min-width: 0;
   }
 
   .payments table,
@@ -1393,10 +2658,14 @@ main {
     display: block;
   }
 
+  /* Two lines per payment: tick, store, amount; then the date or time, and the category. */
   .payments tr {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 4px 8px;
+    grid-template-columns: 28px minmax(0, 1fr) auto;
+    grid-template-areas:
+      'pick store amount'
+      'pick meta category';
+    gap: 2px 8px;
     padding: 10px 0;
     border-top: 1px solid var(--line);
   }
@@ -1406,23 +2675,38 @@ main {
     border: 0;
   }
 
+  .payment-pick {
+    grid-area: pick;
+    padding-top: 2px;
+  }
+
   .payment-day {
-    grid-column: 1 / -1;
+    grid-area: meta;
     width: auto;
   }
 
   .payment-store {
-    grid-column: 1;
+    grid-area: store;
   }
 
   .payment-amount {
-    grid-column: 2;
-    grid-row: 2;
+    grid-area: amount;
     width: auto;
   }
 
   .payment-category {
-    grid-column: 1 / -1;
+    grid-area: category;
     width: auto;
+    justify-self: end;
+  }
+
+  .category-button {
+    min-height: 28px;
+    padding: 0 6px;
+    font-size: 12px;
+  }
+
+  .selection-bar {
+    bottom: calc(80px + env(safe-area-inset-bottom));
   }
 }

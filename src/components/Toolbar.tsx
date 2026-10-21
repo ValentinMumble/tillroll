@@ -1,4 +1,4 @@
-import { type Grain, periodLabel } from '../periods'
+import { compactPeriodLabel, type Grain, periodLabel } from '../periods'
 
 interface Props {
   grain: Grain
@@ -10,28 +10,34 @@ interface Props {
   currencies: string[]
   currency: string
   onCurrency: (currency: string) => void
-  /** Stores with an unsure category. */
-  toSort: number
-  onSort: () => void
 }
 
-const GRAINS: [Grain, string][] = [
-  ['week', 'Week'],
-  ['month', 'Month'],
-  ['year', 'Year'],
-  ['all', 'All time'],
+/** Each length with its name, and a shorter one for phones. */
+const GRAINS: [Grain, string, string][] = [
+  ['week', 'Week', 'Week'],
+  ['month', 'Month', 'Month'],
+  ['year', 'Year', 'Year'],
+  ['all', 'All time', 'All'],
 ]
 
 /** The one row of controls: the length of the period, which one, and the currency when there are several. */
 export function Toolbar(props: Props) {
-  const { grain, onGrain, period, onStep, canGoBack, canGoForward, currencies, currency, onCurrency, toSort, onSort } =
-    props
+  const { grain, onGrain, period, onStep, canGoBack, canGoForward, currencies, currency, onCurrency } = props
   return (
     <div className="toolbar">
       <div className="segmented" role="group" aria-label="Period">
-        {GRAINS.map(([item, label]) => (
-          <button key={item} type="button" aria-pressed={grain === item} onClick={() => onGrain(item)}>
-            {label}
+        {GRAINS.map(([item, label, short]) => (
+          <button
+            key={item}
+            type="button"
+            aria-pressed={grain === item}
+            aria-label={label}
+            onClick={() => onGrain(item)}
+          >
+            <span className="long">{label}</span>
+            <span className="short" aria-hidden="true">
+              {short}
+            </span>
           </button>
         ))}
       </div>
@@ -41,7 +47,10 @@ export function Toolbar(props: Props) {
             ‹
           </button>
           <span className="stepper-label" aria-live="polite">
-            {periodLabel(period, grain)}
+            <span className="long">{periodLabel(period, grain)}</span>
+            <span className="short" aria-hidden="true">
+              {compactPeriodLabel(period, grain)}
+            </span>
           </span>
           <button type="button" aria-label={`Next ${grain}`} disabled={!canGoForward} onClick={() => onStep(1)}>
             ›
@@ -61,11 +70,6 @@ export function Toolbar(props: Props) {
             </option>
           ))}
         </select>
-      )}
-      {toSort > 0 && (
-        <button type="button" className="sort-pill" onClick={onSort}>
-          <span aria-hidden="true">🗂️</span> {toSort === 1 ? '1 store to sort' : `${toSort} stores to sort`}
-        </button>
       )}
     </div>
   )

@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 import { BUILT_IN, type Categories, type Category, DEFAULT_ICON, newCategoryKey, oneIcon } from '../categories'
 import type { CategoryKey } from '../types'
+import { useDialog } from '../useDialog'
 
 interface Props {
   categories: Categories
@@ -20,22 +21,19 @@ function differs(category: Category) {
 
 /** Rename categories, change their icon or whether they count as spending, add new ones and delete those. */
 export function CategoryEditor({ categories, forStore, onSave, onClose }: Props) {
-  const dialog = useRef<HTMLDialogElement>(null)
+  const { ref: dialogRef, onKeyDown: onDialogKeyDown, close: closeDialog } = useDialog()
   const [draft, setDraft] = useState<Category[]>(categories.list)
   const [added, setAdded] = useState<CategoryKey | null>(null)
   const [name, setName] = useState('')
   const [icon, setIcon] = useState('')
 
-  useEffect(() => {
-    dialog.current?.showModal()
-  }, [])
-
   const update = (key: CategoryKey, change: Partial<Category>) =>
     setDraft(draft.map((category) => (category.key === key ? { ...category, ...change } : category)))
 
-  function add() {
+  /** The list with the category typed in the add row (before Other), if a name is typed. */
+  function withTyped(list: Category[]) {
     const label = name.trim()
-    if (!label) return
+    if (!label) return { list, key: null }
     const category: Category = {
       key: newCategoryKey(label),
       label,
@@ -43,25 +41,40 @@ export function CategoryEditor({ categories, forStore, onSave, onClose }: Props)
       spending: true,
       custom: true,
     }
-    const other = draft.findIndex((item) => item.key === 'other')
-    setDraft([...draft.slice(0, other), category, ...draft.slice(other)])
-    setAdded(category.key)
+    const other = list.findIndex((item) => item.key === 'other')
+    return { list: [...list.slice(0, other), category, ...list.slice(other)], key: category.key }
+  }
+
+  function add() {
+    const typed = withTyped(draft)
+    if (!typed.key) return
+    setDraft(typed.list)
+    setAdded(typed.key)
     setName('')
     setIcon('')
   }
 
   function save() {
+    // A name typed but not added yet is added: pressing Save right after typing is the natural move.
+    const typed = withTyped(draft)
     // An emptied name or icon goes back to what it was.
-    const cleaned = draft.map((category) => {
+    const cleaned = typed.list.map((category) => {
       const before = categories.byKey[category.key] ?? category
       return { ...category, label: category.label.trim() || before.label, icon: category.icon.trim() || before.icon }
     })
-    onSave(cleaned, added && cleaned.some((category) => category.key === added) ? added : null)
-    dialog.current?.close()
+    const newKey = typed.key ?? added
+    onSave(cleaned, newKey && cleaned.some((category) => category.key === newKey) ? newKey : null)
+    closeDialog()
   }
 
   return (
-    <dialog ref={dialog} className="dialog" aria-labelledby="category-editor-title" onClose={onClose}>
+    <dialog
+      ref={dialogRef}
+      onKeyDown={onDialogKeyDown}
+      className="dialog"
+      aria-labelledby="category-editor-title"
+      onClose={onClose}
+    >
       <header className="dialog-head">
         <h2 id="category-editor-title">Categories</h2>
         <p className="hint">
@@ -149,7 +162,7 @@ export function CategoryEditor({ categories, forStore, onSave, onClose }: Props)
         ))}
       </ul>
       <footer className="dialog-foot">
-        <button type="button" className="button is-quiet" onClick={() => dialog.current?.close()}>
+        <button type="button" className="button is-quiet" onClick={closeDialog}>
           Cancel
         </button>
         <button type="button" className="button is-primary" onClick={save}>

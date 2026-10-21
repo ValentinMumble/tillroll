@@ -72,6 +72,18 @@ export function periodLabel(period: string, grain: Grain, short = false) {
   return short ? day : `Week of ${day}`
 }
 
+/** The stepper's label on a phone: "Oct 2026", "19 Oct", "2026". */
+export function compactPeriodLabel(period: string, grain: Grain) {
+  if (grain === 'month') {
+    return new Date(timeOf(periodStart(period, grain))).toLocaleDateString('en-GB', {
+      month: 'short',
+      year: 'numeric',
+      timeZone: 'UTC',
+    })
+  }
+  return grain === 'week' ? dayLabel(period) : periodLabel(period, grain)
+}
+
 /** "12 Oct", or "12 Oct 2025" with the year. */
 export function dayLabel(date: string, withYear = false) {
   return new Date(timeOf(date)).toLocaleDateString('en-GB', {
@@ -80,6 +92,19 @@ export function dayLabel(date: string, withYear = false) {
     year: withYear ? 'numeric' : undefined,
     timeZone: 'UTC',
   })
+}
+
+/** "Mon 12 Oct", or "Mon 12 Oct 2026" with the year: the payment list's day headings, the calendar's days. */
+export function weekdayLabel(date: string, withYear = false) {
+  return new Date(timeOf(date))
+    .toLocaleDateString('en-GB', {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+      year: withYear ? 'numeric' : undefined,
+      timeZone: 'UTC',
+    })
+    .replace(',', '')
 }
 
 export const WEEKDAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']

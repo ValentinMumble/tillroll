@@ -13,7 +13,7 @@ import {
   weekdayOf,
 } from './periods'
 import { storeKey, storeName } from './stores'
-import type { CategoryKey, Merges, Rules, Transaction } from './types'
+import type { CategoryKey, Labels, Merges, PaymentCategories, Rules, Transaction } from './types'
 
 /** A transaction with its store and category, and what it adds to the spending. */
 export interface Row extends Transaction {
@@ -31,6 +31,10 @@ export interface Row extends Transaction {
   counts: boolean
   /** What the row adds to the spending: the amount turned positive, negative for a refund, 0 when not spending. */
   spend: number
+  /** Labels put on it by hand. */
+  labels: string[]
+  /** Its category was picked for this payment only, over its store's. */
+  ownCategory: boolean
 }
 
 /** How payments are sorted: categories picked per store, the categories themselves, stores merged. */
@@ -38,9 +42,14 @@ export interface Sorting {
   rules: Rules
   categories: Categories
   merges: Merges
+  labels: Labels
+  paymentCategories: PaymentCategories
 }
 
-export function toRows(transactions: Transaction[], { rules, categories, merges }: Sorting): Row[] {
+export function toRows(
+  transactions: Transaction[],
+  { rules, categories, merges, labels, paymentCategories }: Sorting,
+): Row[] {
   return transactions
     .map((transaction) => {
       const ownStore = storeName(transaction.description)
@@ -55,11 +64,29 @@ export function toRows(transactions: Transaction[], { rules, categories, merges 
         if (next === key) break
         key = next
       }
-      const { category, basis } = categoryOf(transaction, key, rules, categories)
+      // A category picked for this payment wins over its store's.
+      const own = paymentCategories[transaction.id]
+      const ownCategory = Boolean(own && categories.byKey[own])
+      const { category, basis } = ownCategory
+        ? { category: own, basis: 'picked' as const }
+        : categoryOf(transaction, key, rules, categories)
       const counts = categories.byKey[category].spending
       const spend = counts ? -transaction.amount : 0
       const guessed = guessCategory(transaction)
-      return { ...transaction, store, storeKey: key, ownStore, ownStoreKey, category, basis, guessed, counts, spend }
+      return {
+        ...transaction,
+        store,
+        storeKey: key,
+        ownStore,
+        ownStoreKey,
+        category,
+        basis,
+        guessed,
+        counts,
+        spend,
+        labels: labels[transaction.id] ?? [],
+        ownCategory,
+      }
     })
     .sort((first, second) => (first.date < second.date ? 1 : first.date > second.date ? -1 : 0))
 }
@@ -124,6 +151,8 @@ export interface Subscription {
 }
 
 export interface Report {
+  /** The period shown: "all" for all time. */
+  period: string
   from: string
   to: string
   /** The period holds today: it is compared with the previous one at the same point. */
@@ -131,7 +160,8 @@ export interface Report {
   current: Totals
   /** What the period is compared with: the previous one cut at the same point, or the usual period. */
   baseline: { total: number; categories: Map<CategoryKey, number>; label: string } | null
-  series: { period: string; total: number; payments: number }[]
+  /** The chart's periods, with what each category cost in them (for the trend lines). */
+  series: { period: string; total: number; payments: number; categories: Map<CategoryKey, number> }[]
   /** The chart's periods: years for all time, else the chosen grain. */
   chartGrain: Grain
   usual: number | null
@@ -232,7 +262,7 @@ export function buildReport(rows: Row[], period: string, grain: Grain, now: stri
     const item = shiftPeriod(last, chartGrain, -step)
     if (periodEnd(item, chartGrain) < firstDay) continue
     const totals = totalsOf(rowsBetween(rows, periodStart(item, chartGrain), periodEnd(item, chartGrain)))
-    series.push({ period: item, total: totals.total, payments: totals.payments })
+    series.push({ period: item, total: totals.total, payments: totals.payments, categories: totals.categories })
   }
 
   // Regular payments, as of the last month of the period that has data.
@@ -242,21 +272,6 @@ export function buildReport(rows: Row[], period: string, grain: Grain, now: stri
   const insights: Insight[] = []
 
   if (baseline && baseline.total > 0) {
-    const difference = current.total - baseline.total
-    const share = percent(Math.abs(difference), baseline.total)
-    if (ongoing) {
-      insights.push({
-        icon: difference > 0 ? '🔺' : '🔻',
-        text: `${amount(current.total)} so far, ${amount(Math.abs(difference))} ${difference > 0 ? 'more' : 'less'} than at ${baseline.label}.`,
-      })
-    } else if (share < 5) {
-      insights.push({ icon: '〰️', text: `${amount(current.total)} spent, about ${baseline.label}.` })
-    } else {
-      insights.push({
-        icon: difference > 0 ? '🔺' : '🔻',
-        text: `${amount(current.total)} spent, ${share}% ${difference > 0 ? 'more' : 'less'} than ${baseline.label} (${amount(baseline.total)}).`,
-      })
-    }
     const moves = [...new Set([...current.categories.keys(), ...baseline.categories.keys()])]
       .map((key) => ({ key, change: (current.categories.get(key) ?? 0) - (baseline.categories.get(key) ?? 0) }))
       .filter((move) => Math.abs(move.change) >= Math.max(15, baseline.total * 0.03))
@@ -325,7 +340,7 @@ export function buildReport(rows: Row[], period: string, grain: Grain, now: stri
     })
   }
 
-  return { from, to, ongoing, current, baseline, series, chartGrain, usual, insights, subscriptions }
+  return { period, from, to, ongoing, current, baseline, series, chartGrain, usual, insights, subscriptions }
 }
 
 /** A store whose category is a weak guess, waiting to be sorted by hand. */
@@ -345,9 +360,10 @@ export interface StoreToSort {
 
 /**
  * The stores with no category picked by hand whose guess is unsure (no clue, the broad retail merchant code, a
- * transfer to someone), money out only, biggest first: sorting those first changes the totals most.
+ * transfer to someone), money out only, biggest first: sorting those first changes the totals most. With
+ * `everyGuess`, every store still on a guessed category, sure or not.
  */
-export function storesToSort(rows: Row[]): StoreToSort[] {
+export function storesToSort(rows: Row[], everyGuess = false): StoreToSort[] {
   const stores = new Map<string, StoreToSort & { votes: Map<CategoryKey, number> }>()
   for (const row of rows) {
     if (row.basis === 'picked' || row.amount >= 0) continue
@@ -377,7 +393,7 @@ export function storesToSort(rows: Row[]): StoreToSort[] {
     stores.set(row.storeKey, store)
   }
   return [...stores.values()]
-    .filter((store) => UNSURE.includes(store.basis))
+    .filter((store) => everyGuess || UNSURE.includes(store.basis))
     .map(({ votes: _votes, ...store }) => store)
     .sort((first, second) => second.total - first.total)
 }

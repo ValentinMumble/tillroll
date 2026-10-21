@@ -5,8 +5,9 @@ import type { Report } from '../report'
 import type { CategoryKey } from '../types'
 import { Delta } from './Delta'
 
-/** What the payment list is narrowed to: a category or a store. */
-export type Focus = { type: 'category'; key: CategoryKey } | { type: 'store'; key: string; name: string }
+/** What the payment list is narrowed to: a category, a store, or a label (over all time). */
+export type Focus =
+  { type: 'category'; key: CategoryKey } | { type: 'store'; key: string; name: string } | { type: 'label'; key: string }
 
 interface Props {
   report: Report
@@ -14,12 +15,41 @@ interface Props {
   currency: string
   focus: Focus | null
   onFocus: (focus: Focus | null) => void
+  /** The overview shows the top few only, with a link to the full view. */
+  preview?: { limit: number; onSeeAll: () => void }
 }
 
-const STORES_SHOWN = 8
+const plain = (text: string) =>
+  text
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
 
 function share(part: number, whole: number) {
   return whole > 0 ? `${Math.round((part / whole) * 100)}%` : ''
+}
+
+/** A category's spending over the chart's periods, the chosen one marked. */
+function Trend({ values, marked }: { values: number[]; marked: number }) {
+  const width = 72
+  const height = 22
+  const top = Math.max(1, ...values)
+  const step = values.length > 1 ? width / (values.length - 1) : 0
+  const points = values.map((value, index) => [index * step, height - 3 - (Math.max(0, value) / top) * (height - 6)])
+  return (
+    <svg className="trend" viewBox={`0 0 ${width} ${height}`} aria-hidden="true">
+      <polyline points={points.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(' ')} />
+      {points[marked] && <circle cx={points[marked][0]} cy={points[marked][1]} r="2.5" />}
+    </svg>
+  )
+}
+
+function SeeAll({ count, noun, onClick }: { count: number; noun: string; onClick: () => void }) {
+  return (
+    <button type="button" className="link-button" onClick={onClick}>
+      All {count} {noun} →
+    </button>
+  )
 }
 
 /** Spending by category, with the change against the baseline. One color for every bar: the length is the value. */
@@ -29,34 +59,43 @@ export function CategoryBreakdown({
   currency,
   focus,
   onFocus,
+  preview,
   onEdit,
 }: Props & { onEdit: () => void }) {
-  const { current, baseline } = report
+  const { current, baseline, series } = report
   const items = [...current.categories]
     .filter(([, value]) => value >= 0.5)
     .sort((first, second) => second[1] - first[1])
+  const shown = preview ? items.slice(0, preview.limit) : items
   const max = Math.max(1, ...items.map(([, value]) => value))
+  // The chosen period's place in the chart's series (all time marks nothing).
+  const marked = series.findIndex((item) => item.period === report.period)
   return (
-    <section className="card">
+    <section className={`card${preview ? ' is-preview' : ''}`}>
       <header className="card-head">
-        <h2>Categories</h2>
-        {baseline && <span className="hint">change vs {baseline.label}</span>}
-        <button type="button" className="link-button" onClick={onEdit}>
-          Edit categories
-        </button>
+        <h2>{preview ? 'Top categories' : 'Categories'}</h2>
+        {!preview && <span className="view-total">{money(current.total, currency)}</span>}
+        {baseline && !preview && <span className="hint">change vs {baseline.label}</span>}
+        {preview ? (
+          items.length > preview.limit && <SeeAll count={items.length} noun="categories" onClick={preview.onSeeAll} />
+        ) : (
+          <button type="button" className="link-button" onClick={onEdit}>
+            Edit categories
+          </button>
+        )}
       </header>
       {items.length === 0 ? (
         <p className="empty">No spending in this period.</p>
       ) : (
         <ul className="bars">
-          {items.map(([key, value]) => {
+          {shown.map(([key, value]) => {
             const category = categories.byKey[key]
             const active = focus?.type === 'category' && focus.key === key
             return (
               <li key={key}>
                 <button
                   type="button"
-                  className={`bar-row${active ? ' is-active' : ''}`}
+                  className={`bar-row${active ? ' is-active' : ''}${preview ? '' : ' has-trend'}`}
                   aria-pressed={active}
                   onClick={() => onFocus(active ? null : { type: 'category', key })}
                 >
@@ -66,6 +105,7 @@ export function CategoryBreakdown({
                     </span>
                     {category.label}
                   </span>
+                  {!preview && <Trend values={series.map((item) => item.categories.get(key) ?? 0)} marked={marked} />}
                   <span className="bar-value">
                     {money(value, currency)} <small>{share(value, current.total)}</small>
                   </span>
@@ -94,39 +134,72 @@ export function StoreBreakdown({
   currency,
   focus,
   onFocus,
+  preview,
   onEdit,
   onOpenStore,
-}: Props & { onEdit: () => void; onOpenStore: (store: { key: string; name: string }) => void }) {
-  const [showAll, setShowAll] = useState(false)
+  duplicates,
+  onDuplicates,
+}: Props & {
+  onEdit: () => void
+  onOpenStore: (store: { key: string; name: string }) => void
+  /** Look-alike stores waiting in the duplicates deck. */
+  duplicates?: number
+  onDuplicates?: () => void
+}) {
+  const [query, setQuery] = useState('')
   const stores = [...report.current.stores.values()]
     .filter((store) => store.total >= 0.5)
     .sort((first, second) => second.total - first.total)
-  const shown = showAll ? stores : stores.slice(0, STORES_SHOWN)
+  const words = plain(query).split(/\s+/).filter(Boolean)
+  const shown = preview
+    ? stores.slice(0, preview.limit)
+    : stores.filter((store) => words.every((word) => plain(store.name).includes(word)))
   const max = Math.max(1, ...stores.map((store) => store.total))
   return (
-    <section className="card">
+    <section className={`card${preview ? ' is-preview' : ''}`}>
       <header className="card-head">
-        <h2>Stores</h2>
-        <span className="hint">{stores.length} this period</span>
-        <button type="button" className="link-button" onClick={onEdit}>
-          Edit stores
-        </button>
+        <h2>{preview ? 'Top stores' : 'Stores'}</h2>
+        {!preview && <span className="hint">{stores.length} this period</span>}
+        {preview ? (
+          stores.length > preview.limit && <SeeAll count={stores.length} noun="stores" onClick={preview.onSeeAll} />
+        ) : (
+          <span className="card-actions">
+            {Boolean(duplicates) && onDuplicates && (
+              <button type="button" className="link-button" onClick={onDuplicates}>
+                {duplicates === 1 ? '1 possible duplicate' : `${duplicates} possible duplicates`}
+              </button>
+            )}
+            <button type="button" className="link-button" onClick={onEdit}>
+              Edit stores
+            </button>
+          </span>
+        )}
       </header>
+      {!preview && stores.length > 8 && (
+        <input
+          className="text-input card-search"
+          type="search"
+          aria-label="Find a store"
+          placeholder="Find a store"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+        />
+      )}
       {stores.length === 0 ? (
         <p className="empty">No spending in this period.</p>
+      ) : shown.length === 0 ? (
+        <p className="empty">No store matches.</p>
       ) : (
         <ul className="bars">
           {shown.map((store) => {
             const active = focus?.type === 'store' && focus.key === store.key
             return (
-              <li key={store.key}>
+              <li key={store.key} className="bar-item">
                 <button
                   type="button"
                   className={`bar-row${active ? ' is-active' : ''}`}
                   aria-pressed={active}
-                  title="Double-click to rename it or change its category"
                   onClick={() => onFocus(active ? null : { type: 'store', key: store.key, name: store.name })}
-                  onDoubleClick={() => onOpenStore({ key: store.key, name: store.name })}
                 >
                   <span className="bar-label">
                     <span className="bar-icon" aria-hidden="true">
@@ -142,16 +215,26 @@ export function StoreBreakdown({
                     <span className="bar-fill" style={{ width: `${(store.total / max) * 100}%` }} />
                   </span>
                 </button>
+                <EditButton
+                  label={`Edit ${store.name}: name and category`}
+                  onClick={() => onOpenStore({ key: store.key, name: store.name })}
+                />
               </li>
             )
           })}
         </ul>
       )}
-      {stores.length > STORES_SHOWN && (
-        <button type="button" className="link-button" onClick={() => setShowAll(!showAll)}>
-          {showAll ? 'Show fewer' : `Show all ${stores.length} stores`}
-        </button>
-      )}
     </section>
+  )
+}
+
+/** The pencil beside a store: opens its name and category. */
+export function EditButton({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <button type="button" className="row-edit" aria-label={label} title={label} onClick={onClick}>
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M4 20h4L19 9l-4-4L4 16v4zM14 6l4 4" />
+      </svg>
+    </button>
   )
 }

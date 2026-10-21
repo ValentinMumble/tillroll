@@ -1,5 +1,5 @@
 import type { Grain } from './periods'
-import type { CategoryEdit, Merges, Rules, Transaction } from './types'
+import type { CategoryEdit, Labels, Merges, PaymentCategories, Rules, Transaction } from './types'
 
 /**
  * A visitor's data lives in their browser only: the statement rows they imported (or just the choice of the
@@ -9,6 +9,9 @@ const DATA = 'tillroll.data'
 const RULES = 'tillroll.rules'
 const CATEGORIES = 'tillroll.categories'
 const MERGES = 'tillroll.merges'
+const LABELS = 'tillroll.labels'
+const PAYMENT_CATEGORIES = 'tillroll.payment-categories'
+const DISTINCT = 'tillroll.distinct'
 const GRAIN = 'tillroll.grain'
 const PAYMENT_SORT = 'tillroll.payment-sort'
 
@@ -43,14 +46,29 @@ export function loadLocalSorting() {
     rules: read<Rules>(RULES) ?? {},
     categories: read<CategoryEdit[]>(CATEGORIES) ?? [],
     merges: read<Merges>(MERGES) ?? {},
+    labels: read<Labels>(LABELS) ?? {},
+    paymentCategories: read<PaymentCategories>(PAYMENT_CATEGORIES) ?? {},
+    distinct: read<string[]>(DISTINCT) ?? [],
   }
 }
 
-export function saveLocalSorting(sorting: { rules?: Rules; categories?: CategoryEdit[]; merges?: Merges } | null) {
+export function saveLocalSorting(
+  sorting: {
+    rules?: Rules
+    categories?: CategoryEdit[]
+    merges?: Merges
+    labels?: Labels
+    paymentCategories?: PaymentCategories
+    distinct?: string[]
+  } | null,
+) {
   if (sorting === null) {
-    for (const key of [RULES, CATEGORIES, MERGES]) write(key, null)
+    for (const key of [RULES, CATEGORIES, MERGES, LABELS, PAYMENT_CATEGORIES, DISTINCT]) write(key, null)
     return
   }
+  if (sorting.distinct) write(DISTINCT, sorting.distinct)
+  if (sorting.paymentCategories) write(PAYMENT_CATEGORIES, sorting.paymentCategories)
+  if (sorting.labels) write(LABELS, sorting.labels)
   if (sorting.rules) write(RULES, sorting.rules)
   if (sorting.categories) write(CATEGORIES, sorting.categories)
   if (sorting.merges) write(MERGES, sorting.merges)

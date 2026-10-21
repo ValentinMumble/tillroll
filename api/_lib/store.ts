@@ -12,6 +12,12 @@ export const PENDING = 'tillroll:pending'
 export const RULES = 'tillroll:rules'
 /** Categories changed or added by hand (a list of CategoryEdit). */
 export const CATEGORIES = 'tillroll:categories'
+/** Pairs of stores marked "not the same" in the duplicates deck ("<key>|<key>", keys sorted). */
+export const DISTINCT = 'tillroll:distinct'
+/** Categories picked for one payment only, by transaction id. */
+export const PAYMENT_CATEGORIES = 'tillroll:payment-categories'
+/** Labels put on payments by hand, by transaction id. */
+export const LABELS = 'tillroll:labels'
 /** Stores merged into another, by store key: the name of the store they are part of. */
 export const MERGES = 'tillroll:merges'
 /** When the last sync ran (ISO date-time). */

@@ -1,4 +1,13 @@
-import type { CategoryEdit, CategoryKey, Connection, Merges, Rules, Transaction } from './types'
+import type {
+  CategoryEdit,
+  CategoryKey,
+  Connection,
+  Labels,
+  Merges,
+  PaymentCategories,
+  Rules,
+  Transaction,
+} from './types'
 
 export class RequestError extends Error {
   readonly status: number
@@ -36,6 +45,10 @@ export interface OwnerData {
   rules: Rules
   categories: CategoryEdit[]
   merges: Merges
+  labels: Labels
+  paymentCategories: PaymentCategories
+  /** Pairs of stores marked "not the same". */
+  distinct: string[]
   connection: Connection | null
 }
 
@@ -68,6 +81,21 @@ export function saveCategories(categories: CategoryEdit[]) {
 /** Merges a store into another (by its name), or separates it again with null. */
 export function saveMerge(store: string, into: string | null) {
   return request<{ ok: true }>('/api/merges', { method: 'PUT', body: JSON.stringify({ store, into }) })
+}
+
+/** Categories picked for single payments (null gives a payment back to its store's category). */
+export function savePaymentCategories(categories: Record<string, CategoryKey | null>) {
+  return request<{ ok: true }>('/api/payment-categories', { method: 'PUT', body: JSON.stringify({ categories }) })
+}
+
+/** Pairs of stores marked "not the same" in the duplicates deck. */
+export function saveDistinct(pairs: string[]) {
+  return request<{ ok: true }>('/api/distinct', { method: 'PUT', body: JSON.stringify({ pairs }) })
+}
+
+/** The labels of some payments, each one's full list (empty takes them off). */
+export function saveLabels(labels: Labels) {
+  return request<{ ok: true }>('/api/labels', { method: 'PUT', body: JSON.stringify({ labels }) })
 }
 
 export function importStatement(transactions: Transaction[]) {

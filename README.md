@@ -5,43 +5,44 @@ your usual one (or, for the current period, with the previous one at the same po
 the categories that moved, your top store, new stores, the biggest payment, your big spending day and the payments
 that come back every month.
 
-## Two ways in
+Six views, picked in a sidebar on wide screens and a tab bar on a phone, under a period bar that stays at the top:
 
-- **A Revolut statement**, for anyone. In the Revolut app: open the account, tap ···, then Statement, and pick Excel
-  (or CSV) and the months you want. The page reads the file (CSV or `.xlsx`) in the browser and keeps it in
-  localStorage. Nothing is uploaded. Importing more statements adds to the earlier ones without counting a payment
-  twice. There is also a sample data set (made up, built in the browser) to try the site.
-- **A live connection to Revolut**, for the site owner. Revolut has no API for personal accounts, so Tillroll goes
-  through Open Banking with [Enable Banking](https://enablebanking.com). Its free "restricted" mode only reads the
-  accounts the application's owner linked themself, so on a public site the live sync is the owner's. Anyone can run
-  their own copy to sync their own account (see below). Revolut shares the last two years through Open Banking: for
-  older history, import statements as the owner too.
+- **Overview**: the total and the chart, the top categories and stores, the latest payments (each with its category to
+  change) and a few quiet notes on what stands out.
+- **Calendar**: a whole year, one square per day, darker the more was spent, any year with data. A day lists its
+  payments beside the months (at the bottom on a phone); a shift-click, or "Extend to another day", picks a run of
+  days, like a trip, and its payments can get one label together, unticking the ones that do not belong. A month's
+  name opens it in the overview.
+- **Categories**: the total, each category with its trend over the chart's periods, and the **Labels**: each label with
+  its total, payments and dates, to open, rename or delete everywhere.
+- **Stores**: with a search, a pencil on each store (name and category, the stores merged into it, look-alikes to merge
+  in), and the **possible duplicates** deck.
+- **Payments**: the total, by day like a bank statement or by amount or store, with a search and a category filter.
+- **Fun stats**: an average day by weekday, spending by hour (when the payments have times), the biggest day, the
+  weekend share, the longest runs with and without spending, the most loyal store, coffees, the typical payment,
+  the payday effect.
 
-## What counts as spending
+A payment shows its time when the source gives one: statements do, while Revolut's Open Banking feed only gives the
+day it was booked (sometimes the day after the payment). A small search link beside a store's name looks it up on
+Google, for names that say nothing.
 
-Each payment gets a store name (cleaned from the bank text: `SUMUP *CAFE DU COIN 75011` becomes `Cafe Du Coin`) and a
-category, in this order:
+**Categorizing.** A payment's category is a button: it asks whether the choice is for its store (every payment there,
+past and future) or for this payment only (an Amazon gift among household shopping, marked with a dot). Ticking
+payments (shift-click for a run) gives one category or one label to all of them. **Stores to sort** goes through the
+stores Tillroll is unsure about (no clue from the bank, only the broad shop merchant code, or a transfer to someone),
+or every store still on a guessed category, biggest first: Keep accepts the guess, one tap on a category files the
+store, and on a keyboard 1 to 9 pick a category and Enter keeps.
 
-1. the category you picked by hand for that store (it applies to all its payments);
-2. the kind of movement: money in, top-ups, exchanges and cash withdrawals;
-3. keywords in the store name (`src/categories.ts`), so rent paid by transfer still counts as Home and rent;
-4. other transfers go to Transfers and savings;
-5. the merchant category code (MCC), when the bank sync gives one;
-6. Other.
+**Editing.** Edit categories renames a category, changes its icon or whether it counts as spending, and adds new ones.
+Edit stores lists every store: rename it, pick its category, or tick the ones that are the same place to merge them
+under one name (the store it was opened from keeps its name, and the merge keeps a category picked by hand). The
+**possible duplicates** deck shows stores whose names share a rare word ("Ar Roue Morvan" and "Tavarn Ar Roue"), most
+payments first: merge them, or mark them "not the same" and they never come back. A rename is a merge into the new
+name, so both can be undone; renaming a store to another store's name asks first.
 
-Transfers, savings and money in are not spending: the summary shows them apart. Refunds lower the spending of their
-category. Pending payments count, with a tag.
-
-**Stores to sort** (next to the period switch) goes through the stores Tillroll is unsure about, biggest first: no
-clue from the bank, only the broad shop merchant code, or a transfer to someone. Each card shows the bank's own texts;
-one tap on a category files every payment of that store, past and future, and a store can be renamed or given a new
-category on the spot.
-
-**Edit categories** renames a category, changes its icon or whether it counts as spending, and adds new ones (also
-from a payment's category list, which then files that store there). **Edit stores** lists every store: rename it, pick
-its category, or tick the ones that are the same place to merge them under one name. A rename is a merge into the new
-name, so both can be undone. The owner's choices are kept in the site store, so they follow to every device; a
-visitor's stay in their browser.
+**Labels** go on single payments: the # next to a booked payment adds one (with the labels already in use offered). A
+pending payment gets a new id once the bank books it, so it has no #. The owner's choices are kept in the site store,
+so they follow to every device; a visitor's stay in their browser.
 
 ## On the iPhone
 
@@ -92,11 +93,13 @@ few background syncs a day (often 4); syncs you start from the page do not count
 - `api/`: Vercel functions. `login` and `logout` start and end owner mode, `connect` starts the bank authorization, `callback` takes the bank's answer and runs the
   first sync, `sync` runs a sync (the daily cron or the owner's page), `data` returns the owner's transactions, `rules`
   saves a category picked for a store, `categories` saves the categories changed or added, `merges` merges or
-  separates stores, `import` saves the owner's statement rows, `disconnect` ends the access.
+  separates stores, `labels` saves the labels of payments, `payment-categories` the categories picked for single
+  payments, `distinct` the pairs of stores marked not the same, `import` saves the owner's statement rows, `disconnect` ends the access.
   `_lib/bank.ts` talks to Enable Banking: requests are signed with the application's key (an RS256 token made with
   `node:crypto`, no library).
 - Redis keys, all `tillroll:*`: the bank session, the booked transactions by id, the pending ones from the last sync,
-  the category picked per store, the categories changed or added, the stores merged and the time of the last sync.
+  the category picked per store and per payment, the categories changed or added, the stores merged, the labels, the
+  pairs of stores marked not the same and the time of the last sync.
 - `src/`: the React page. `statement.ts` reads the Revolut files, `stores.ts` and `categories.ts` name and sort the
   payments, `report.ts` builds the totals, the chart series and the insights, `sample.ts` makes the sample data.
 - Visitors' data never reaches the server: no route accepts it without the owner's cookie (or the key).

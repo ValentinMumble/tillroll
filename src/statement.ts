@@ -120,6 +120,17 @@ function parseDate(text: string) {
   return null
 }
 
+/** The time in "2026-10-12 14:03:22" (or in an Excel day number's fraction), as HH:MM. */
+function parseTime(text: string) {
+  const value = text.trim()
+  const clock = /[ T](\d{1,2}):(\d{2})/.exec(value)
+  if (clock) return `${clock[1].padStart(2, '0')}:${clock[2]}`
+  const fraction = /^\d{5}\.(\d+)$/.exec(value)
+  if (!fraction) return undefined
+  const minutes = Math.round(Number(`0.${fraction[1]}`) * 24 * 60) % (24 * 60)
+  return `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`
+}
+
 /** "-1,234.56", "-1 234,56" or "12,5", as a number. */
 function parseAmount(text: string) {
   const value = text.replace(/[\s  ]/g, '').replace(/[^\d.,-]/g, '')
@@ -161,6 +172,7 @@ function fromRows(rows: string[][]): Transaction[] {
   for (const row of rows.slice(headerIndex + 1)) {
     const state = plain(cell(row, 'state')).toUpperCase()
     const date = parseDate(cell(row, 'started')) ?? parseDate(cell(row, 'completed'))
+    const time = parseDate(cell(row, 'started')) ? parseTime(cell(row, 'started')) : parseTime(cell(row, 'completed'))
     if (!date || SKIPPED_STATES.includes(state)) continue
     const amount = Math.round((parseAmount(cell(row, 'amount')) - parseAmount(cell(row, 'fee'))) * 100) / 100
     const description = cell(row, 'description').trim() || 'Unknown'
@@ -184,6 +196,7 @@ function fromRows(rows: string[][]): Transaction[] {
     transactions.push({
       id: `statement:${hash(`${base}|${occurrence}`)}`,
       date,
+      ...(time && { time }),
       amount,
       currency,
       description,

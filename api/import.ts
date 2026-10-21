@@ -33,7 +33,13 @@ export function POST(request: Request) {
       throw new HttpError(400, 'Expected statement transactions')
     }
     await saveTransactions(
-      transactions.map((item) => ({ ...item, mcc: null, pending: Boolean(item.pending), source: 'statement' })),
+      transactions.map((item) => ({
+        ...item,
+        time: typeof item.time === 'string' && /^\d{2}:\d{2}$/.test(item.time) ? item.time : undefined,
+        mcc: null,
+        pending: Boolean(item.pending),
+        source: 'statement',
+      })),
     )
     return json({ saved: transactions.length })
   })

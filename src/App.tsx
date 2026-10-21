@@ -5,6 +5,9 @@ import {
   importStatement,
   RequestError,
   saveCategories,
+  saveDistinct,
+  saveLabels,
+  savePaymentCategories,
   saveMerge,
   saveRule,
   signIn,
@@ -14,27 +17,46 @@ import {
 } from './api'
 import { type Category, categoriesFrom, editsFrom, newCategoryKey } from './categories'
 import { CategoryBreakdown, type Focus, StoreBreakdown } from './components/Breakdown'
+import { Calendar } from './components/Calendar'
 import { CategoryEditor } from './components/CategoryEditor'
+import { DuplicatesDeck } from './components/DuplicatesDeck'
+import { FunStats } from './components/FunStats'
 import { ImportButton } from './components/ImportButton'
 import { Insights } from './components/Insights'
 import { Landing } from './components/Landing'
+import { LabelList } from './components/LabelList'
+import { LatestPayments } from './components/LatestPayments'
+import { Menu } from './components/Menu'
 import { Payments } from './components/Payments'
+import { Sidebar } from './components/Sidebar'
 import { Sorter } from './components/Sorter'
 import { StoreDialog } from './components/StoreDialog'
 import { StoreEditor } from './components/StoreEditor'
 import { PeriodChart } from './components/PeriodChart'
 import { Summary } from './components/Summary'
-import { type Tab, TabBar } from './components/TabBar'
+import { TabBar } from './components/TabBar'
 import { Toolbar } from './components/Toolbar'
 import { timeAgo } from './format'
 import { forgetOwnerKey, isOwnerBrowser, keepOwnerKey, pendingOwnerKey } from './owner'
 import { type Grain, periodEnd, periodOf, shiftPeriod, today } from './periods'
-import { buildReport, rowsBetween, type StoreToSort, storesToSort, toRows } from './report'
+import { buildReport, type Row, rowsBetween, type StoreToSort, storesToSort, toRows } from './report'
 import { sampleTransactions } from './sample'
 import { readStatement } from './statement'
+import { findDuplicates, type Pair } from './duplicates'
+import { withLabel, withoutLabel } from './labels'
 import { storeKey as keyOfStore } from './stores'
 import { loadGrain, loadLocalData, loadLocalSorting, saveGrain, saveLocalData, saveLocalSorting } from './storage'
-import type { CategoryEdit, CategoryKey, Connection, Merges, Rules, Transaction } from './types'
+import type { Tab } from './tabs'
+import type {
+  CategoryEdit,
+  CategoryKey,
+  Connection,
+  Labels,
+  Merges,
+  PaymentCategories,
+  Rules,
+  Transaction,
+} from './types'
 
 interface Data {
   source: 'sample' | 'statement' | 'owner'
@@ -42,6 +64,10 @@ interface Data {
   rules: Rules
   categories: CategoryEdit[]
   merges: Merges
+  labels: Labels
+  paymentCategories: PaymentCategories
+  /** Pairs of stores marked "not the same" in the duplicates deck. */
+  distinct: string[]
   connection: Connection | null
 }
 
@@ -51,8 +77,10 @@ type Dialog =
   | { type: 'stores'; store: string | null }
   /** One store, opened with a double-click. */
   | { type: 'store'; store: { key: string; name: string } }
+  /** The duplicates deck keeps the pairs it opened with. */
+  | { type: 'duplicates'; pairs: Pair[] }
   /** The sorting deck keeps the list of stores it opened with. */
-  | { type: 'sort'; queue: StoreToSort[] }
+  | { type: 'sort'; queues: { unsure: StoreToSort[]; automatic: StoreToSort[] } }
 
 interface Notice {
   tone: 'info' | 'error'
@@ -106,7 +134,7 @@ export default function App() {
   const [chosenCurrency, setChosenCurrency] = useState<string | null>(null)
   const [focus, setFocus] = useState<Focus | null>(null)
   const [dialog, setDialog] = useState<Dialog | null>(null)
-  // The phone layout shows one section at a time (see the tab bar); wider screens show them all.
+  // One view at a time: picked in the sidebar on wide screens, in the tab bar on a phone.
   const [tab, setTab] = useState<Tab>('overview')
 
   /** Back to the public version, for instance after the owner key changed. */
@@ -122,7 +150,17 @@ export default function App() {
   const loadOwner = useCallback(async () => {
     try {
       const owner = await fetchOwnerData()
-      setData({ source: 'owner', ...owner })
+      // Fields an older server may not send yet start empty.
+      setData({
+        source: 'owner',
+        ...owner,
+        rules: owner.rules ?? {},
+        categories: owner.categories ?? [],
+        merges: owner.merges ?? {},
+        labels: owner.labels ?? {},
+        paymentCategories: owner.paymentCategories ?? {},
+        distinct: owner.distinct ?? [],
+      })
       return owner
     } catch (error) {
       if (error instanceof RequestError && error.status === 403)
@@ -179,7 +217,13 @@ export default function App() {
   const rows = useMemo(() => {
     if (!data) return []
     const transactions = data.source === 'owner' ? withoutOverlap(data.transactions) : data.transactions
-    return toRows(transactions, { rules: data.rules, categories, merges: data.merges })
+    return toRows(transactions, {
+      rules: data.rules,
+      categories,
+      merges: data.merges,
+      labels: data.labels,
+      paymentCategories: data.paymentCategories,
+    })
   }, [data, categories])
 
   // Currencies by number of payments: the main account first.
@@ -197,6 +241,18 @@ export default function App() {
   const firstPeriod = periodOf(firstDay, grain)
   const period =
     chosenPeriod && chosenPeriod >= firstPeriod && chosenPeriod <= latestPeriod ? chosenPeriod : latestPeriod
+  // Every label in use, most used first, offered while typing one.
+  const labelNames = useMemo(() => {
+    const counts = new Map<string, number>()
+    for (const list of Object.values(data?.labels ?? {})) {
+      for (const label of list) counts.set(label, (counts.get(label) ?? 0) + 1)
+    }
+    return [...counts].sort((first, second) => second[1] - first[1]).map(([label]) => label)
+  }, [data?.labels])
+
+  // Look-alike stores, for the duplicates deck (pairs marked "not the same" stay out).
+  const duplicates = useMemo(() => findDuplicates(rows, new Set(data?.distinct ?? [])), [rows, data?.distinct])
+
   // Stores with an unsure category, in every currency: categories are per store.
   const toSort = useMemo(() => storesToSort(rows), [rows])
   const report = useMemo(
@@ -218,10 +274,13 @@ export default function App() {
     setFocus(null)
   }
 
-  /** Narrows the payment list; on a phone, the list is its own tab, so it opens it. */
+  /** Narrows the payment list to a category or a store, and opens it. */
   function focusOn(next: Focus | null) {
     setFocus(next)
-    if (next && window.matchMedia('(max-width: 720px)').matches) setTab('payments')
+    if (next) {
+      setTab('payments')
+      window.scrollTo({ top: 0 })
+    }
   }
 
   /** A chart column: in the all-time view the columns are years, so a click opens that year. */
@@ -263,12 +322,107 @@ export default function App() {
     if (added && dialog?.type === 'categories' && dialog.store) await changeCategory(dialog.store.key, added)
   }
 
+  /**
+   * Merges stores into one (by its name). The merged store keeps its category, or takes the first one picked by hand
+   * among the stores merged into it, so no choice is lost.
+   */
   async function mergeStores(storeKeys: string[], into: string) {
     if (!data) return
     const merges = { ...data.merges }
     for (const key of storeKeys) merges[key] = into
+    const targetKey = keyOfStore(into)
+    const inherited = data.rules[targetKey] ? undefined : storeKeys.map((key) => data.rules[key]).find(Boolean)
+    const rules = inherited ? { ...data.rules, [targetKey]: inherited } : data.rules
     if (focus?.type === 'store' && storeKeys.includes(focus.key)) setFocus(null)
-    await change({ merges }, () => Promise.all(storeKeys.map((key) => saveMerge(key, into))))
+    await change({ merges, rules }, async () => {
+      await Promise.all(storeKeys.map((key) => saveMerge(key, into)))
+      if (inherited) await saveRule(targetKey, inherited)
+    })
+  }
+
+  /** A pair of stores marked "not the same" in the duplicates deck. */
+  async function markDistinct(pair: string) {
+    if (!data) return
+    await change({ distinct: [...data.distinct, pair] }, () => saveDistinct([pair]))
+  }
+
+  /**
+   * The category of some payments: for their stores (every payment there, past and future, and the payments given
+   * back to their store), or for these payments only. null goes back to the automatic category.
+   */
+  async function categorize(targets: Row[], category: CategoryKey | null, scope: string) {
+    if (!data) return
+    const paymentCategories = { ...data.paymentCategories }
+    const paymentChanges: Record<string, CategoryKey | null> = {}
+    if (scope === 'payment') {
+      for (const row of targets) {
+        if (category) paymentCategories[row.id] = category
+        else delete paymentCategories[row.id]
+        paymentChanges[row.id] = category
+      }
+      await change({ paymentCategories }, () => savePaymentCategories(paymentChanges))
+      return
+    }
+    const rules = { ...data.rules }
+    const stores = [...new Set(targets.map((row) => row.storeKey))]
+    for (const key of stores) {
+      if (category) rules[key] = category
+      else delete rules[key]
+    }
+    for (const row of targets) {
+      if (!paymentCategories[row.id]) continue
+      delete paymentCategories[row.id]
+      paymentChanges[row.id] = null
+    }
+    await change({ rules, paymentCategories }, async () => {
+      await Promise.all(stores.map((key) => saveRule(key, category)))
+      if (Object.keys(paymentChanges).length) await savePaymentCategories(paymentChanges)
+    })
+  }
+
+  /** A category made from the category sheet, used at once for the payments it was opened for. */
+  async function createCategoryFor(targets: Row[], label: string, icon: string, scope: string) {
+    if (!data) return
+    const key = newCategoryKey(label)
+    const edits = [...data.categories, { key, label, icon, spending: true }]
+    await change({ categories: edits }, () => saveCategories(edits))
+    await categorize(targets, key, scope)
+  }
+
+  /** Renames a label on every payment that has it (every currency); an existing label of that name absorbs it. */
+  async function renameLabel(label: string, newLabel: string) {
+    if (!data) return
+    const changes: Labels = {}
+    for (const [id, list] of Object.entries(data.labels)) {
+      if (!list.some((item) => item.toLowerCase() === label.toLowerCase())) continue
+      changes[id] = withLabel(withoutLabel(list, label), newLabel)
+    }
+    if (focus?.type === 'label' && focus.key.toLowerCase() === label.toLowerCase()) {
+      setFocus({ type: 'label', key: newLabel })
+    }
+    await setLabels(changes)
+  }
+
+  /** Takes a label off every payment that has it. */
+  async function deleteLabel(label: string) {
+    if (!data) return
+    const changes: Labels = {}
+    for (const [id, list] of Object.entries(data.labels)) {
+      if (list.some((item) => item.toLowerCase() === label.toLowerCase())) changes[id] = withoutLabel(list, label)
+    }
+    if (focus?.type === 'label' && focus.key.toLowerCase() === label.toLowerCase()) setFocus(null)
+    await setLabels(changes)
+  }
+
+  /** Each payment's new list of labels (an empty one takes them all off). */
+  async function setLabels(changes: Labels) {
+    if (!data) return
+    const labels = { ...data.labels }
+    for (const [id, list] of Object.entries(changes)) {
+      if (list.length) labels[id] = list
+      else delete labels[id]
+    }
+    await change({ labels }, () => saveLabels(changes))
   }
 
   async function separateStore(storeKey: string) {
@@ -285,6 +439,9 @@ export default function App() {
   async function renameStore(storeKey: string, name: string, newName: string) {
     if (!data || !newName.trim() || newName === name) return
     const newKey = keyOfStore(newName)
+    // Another store already has that name: the rename would merge them.
+    const taken = newKey !== storeKey && rows.some((row) => row.storeKey === newKey)
+    if (taken && !window.confirm(`${newName} is already a store. Merge ${name} into it?`)) return
     const merges = { ...data.merges, [storeKey]: newName }
     const category = data.rules[storeKey]
     const moveCategory = Boolean(category) && newKey !== storeKey && !data.rules[newKey]
@@ -335,7 +492,14 @@ export default function App() {
         const merged = [...new Map([...earlier, ...transactions].map((item) => [item.id, item])).values()]
         kept = saveLocalData({ source: 'statement', transactions: merged })
         const sorting = data
-          ? { rules: data.rules, categories: data.categories, merges: data.merges }
+          ? {
+              rules: data.rules,
+              categories: data.categories,
+              merges: data.merges,
+              labels: data.labels,
+              paymentCategories: data.paymentCategories,
+              distinct: data.distinct,
+            }
           : loadLocalSorting()
         setData({ source: 'statement', transactions: merged, ...sorting, connection: null })
       }
@@ -414,85 +578,169 @@ export default function App() {
   const connection = data?.connection ?? null
   const hasData = currencyRows.length > 0
 
+  // The account part (where the data comes from, sync, import, owner links): in the sidebar on wide screens, in the
+  // header and the footer on a phone and on the first screen.
+  const status =
+    isOwner && connection
+      ? connection.expired
+        ? 'Access to Revolut expired'
+        : `${connection.bank} · ${connection.syncedAt ? `synced ${timeAgo(connection.syncedAt)}` : 'not synced yet'}`
+      : !isOwner && data
+        ? data.source === 'sample'
+          ? 'Sample data'
+          : 'Your statement'
+        : null
+  // The owner's bank action stays in view on a phone; the rest goes in the header's ⋯ menu there.
+  const bankAction = (
+    <>
+      {isOwner &&
+        connection &&
+        (connection.expired ? (
+          <button type="button" className="button is-primary" disabled={busy !== null} onClick={connect}>
+            Reconnect
+          </button>
+        ) : (
+          <button type="button" className="button" disabled={busy !== null} onClick={() => void sync()}>
+            {busy === 'sync' ? 'Syncing…' : 'Sync'}
+          </button>
+        ))}
+      {isOwner && !connection && hasData && (
+        <button type="button" className="button is-primary" disabled={busy !== null} onClick={connect}>
+          Connect Revolut
+        </button>
+      )}
+    </>
+  )
+  const dataActions = (
+    <>
+      {hasData && <ImportButton label="Import statement" busy={busy === 'import'} onFile={importFile} />}
+      {!isOwner && data && (
+        <button type="button" className="button is-quiet" onClick={clearLocal}>
+          {data.source === 'sample' ? 'Leave sample' : 'Remove data'}
+        </button>
+      )}
+    </>
+  )
+  const linkList = [
+    !isOwner && (
+      <button key="key" type="button" className="link-button" onClick={() => void enterOwnerKey()}>
+        Owner key
+      </button>
+    ),
+    isOwner && connection && (
+      <button key="disconnect" type="button" className="link-button" onClick={() => void disconnect()}>
+        Disconnect Revolut
+      </button>
+    ),
+    isOwner && (
+      <button key="leave" type="button" className="link-button" onClick={() => void leaveOwnerView()}>
+        Leave owner view
+      </button>
+    ),
+  ].filter(Boolean)
+  const links = linkList.flatMap((link, index) => (index ? [' · ', link] : [link]))
+  const footnote = isOwner
+    ? 'Owner view: your synced account and statements, kept in the site store.'
+    : 'Tillroll reads Revolut statements in your browser. Nothing you import leaves it.'
+  const header = (
+    <header className="top">
+      <a className="brand" href="/">
+        <span className="brand-mark" aria-hidden="true">
+          💸
+        </span>
+        Tillroll
+      </a>
+      <div className="top-actions">
+        {status && <span className="status">{status}</span>}
+        {bankAction}
+        <Menu label="More">
+          {dataActions}
+          {linkList}
+        </Menu>
+      </div>
+    </header>
+  )
+  const noticeBar = notice && (
+    <div className={`notice is-${notice.tone}`} role={notice.tone === 'error' ? 'alert' : 'status'}>
+      <p>{notice.text}</p>
+      <button type="button" aria-label="Close" onClick={() => setNotice(null)}>
+        ✕
+      </button>
+    </div>
+  )
+
+  if (loading || !hasData) {
+    return (
+      <div className="page">
+        {header}
+        {noticeBar}
+        <main>
+          {loading ? (
+            <p className="loading">Loading your spending…</p>
+          ) : (
+            <Landing isOwner={isOwner} busy={busy} onSample={showSample} onImport={importFile} onConnect={connect} />
+          )}
+        </main>
+        <footer className="foot">
+          <p>
+            {footnote} {links}
+          </p>
+        </footer>
+      </div>
+    )
+  }
+
+  const openSorter = () => setDialog({ type: 'sort', queues: { unsure: toSort, automatic: storesToSort(rows, true) } })
+  const breakdown = {
+    report,
+    categories,
+    currency,
+    focus,
+    onFocus: focusOn,
+  }
+
   return (
-    <div className="page">
-      <header className="top">
-        <a className="brand" href="/">
-          <span className="brand-mark" aria-hidden="true">
-            💸
-          </span>
-          Tillroll
-        </a>
-        <div className="top-actions">
-          {isOwner && connection && (
+    <div className="shell">
+      <Sidebar tab={tab} onTab={setTab} toSort={toSort.length} onSort={openSorter}>
+        {status && <p className="status">{status}</p>}
+        <div className="side-actions">
+          {bankAction}
+          {dataActions}
+        </div>
+        <p className="side-links">{links}</p>
+      </Sidebar>
+
+      <div className="main">
+        {header}
+        {noticeBar}
+        <Toolbar
+          grain={grain}
+          onGrain={changeGrain}
+          period={period}
+          onStep={(steps) => changePeriod(shiftPeriod(period, grain, steps))}
+          canGoBack={period > firstPeriod}
+          canGoForward={period < latestPeriod}
+          currencies={currencies}
+          currency={currency}
+          onCurrency={(next) => {
+            setChosenCurrency(next)
+            setChosenPeriod(null)
+            setFocus(null)
+          }}
+        />
+
+        <main className="view">
+          {tab === 'overview' && (
             <>
-              <span className="status">
-                {connection.expired
-                  ? 'Access to Revolut expired'
-                  : `${connection.bank} · ${connection.syncedAt ? `synced ${timeAgo(connection.syncedAt)}` : 'not synced yet'}`}
-              </span>
-              {connection.expired ? (
-                <button type="button" className="button is-primary" disabled={busy !== null} onClick={connect}>
-                  Reconnect
-                </button>
-              ) : (
-                <button type="button" className="button" disabled={busy !== null} onClick={() => void sync()}>
-                  {busy === 'sync' ? 'Syncing…' : 'Sync'}
+              {toSort.length > 0 && (
+                <button type="button" className="sort-banner" onClick={openSorter}>
+                  <span aria-hidden="true">🗂️</span>
+                  {toSort.length === 1 ? '1 store to sort' : `${toSort.length} stores to sort`}
+                  <span className="sort-banner-go" aria-hidden="true">
+                    ›
+                  </span>
                 </button>
               )}
-            </>
-          )}
-          {isOwner && !connection && hasData && (
-            <button type="button" className="button is-primary" disabled={busy !== null} onClick={connect}>
-              Connect Revolut
-            </button>
-          )}
-          {!isOwner && data && (
-            <span className="status">{data.source === 'sample' ? 'Sample data' : 'Your statement'}</span>
-          )}
-          {hasData && <ImportButton label="Import statement" busy={busy === 'import'} onFile={importFile} />}
-          {!isOwner && data && (
-            <button type="button" className="button is-quiet" onClick={clearLocal}>
-              {data.source === 'sample' ? 'Leave sample' : 'Remove data'}
-            </button>
-          )}
-        </div>
-      </header>
-
-      {notice && (
-        <div className={`notice is-${notice.tone}`} role={notice.tone === 'error' ? 'alert' : 'status'}>
-          <p>{notice.text}</p>
-          <button type="button" aria-label="Close" onClick={() => setNotice(null)}>
-            ✕
-          </button>
-        </div>
-      )}
-
-      <main>
-        {loading ? (
-          <p className="loading">Loading your spending…</p>
-        ) : !hasData ? (
-          <Landing isOwner={isOwner} busy={busy} onSample={showSample} onImport={importFile} onConnect={connect} />
-        ) : (
-          <div className="dashboard" data-tab={tab}>
-            <Toolbar
-              grain={grain}
-              onGrain={changeGrain}
-              period={period}
-              onStep={(steps) => changePeriod(shiftPeriod(period, grain, steps))}
-              canGoBack={period > firstPeriod}
-              canGoForward={period < latestPeriod}
-              currencies={currencies}
-              currency={currency}
-              onCurrency={(next) => {
-                setChosenCurrency(next)
-                setChosenPeriod(null)
-                setFocus(null)
-              }}
-              toSort={toSort.length}
-              onSort={() => setDialog({ type: 'sort', queue: toSort })}
-            />
-            <div className="overview" data-section="overview">
               <section className="receipt">
                 <Summary report={report} period={period} grain={grain} currency={currency} />
                 <PeriodChart
@@ -504,125 +752,161 @@ export default function App() {
                   onSelect={selectChartPeriod}
                 />
               </section>
-              <Insights insights={report.insights} />
-            </div>
-            <div className="columns">
-              <div data-section="categories">
+              <div className="columns">
                 <CategoryBreakdown
-                  report={report}
-                  categories={categories}
-                  currency={currency}
-                  focus={focus}
-                  onFocus={focusOn}
+                  {...breakdown}
+                  preview={{ limit: 5, onSeeAll: () => setTab('categories') }}
                   onEdit={() => setDialog({ type: 'categories', store: null })}
                 />
-              </div>
-              <div data-section="stores">
                 <StoreBreakdown
-                  report={report}
-                  categories={categories}
-                  currency={currency}
-                  focus={focus}
-                  onFocus={focusOn}
-                  onEdit={() => setDialog({ type: 'stores', store: focus?.type === 'store' ? focus.key : null })}
+                  {...breakdown}
+                  preview={{ limit: 5, onSeeAll: () => setTab('stores') }}
+                  onEdit={() => setDialog({ type: 'stores', store: null })}
                   onOpenStore={(store) => setDialog({ type: 'store', store })}
                 />
               </div>
-            </div>
-            <div data-section="payments">
-              <Payments
+              <LatestPayments
                 rows={periodRows}
-                rules={data?.rules ?? {}}
                 categories={categories}
-                focus={focus}
-                onClearFocus={() => setFocus(null)}
-                onCategory={(storeKey, category) => void changeCategory(storeKey, category)}
-                onNewCategory={(key, name) => setDialog({ type: 'categories', store: { key, name } })}
-                onEditStore={(key) => setDialog({ type: 'stores', store: key })}
-                onOpenStore={(store) => setDialog({ type: 'store', store })}
+                onCategorize={(targets, category, scope) => void categorize(targets, category, scope)}
+                onCreateCategory={(targets, label, icon, scope) => void createCategoryFor(targets, label, icon, scope)}
+                onSeeAll={() => {
+                  setFocus(null)
+                  setTab('payments')
+                  window.scrollTo({ top: 0 })
+                }}
               />
-            </div>
-            <TabBar tab={tab} onTab={setTab} />
-          </div>
-        )}
-        {dialog?.type === 'categories' && (
-          <CategoryEditor
-            categories={categories}
-            forStore={dialog.store?.name ?? null}
-            onSave={(list, added) => void saveCategoryList(list, added)}
-            onClose={() => setDialog(null)}
-          />
-        )}
-        {dialog?.type === 'stores' && (
-          <StoreEditor
-            rows={rows}
-            rules={data?.rules ?? {}}
-            categories={categories}
-            merges={data?.merges ?? {}}
-            preselected={dialog.store}
-            onRename={(storeKey, name, newName) => void renameStore(storeKey, name, newName)}
-            onCategory={(storeKey, category) => void changeCategory(storeKey, category)}
-            onMerge={(storeKeys, into) => void mergeStores(storeKeys, into)}
-            onSeparate={(storeKey) => void separateStore(storeKey)}
-            onClose={() => setDialog(null)}
-          />
-        )}
-        {dialog?.type === 'store' && (
-          <StoreDialog
-            store={dialog.store}
-            rows={rows}
-            rules={data?.rules ?? {}}
-            categories={categories}
-            onSave={(newName, category) => void editStore(dialog.store.key, dialog.store.name, newName, category)}
-            onMore={() => setDialog({ type: 'stores', store: dialog.store.key })}
-            onClose={() => setDialog(null)}
-          />
-        )}
-        {dialog?.type === 'sort' && (
-          <Sorter
-            queue={dialog.queue}
-            categories={categories}
-            rules={data?.rules ?? {}}
-            onPick={(storeKey, category) => void changeCategory(storeKey, category)}
-            onNewCategory={(storeKey, label, icon) => void addCategoryFor(storeKey, label, icon)}
-            onRename={(storeKey, name, newName) => void renameStore(storeKey, name, newName)}
-            onClose={() => setDialog(null)}
-          />
-        )}
-      </main>
+              <Insights insights={report.insights} />
+            </>
+          )}
+          {tab === 'calendar' && (
+            <Calendar
+              rows={currencyRows}
+              categories={categories}
+              currency={currency}
+              initialYear={(grain === 'all'
+                ? lastDay
+                : periodEnd(period, grain) < lastDay
+                  ? periodEnd(period, grain)
+                  : lastDay
+              ).slice(0, 4)}
+              labelNames={labelNames}
+              onLabels={(changes) => void setLabels(changes)}
+              onOpenMonth={(month) => {
+                setGrain('month')
+                saveGrain('month')
+                changePeriod(month)
+                setTab('overview')
+                window.scrollTo({ top: 0 })
+              }}
+            />
+          )}
+          {tab === 'stats' && <FunStats rows={currencyRows} currency={currency} />}
+          {tab === 'categories' && (
+            <>
+              <CategoryBreakdown {...breakdown} onEdit={() => setDialog({ type: 'categories', store: null })} />
+              <LabelList
+                rows={currencyRows}
+                currency={currency}
+                onOpen={(label) => focusOn({ type: 'label', key: label })}
+                onRename={(label, newLabel) => void renameLabel(label, newLabel)}
+                onDelete={(label) => void deleteLabel(label)}
+              />
+            </>
+          )}
+          {tab === 'stores' && (
+            <StoreBreakdown
+              {...breakdown}
+              onEdit={() => setDialog({ type: 'stores', store: focus?.type === 'store' ? focus.key : null })}
+              onOpenStore={(store) => setDialog({ type: 'store', store })}
+              duplicates={duplicates.length}
+              onDuplicates={() => setDialog({ type: 'duplicates', pairs: duplicates })}
+            />
+          )}
+          {tab === 'payments' && (
+            <Payments
+              rows={focus?.type === 'label' ? currencyRows : periodRows}
+              categories={categories}
+              focus={focus}
+              onClearFocus={() => setFocus(null)}
+              onCategorize={(targets, category, scope) => void categorize(targets, category, scope)}
+              onCreateCategory={(targets, label, icon, scope) => void createCategoryFor(targets, label, icon, scope)}
+              onEditStore={(key) => setDialog({ type: 'stores', store: key })}
+              onOpenStore={(store) => setDialog({ type: 'store', store })}
+              labelNames={labelNames}
+              onLabels={(changes) => void setLabels(changes)}
+              onFocusLabel={(label) => focusOn({ type: 'label', key: label })}
+              onFocusCategory={(category) => setFocus(category ? { type: 'category', key: category } : null)}
+            />
+          )}
+        </main>
 
-      <footer className="foot">
-        <p>
-          {isOwner
-            ? 'Owner view: your synced account and statements, kept in the site store.'
-            : 'Tillroll reads Revolut statements in your browser. Nothing you import leaves it.'}{' '}
-          <a href="https://github.com/ValentinMumble/tillroll">Source on GitHub</a>
-          {!isOwner && (
-            <>
-              {' · '}
-              <button type="button" className="link-button" onClick={() => void enterOwnerKey()}>
-                Owner key
-              </button>
-            </>
-          )}
-          {isOwner && connection && (
-            <>
-              {' · '}
-              <button type="button" className="link-button" onClick={() => void disconnect()}>
-                Disconnect Revolut
-              </button>
-            </>
-          )}
-          {isOwner && (
-            <>
-              {' · '}
-              <button type="button" className="link-button" onClick={() => void leaveOwnerView()}>
-                Leave owner view
-              </button>
-            </>
-          )}
-        </p>
-      </footer>
+        <footer className="foot">
+          <p>{footnote}</p>
+        </footer>
+      </div>
+
+      <TabBar tab={tab} onTab={setTab} />
+
+      {dialog?.type === 'categories' && (
+        <CategoryEditor
+          categories={categories}
+          forStore={dialog.store?.name ?? null}
+          onSave={(list, added) => void saveCategoryList(list, added)}
+          onClose={() => setDialog(null)}
+        />
+      )}
+      {dialog?.type === 'stores' && (
+        <StoreEditor
+          rows={rows}
+          rules={data?.rules ?? {}}
+          categories={categories}
+          merges={data?.merges ?? {}}
+          preselected={dialog.store}
+          onRename={(storeKey, name, newName) => void renameStore(storeKey, name, newName)}
+          onCategory={(storeKey, category) => void changeCategory(storeKey, category)}
+          onMerge={(storeKeys, into) => void mergeStores(storeKeys, into)}
+          onSeparate={(storeKey) => void separateStore(storeKey)}
+          onClose={() => setDialog(null)}
+        />
+      )}
+      {dialog?.type === 'store' && (
+        <StoreDialog
+          store={dialog.store}
+          rows={rows}
+          rules={data?.rules ?? {}}
+          categories={categories}
+          onSave={(newName, category) => void editStore(dialog.store.key, dialog.store.name, newName, category)}
+          onMore={() => setDialog({ type: 'stores', store: dialog.store.key })}
+          merges={data?.merges ?? {}}
+          similar={duplicates
+            .filter((pair) => pair.first.key === dialog.store.key || pair.second.key === dialog.store.key)
+            .map((pair) => (pair.first.key === dialog.store.key ? pair.second : pair.first))}
+          onSeparate={(storeKey) => void separateStore(storeKey)}
+          onMergeInto={(storeKey, into) => void mergeStores([storeKey], into)}
+          onClose={() => setDialog(null)}
+        />
+      )}
+      {dialog?.type === 'duplicates' && (
+        <DuplicatesDeck
+          pairs={dialog.pairs}
+          categories={categories}
+          onMerge={(storeKeys, into) => void mergeStores(storeKeys, into)}
+          onDistinct={(pair) => void markDistinct(pair)}
+          onClose={() => setDialog(null)}
+        />
+      )}
+      {dialog?.type === 'sort' && (
+        <Sorter
+          queues={dialog.queues}
+          categories={categories}
+          rules={data?.rules ?? {}}
+          onPick={(storeKey, category) => void changeCategory(storeKey, category)}
+          onNewCategory={(storeKey, label, icon) => void addCategoryFor(storeKey, label, icon)}
+          onRename={(storeKey, name, newName) => void renameStore(storeKey, name, newName)}
+          onClose={() => setDialog(null)}
+        />
+      )}
     </div>
   )
 }

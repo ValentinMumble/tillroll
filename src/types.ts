@@ -6,6 +6,8 @@ export interface Transaction {
   id: string
   /** The day of the payment, YYYY-MM-DD. */
   date: string
+  /** The time of the payment, HH:MM, when the source gives it: statements do, the bank sync only gives the day. */
+  time?: string
   /** Negative when money goes out. */
   amount: number
   currency: string
@@ -38,6 +40,12 @@ export type BuiltInCategory =
 
 /** The category picked by hand for a store or payee, by store key (see src/stores.ts). */
 export type Rules = Record<string, CategoryKey>
+
+/** A category picked for one payment only (an Amazon gift among household shopping), by transaction id. */
+export type PaymentCategories = Record<string, CategoryKey>
+
+/** Labels put on payments by hand (a trip, a gift, a shared bill), by transaction id. */
+export type Labels = Record<string, string[]>
 
 /** Stores merged into another, by store key: the name of the store they are now part of. */
 export type Merges = Record<string, string>

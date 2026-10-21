@@ -114,9 +114,12 @@ export function sampleTransactions(): Transaction[] {
     kind: Kind = amount < 0 ? 'card' : 'income',
     mcc: string | null = null,
   ) => {
+    // A time of day: shops and cafés between 8:00 and 22:00, bills and transfers at night.
+    const minutes = kind === 'card' || kind === 'refund' ? 480 + Math.floor(random() * 840) : Math.floor(random() * 300)
     transactions.push({
       id: `sample:${transactions.length}`,
       date,
+      time: `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`,
       amount: round(amount),
       currency: 'EUR',
       description,

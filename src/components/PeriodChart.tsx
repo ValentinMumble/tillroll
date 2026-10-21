@@ -27,7 +27,8 @@ export function PeriodChart({ series, selected, grain, currency, usual, onSelect
   const top = ticks[ticks.length - 1]
   const height = (value: number) => `${(Math.max(0, value) / top) * 100}%`
   return (
-    <figure className={`chart${series.length > 12 ? ' is-dense' : ''}`}>
+    // On a phone, every other label from 9 columns, one in four from 13, so they never run into each other.
+    <figure className={`chart${series.length > 8 ? ' is-dense' : ''}${series.length > 12 ? ' is-crowded' : ''}`}>
       <figcaption className="visually-hidden">Spending per {grain}</figcaption>
       <div className="chart-plot">
         {ticks.map((tick) => (
