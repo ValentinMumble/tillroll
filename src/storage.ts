@@ -14,6 +14,7 @@ const PAYMENT_CATEGORIES = 'tillroll.payment-categories'
 const DISTINCT = 'tillroll.distinct'
 const GRAIN = 'tillroll.grain'
 const PAYMENT_SORT = 'tillroll.payment-sort'
+const PAYMENTS_EVERYTHING = 'tillroll.payments-everything'
 
 export type LocalData = { source: 'sample' } | { source: 'statement'; transactions: Transaction[] }
 
@@ -92,3 +93,7 @@ export function loadPaymentSort(): PaymentSort {
 }
 
 export const savePaymentSort = (sort: PaymentSort) => write(PAYMENT_SORT, sort)
+
+/** Whether the payment list also shows transfers and money in, remembered in each browser. */
+export const loadPaymentsEverything = () => read<boolean>(PAYMENTS_EVERYTHING) === true
+export const savePaymentsEverything = (everything: boolean) => write(PAYMENTS_EVERYTHING, everything)

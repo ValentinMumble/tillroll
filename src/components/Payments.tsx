@@ -2,9 +2,15 @@ import { useState } from 'react'
 import type { Categories } from '../categories'
 import { money } from '../format'
 import { tidyLabel, withLabel, withoutLabel } from '../labels'
-import { dayLabel, weekdayLabel } from '../periods'
+import { dayLabel, today, weekdayLabel } from '../periods'
 import type { Row } from '../report'
-import { loadPaymentSort, type PaymentSort, savePaymentSort } from '../storage'
+import {
+  loadPaymentSort,
+  loadPaymentsEverything,
+  type PaymentSort,
+  savePaymentSort,
+  savePaymentsEverything,
+} from '../storage'
 import type { CategoryKey, Labels } from '../types'
 import type { Focus } from './Breakdown'
 import { CategorySheet, type Scope } from './CategorySheet'
@@ -80,7 +86,7 @@ export function Payments({
   onFocusLabel,
   onFocusCategory,
 }: Props) {
-  const [everything, setEverything] = useState(false)
+  const [everything, setEverything] = useState(loadPaymentsEverything)
   const [limit, setLimit] = useState(PAGE)
   const [sort, setSort] = useState<PaymentSort>(loadPaymentSort)
   const [query, setQuery] = useState('')
@@ -122,8 +128,9 @@ export function Payments({
   const page = visible.slice(0, limit)
   // A time column only when some payments listed have a time (statements give one, the bank sync does not).
   const withTimes = page.some((row) => row.time)
-  // Dates carry their year when the list covers more than one (all time, a label).
-  const withYears = new Set(visible.map((row) => row.date.slice(0, 4))).size > 1
+  // Dates carry their year when the list covers more than one (all time, a label), or another year than this one.
+  const years = new Set(visible.map((row) => row.date.slice(0, 4)))
+  const withYears = years.size > 1 || (years.size === 1 && !years.has(today().slice(0, 4)))
   const dayTotals = new Map<string, number>()
   const dayCounts = new Map<string, number>()
   for (const row of visible) {
@@ -243,7 +250,14 @@ export function Payments({
           })}
         </div>
         <label className="toggle">
-          <input type="checkbox" checked={everything} onChange={(event) => setEverything(event.target.checked)} />
+          <input
+            type="checkbox"
+            checked={everything}
+            onChange={(event) => {
+              setEverything(event.target.checked)
+              savePaymentsEverything(event.target.checked)
+            }}
+          />
           Show transfers and money in
         </label>
       </header>
