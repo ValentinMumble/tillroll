@@ -25,10 +25,11 @@ const BRANDS: [RegExp, string][] = [
 
 /**
  * Payment apps that put their name before the store's: "SUMUP *CAFE DU COIN", "SUM*ADDU MAMMA" (cut by the bank),
- * "SUNDAY*LA FELICITA" (restaurant bills), "TRIBEE*", and Shopify's "SP " with no star.
+ * "SUNDAY*LA FELICITA" (restaurant bills), "TRIBEE*", "LSP*LE BATEAU-LAVOIR" (Lightspeed), and Shopify's "SP " with
+ * no star.
  */
 const PROCESSOR =
-  /^((sumup|sum|sq|zettle|izettle|paypal|pp|sp|stripe|lydia|zen|mollie|sunday|tribee|payplug|lyf)\s*[*_]+|sp\s+(?=\S))\s*/i
+  /^((sumup|sum|sq|zettle|izettle|paypal|pp|sp|stripe|lydia|zen|mollie|sunday|tribee|payplug|lyf|lsp)\s*[*_]+|sp\s+(?=\S))\s*/i
 const TRANSFER_WORDS = /^(to|from|payment from|transfer (to|from)|virement (à|a|de|vers)|paiement à)\s+/i
 
 /** Short all-caps names that are acronyms, not words: they stay as they are. */

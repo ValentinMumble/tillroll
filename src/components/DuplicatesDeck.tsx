@@ -3,6 +3,7 @@ import type { Categories } from '../categories'
 import { type Pair, pairKey, type StoreInfo } from '../duplicates'
 import { money } from '../format'
 import { dayLabel } from '../periods'
+import { storeKey } from '../stores'
 import type { CategoryKey } from '../types'
 import { useDialog } from '../useDialog'
 import { WebSearch } from './WebSearch'
@@ -14,46 +15,97 @@ interface Props {
   onMerge: (storeKeys: string[], into: string) => void
   /** Marks a pair "not the same": it never comes back. */
   onDistinct: (pair: string) => void
-  /** The category of a store, picked by hand. */
-  onCategory: (storeKey: string, category: CategoryKey) => void
+  /** The category of a store, picked by hand; null goes back to the guess. */
+  onCategory: (storeKey: string, category: CategoryKey | null) => void
+  onRename: (storeKey: string, name: string, newName: string) => void
   onClose: () => void
 }
 
 function StoreCard({
   store,
+  name,
   categories,
   kept,
   category,
   onCategory,
+  onRename,
 }: {
   store: StoreInfo
+  name: string
   categories: Categories
   kept: boolean
-  category: CategoryKey
-  onCategory: (category: CategoryKey) => void
+  /** The category picked by hand, or null for the guess. */
+  category: CategoryKey | null
+  onCategory: (category: CategoryKey | null) => void
+  onRename: (newName: string) => void
 }) {
+  const guess = categories.byKey[store.category]
+  // The name being typed, while renaming.
+  const [renaming, setRenaming] = useState<string | null>(null)
   return (
     <div className={`twin${kept ? ' is-kept' : ''}`}>
-      <h3>
-        {store.name} <WebSearch name={store.name} />
-      </h3>
+      {renaming !== null ? (
+        <form
+          className="sorter-rename"
+          onSubmit={(event) => {
+            event.preventDefault()
+            const newName = renaming.trim()
+            if (newName && newName !== name) onRename(newName)
+            setRenaming(null)
+          }}
+        >
+          <input
+            className="text-input"
+            aria-label={`New name for ${name}`}
+            value={renaming}
+            maxLength={80}
+            autoFocus
+            onFocus={(event) => event.target.select()}
+            onChange={(event) => setRenaming(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Escape') {
+                event.preventDefault()
+                setRenaming(null)
+              }
+            }}
+          />
+          <button type="submit" className="button">
+            Rename
+          </button>
+        </form>
+      ) : (
+        <div className="twin-name">
+          <h3>
+            {name} <WebSearch name={name} />
+          </h3>
+          <button type="button" className="link-button" onClick={() => setRenaming(name)}>
+            Rename
+          </button>
+        </div>
+      )}
       <p className="muted">
         {store.payments === 1 ? '1 payment' : `${store.payments} payments`}
         {store.total > 0 && ` · ${money(store.total, store.currency)}`} · last on {dayLabel(store.lastDate, true)}
       </p>
       <select
         className="select twin-category"
-        aria-label={`Category of ${store.name}`}
-        value={category}
-        onChange={(event) => onCategory(event.target.value)}
+        aria-label={`Category of ${name}`}
+        value={category ?? ''}
+        onChange={(event) => onCategory(event.target.value || null)}
       >
+        {/* The guess, until a category is picked: picking the same one then saves it. */}
+        {(category === null || !store.picked) && (
+          <option value="">
+            {guess?.icon} {guess?.label} (auto)
+          </option>
+        )}
         {categories.alphabetical.map((item) => (
           <option key={item.key} value={item.key}>
             {item.icon} {item.label}
           </option>
         ))}
       </select>
-      <ul className="sorter-examples" aria-label={`What the bank says for ${store.name}`}>
+      <ul className="sorter-examples" aria-label={`What the bank says for ${name}`}>
         {store.examples.map((text) => (
           <li key={text}>{text}</li>
         ))}
@@ -63,11 +115,15 @@ function StoreCard({
 }
 
 /** Pairs of stores that may be the same place, most payments first: merge them, or say they are not the same. */
-export function DuplicatesDeck({ pairs, categories, onMerge, onDistinct, onCategory, onClose }: Props) {
+export function DuplicatesDeck({ pairs, categories, onMerge, onDistinct, onCategory, onRename, onClose }: Props) {
   const { ref: dialogRef, onKeyDown: onDialogKeyDown, close: closeDialog } = useDialog()
   const [position, setPosition] = useState(0)
-  // Categories picked here, by store: the pairs keep the ones they opened with.
-  const [picked, setPicked] = useState<Record<string, CategoryKey>>({})
+  // Categories picked and names given here, by store: the pairs keep the ones they opened with.
+  const [picked, setPicked] = useState<Record<string, CategoryKey | null>>({})
+  const [renamed, setRenamed] = useState<Record<string, string>>({})
+  const nameOf = (store: StoreInfo) => renamed[store.key] ?? store.name
+  // A store renamed here lives under its new name's key: its category and a merge go there.
+  const keyOf = (store: StoreInfo) => (renamed[store.key] ? storeKey(renamed[store.key]) : store.key)
   // Which of the two names to keep, by pair; the store with the most payments to start with.
   const [keep, setKeep] = useState<Record<string, 'first' | 'second'>>({})
   const [merged, setMerged] = useState(0)
@@ -76,13 +132,19 @@ export function DuplicatesDeck({ pairs, categories, onMerge, onDistinct, onCateg
   const kept = pair ? (keep[key] ?? 'first') : 'first'
   const card = (store: StoreInfo, side: 'first' | 'second') => (
     <StoreCard
+      key={store.key}
       store={store}
+      name={nameOf(store)}
       categories={categories}
       kept={kept === side}
-      category={picked[store.key] ?? store.category}
+      category={store.key in picked ? picked[store.key] : store.picked ? store.category : null}
       onCategory={(category) => {
         setPicked({ ...picked, [store.key]: category })
-        onCategory(store.key, category)
+        onCategory(keyOf(store), category)
+      }}
+      onRename={(newName) => {
+        onRename(keyOf(store), nameOf(store), newName)
+        setRenamed({ ...renamed, [store.key]: newName })
       }}
     />
   )
@@ -91,7 +153,7 @@ export function DuplicatesDeck({ pairs, categories, onMerge, onDistinct, onCateg
     if (!pair) return
     const target = kept === 'first' ? pair.first : pair.second
     const source = kept === 'first' ? pair.second : pair.first
-    onMerge([source.key], target.name)
+    onMerge([keyOf(source)], nameOf(target))
     setMerged(merged + 1)
     setPosition(position + 1)
   }
@@ -140,7 +202,7 @@ export function DuplicatesDeck({ pairs, categories, onMerge, onDistinct, onCateg
                   checked={kept === side}
                   onChange={() => setKeep({ ...keep, [key]: side })}
                 />
-                {pair[side].name}
+                {nameOf(pair[side])}
               </label>
             ))}
           </fieldset>

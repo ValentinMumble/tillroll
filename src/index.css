@@ -1870,6 +1870,14 @@ main {
   border-color: var(--accent);
 }
 
+.twin-name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 12px;
+}
+
 .twin h3 {
   margin: 0;
   font-size: 17px;

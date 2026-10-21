@@ -11,6 +11,8 @@ export interface StoreInfo {
   lastDate: string
   examples: string[]
   category: CategoryKey
+  /** The category was picked by hand for the store, not guessed. */
+  picked: boolean
 }
 
 /** Two stores that may be the same place, with the words their names share. */
@@ -65,6 +67,7 @@ export function storeInfos(rows: Row[]) {
       lastDate: row.date,
       examples: [],
       category: row.category,
+      picked: row.basis === 'picked' && !row.ownCategory,
     }
     store.payments += 1
     if (row.amount < 0) store.total -= row.amount

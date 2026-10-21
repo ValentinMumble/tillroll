@@ -951,6 +951,7 @@ export default function App() {
           onMerge={(storeKeys, into) => void mergeStores(storeKeys, into)}
           onDistinct={(pair) => void markDistinct(pair)}
           onCategory={(storeKey, category) => void changeCategory(storeKey, category)}
+          onRename={(storeKey, name, newName) => void renameStore(storeKey, name, newName)}
           onClose={() => setDialog(null)}
         />
       )}
