@@ -5,7 +5,35 @@ your usual one (or, for the current period, with the previous one at the same po
 the categories that moved, your top store, new stores, the biggest payment, your big spending day and the payments
 that come back every month.
 
-Six views, picked in a sidebar on wide screens and a tab bar on a phone, under a period bar that stays at the top:
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/desktop-overview-dark.png">
+  <img alt="The overview on a computer: October's total, the chart of the last twelve months, the top categories and stores" src="docs/screenshots/desktop-overview-light.png">
+</picture>
+
+<p>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/phone-overview-dark.png">
+    <img alt="The overview on a phone" src="docs/screenshots/phone-overview-light.png" width="260">
+  </picture>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/phone-categories-dark.png">
+    <img alt="The categories on a phone, each with its share and change" src="docs/screenshots/phone-categories-light.png" width="260">
+  </picture>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/phone-payments-dark.png">
+    <img alt="The payments on a phone, day by day" src="docs/screenshots/phone-payments-light.png" width="260">
+  </picture>
+</p>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/desktop-calendar-dark.png">
+  <img alt="The calendar: a whole year, one square per day, darker the more was spent" src="docs/screenshots/desktop-calendar-light.png">
+</picture>
+
+The screenshots show the sample data (Try it with sample data on the first screen), in your theme, light or dark.
+
+Six views, under a period bar that stays at the top: in a sidebar on wide screens; on a phone, a tab bar holds
+Overview, Categories, Stores and Payments, and the ⋯ menu opens the Calendar and Fun stats:
 
 - **Overview**: the total and the chart, the top categories and stores, the latest payments (each with its category to
   change) and a few quiet notes on what stands out.
