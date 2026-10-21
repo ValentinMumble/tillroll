@@ -22,6 +22,8 @@ export interface Transaction {
   bank?: string
   /** The bank's own category, from most general to most precise ("Logement - maison > Internet et telephonie"). */
   bankCategory?: string
+  /** The day the bank books it, when later than the payment (a deferred debit card): statements meet the sync there. */
+  bookedOn?: string
 }
 
 /** A built-in category's key, or "custom-..." for one added by hand. */

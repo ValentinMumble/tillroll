@@ -40,6 +40,8 @@ export function POST(request: Request) {
         time: typeof item.time === 'string' && /^\d{2}:\d{2}$/.test(item.time) ? item.time : undefined,
         bank: text(item.bank, 60),
         bankCategory: text(item.bankCategory, 120),
+        bookedOn:
+          typeof item.bookedOn === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(item.bookedOn) ? item.bookedOn : undefined,
         mcc: null,
         pending: Boolean(item.pending),
         source: 'statement',

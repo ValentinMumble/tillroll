@@ -102,7 +102,8 @@ function localData(): Data | null {
 
 /**
  * The owner's statement rows of a bank stop where that bank's synced history starts, per currency, so nothing counts
- * twice. Rows with no bank (older ones) are Revolut's.
+ * twice. The sync dates a row on the day the bank books it, so a statement's card payment compares by its debit day.
+ * Rows with no bank (older ones) are Revolut's.
  */
 function withoutOverlap(transactions: Transaction[]) {
   const keyOf = (item: Transaction) => `${item.bank ?? 'Revolut'}|${item.currency}`
@@ -114,7 +115,35 @@ function withoutOverlap(transactions: Transaction[]) {
   }
   return transactions.filter((item) => {
     const start = bankStart.get(keyOf(item))
-    return item.source !== 'statement' || !start || item.date < start
+    return item.source !== 'statement' || !start || (item.bookedOn ?? item.date) < start
+  })
+}
+
+/** A deferred card's monthly debit, as an account's statement gives it ("Carte ...7497 (débit différé)"). */
+const isCardTotal = (item: Transaction) => item.source === 'statement' && / \(débit différé\)$/.test(item.description)
+
+/**
+ * A deferred card's monthly debit leaves once the card's own statement lists the payments it paid: the card lines
+ * debited in that month add up to it (to the cent). Another card's debit the same month stays, its sum differs.
+ */
+function withoutCoveredTotals(transactions: Transaction[]) {
+  const debitMonth = (item: Transaction) => {
+    if (item.bookedOn) return item.bookedOn.slice(0, 7)
+    // A total imported before the debit day was kept sits on the last day of the month before it.
+    const next = new Date(`${item.date}T00:00:00Z`)
+    next.setUTCDate(next.getUTCDate() + 1)
+    return next.toISOString().slice(0, 7)
+  }
+  const cardLines = new Map<string, number>()
+  for (const item of transactions) {
+    if (item.source !== 'statement' || !item.bookedOn || isCardTotal(item)) continue
+    const key = `${item.bank}|${item.currency}|${debitMonth(item)}`
+    cardLines.set(key, (cardLines.get(key) ?? 0) + item.amount)
+  }
+  return transactions.filter((item) => {
+    if (!isCardTotal(item)) return true
+    const lines = cardLines.get(`${item.bank}|${item.currency}|${debitMonth(item)}`)
+    return lines === undefined || Math.abs(lines - item.amount) >= 0.01
   })
 }
 
@@ -279,7 +308,9 @@ export default function App() {
   const categories = useMemo(() => categoriesFrom(data?.categories ?? []), [data?.categories])
   const rows = useMemo(() => {
     if (!data) return []
-    const transactions = data.source === 'owner' ? withoutOverlap(data.transactions) : data.transactions
+    const transactions = withoutCoveredTotals(
+      data.source === 'owner' ? withoutOverlap(data.transactions) : data.transactions,
+    )
     return toRows(transactions, {
       rules: data.rules,
       categories,

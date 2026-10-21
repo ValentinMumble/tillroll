@@ -168,6 +168,7 @@ const CREDIT_COOPERATIF = {
   debit: 'debit',
   credit: 'credit',
   date: 'date operation',
+  value: 'date de valeur',
 }
 
 const CREDIT_COOPERATIF_KINDS: Record<string, Kind> = {
@@ -186,10 +187,12 @@ function monthBefore(date: string) {
 }
 
 /**
- * Crédit Coopératif's CSV export: one line per booked operation, a Debit and a Credit column, and the bank's own
- * category. Card payments are not listed one by one: a deferred debit at the start of each month pays the card's
- * payments of the month before, so it becomes one payment on that month's last day ("Carte ...7497 (débit
- * différé)"). Card refunds do come one by one.
+ * Crédit Coopératif's CSV export, of the account or of a deferred debit card (the same columns): one line per
+ * operation, a Debit and a Credit column, and the bank's own category. The account's export does not list card
+ * payments one by one: a deferred debit at the start of each month pays the card's payments of the month before, so
+ * it becomes one payment on that month's last day ("Carte ...7497 (débit différé)"). The card's export lists them,
+ * each with the day it was paid and the day the card was debited; the page then leaves out the monthly debit they
+ * add up to (see withoutCoveredTotals in App.tsx).
  */
 function fromCreditCooperatif(rows: string[][], headerIndex: number): Transaction[] {
   const header = rows[headerIndex].map(plain)
@@ -216,6 +219,9 @@ function fromCreditCooperatif(rows: string[][], headerIndex: number): Transactio
     if (subcategory === 'virement interne') kind = 'transfer'
     const card = /\.{3}\d+/.exec(cell(row, 'label'))?.[0]
     const description = deferred ? `Carte ${card ? `${card} ` : ''}(débit différé)` : label
+    const date = deferred ? monthBefore(booked) : (parseDate(cell(row, 'date')) ?? booked)
+    // The day the bank books it: a card payment's debit day, later than the day it was paid.
+    const debited = deferred ? booked : type === 'carte bancaire' ? (parseDate(cell(row, 'value')) ?? booked) : booked
     const base = [
       cell(row, 'booked'),
       cell(row, 'date'),
@@ -228,7 +234,8 @@ function fromCreditCooperatif(rows: string[][], headerIndex: number): Transactio
     seen.set(base, occurrence + 1)
     transactions.push({
       id: `statement:${hash(`creditcoop|${base}|${occurrence}`)}`,
-      date: deferred ? monthBefore(booked) : (parseDate(cell(row, 'date')) ?? booked),
+      date,
+      ...(debited !== date && { bookedOn: debited }),
       amount,
       currency: 'EUR',
       description,

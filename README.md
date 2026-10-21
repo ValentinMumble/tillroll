@@ -81,7 +81,11 @@ Import Revolut's (Excel or CSV), Crédit Coopératif's CSV export, or PayPal's a
 Statements, Activity download, as CSV; in English or French). Crédit Coopératif's export uses the bank's own
 category as a clue, and words each line like the sync does ("PRLV BPCE Vie", "VIR SEPA AKENEO"), so stores sorted
 on synced rows stay sorted in the older months. Its deferred debit card does not list card payments one by one: each
-month's debit becomes one payment, "Carte ...7497 (débit différé)", on the last day of the month it pays for. Synced
+month's debit becomes one payment, "Carte ...7497 (débit différé)", on the last day of the month it pays for. Import
+the card's own CSV export too (same columns, one line per card payment) and those monthly debits make way for the
+payments they paid, each on the day it was made: a monthly debit leaves when the card lines debited that month add up
+to it, to the cent. Card texts make one store whether they come from the sync ("CB CAFE POP FACT 270826") or a
+statement ("CAFE POP"). Synced
 card payments keep the day they were made ("FACT 270826"), not the day the card is debited.
 
 **PayPal** connects like a bank (or comes in through its activity download) and names the shop of each payment, where
