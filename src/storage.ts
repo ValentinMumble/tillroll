@@ -26,6 +26,7 @@ const BUDGETS = 'tillroll.budgets';
 const GRAIN = 'tillroll.grain';
 const PAYMENT_SORT = 'tillroll.payment-sort';
 const PAYMENTS_EVERYTHING = 'tillroll.payments-everything';
+const PAYMENTS_OWN = 'tillroll.payments-own';
 const CATEGORY_VIEW = 'tillroll.category-view';
 
 export type LocalData = {source: 'sample'} | {source: 'statement'; transactions: Transaction[]};
@@ -113,9 +114,13 @@ export function loadPaymentSort(): PaymentSort {
 
 export const savePaymentSort = (sort: PaymentSort) => write(PAYMENT_SORT, sort);
 
-/** Whether the payment list also shows transfers and money in, remembered in each browser. */
+/** Whether the payment lists also show transfers and money in, remembered in each browser. */
 export const loadPaymentsEverything = () => read<boolean>(PAYMENTS_EVERYTHING) === true;
 export const savePaymentsEverything = (everything: boolean) => write(PAYMENTS_EVERYTHING, everything);
+
+/** Whether the payment lists also show the moves between one's own accounts, remembered in each browser. */
+export const loadPaymentsOwn = () => read<boolean>(PAYMENTS_OWN) === true;
+export const savePaymentsOwn = (own: boolean) => write(PAYMENTS_OWN, own);
 
 /** How the Categories view shows them: a list, or a small chart each. Remembered in each browser. */
 export type CategoryView = 'list' | 'trends';

@@ -434,8 +434,13 @@ main {
   margin-left: auto;
 }
 
-.card-head > .toggle + .link-button {
+.card-head > .toggle + .link-button,
+.card-head > .list-switches + .link-button {
   margin-left: 0;
+}
+
+.latest .card-head > .list-switches {
+  margin-left: auto;
 }
 
 .card h2 {
@@ -1338,13 +1343,13 @@ main {
     justify-self: end;
   }
 
-  /* The title and the link on one line, the switch under them. */
+  /* The title and the link on one line, the switches under them. */
   .latest .card-head > .link-button {
     order: 1;
     margin-left: auto;
   }
 
-  .latest .card-head > .toggle {
+  .latest .card-head > .list-switches {
     order: 2;
     margin-left: 0;
   }
@@ -2798,8 +2803,27 @@ main {
   margin-left: auto;
 }
 
-.payments .card-head > .segmented + .toggle {
-  margin-left: 0;
+/* What the list also shows, beside the sort: money in, and the moves between one's own accounts. */
+.list-switches {
+  display: inline-flex;
+  gap: 6px;
+}
+
+.list-switches .chip {
+  min-height: 28px;
+  padding: 0 10px;
+}
+
+.list-switches .chip[aria-pressed='true'] {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
+}
+
+.list-switches .chip-count {
+  color: var(--muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
 }
 
 /* Labels on payments: a tinted chip (click shows every payment with it, × takes it off), and a # to add one, shown on
@@ -3870,12 +3894,12 @@ main {
     vertical-align: 1px;
   }
 
-  /* Sort and the transfers switch on one line, under the total. */
+  /* Sort and the switches on one line, under the total; the switches keep their icons only. */
   .payments .card-head > .segmented {
     margin-left: 0;
   }
 
-  .payments .card-head > .segmented + .toggle {
+  .payments .card-head > .segmented + .list-switches {
     margin-left: auto;
   }
 

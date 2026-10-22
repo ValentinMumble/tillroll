@@ -85,18 +85,16 @@ export function PaymentLabels({row, onLabels, onFocusLabel}: Props) {
           </button>
         </form>
       ) : (
-        // A pending payment gets a new id once the bank books it: its label would be lost.
-        !row.pending && (
-          <button
-            type="button"
-            className="label-add"
-            aria-label={`Add a label to this payment at ${row.store}`}
-            title="Add a label"
-            onClick={() => setText('')}
-          >
-            #
-          </button>
-        )
+        // A pending payment's label moves to the booked payment at the next sync (see api/_lib/sync.ts).
+        <button
+          type="button"
+          className="label-add"
+          aria-label={`Add a label to this payment at ${row.store}`}
+          title="Add a label"
+          onClick={() => setText('')}
+        >
+          #
+        </button>
       )}
     </>
   );

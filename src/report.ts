@@ -522,6 +522,16 @@ export function topCategories(rows: Row[], count: number): CategoryKey[] {
 /** A payment whose category Tillroll guessed with little to go on (see UNSURE), money out only: one to check. */
 export const isUnsure = (row: Row) => row.amount < 0 && UNSURE.includes(row.basis);
 
+/**
+ * Whether a payment list shows a payment: spending always, the rest on request. Transfers and money in (pay, a friend
+ * paying back, a transfer to someone) and the moves between one's own accounts each have their own switch.
+ */
+export const isListed = (row: Row, {moneyIn, own}: {moneyIn: boolean; own: boolean}) =>
+  row.counts || (row.category === 'own' ? own : moneyIn);
+
+/** Money that came in (pay, a refund, a friend paying back), not from another account of one's own nor ignored. */
+export const isIncoming = (row: Row) => row.amount > 0 && !row.leftOut;
+
 /** The same day a month later, or the month's last day when it is shorter (31 Jan, then 28 Feb). */
 function monthLater(date: string) {
   const month = shiftPeriod(date.slice(0, 7), 'month', 1);

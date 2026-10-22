@@ -3,18 +3,13 @@ import {type Categories, colourStyle} from '../categories';
 import {money} from '../format';
 import {tidyLabel, withLabel} from '../labels';
 import {dayLabel, today, weekdayLabel} from '../periods';
-import {isUnsure, type Row, topCategories} from '../report';
-import {
-  loadPaymentSort,
-  loadPaymentsEverything,
-  type PaymentSort,
-  savePaymentSort,
-  savePaymentsEverything,
-} from '../storage';
+import {isListed, isIncoming, isUnsure, type Row, topCategories} from '../report';
+import {loadPaymentSort, loadPaymentsEverything, loadPaymentsOwn, type PaymentSort, savePaymentSort} from '../storage';
 import type {CategoryKey, Labels} from '../types';
 import {BankBadge} from './BankBadge';
 import type {Focus} from './Breakdown';
 import {CategorySheet, type Scope} from './CategorySheet';
+import {ListSwitches} from './ListSwitches';
 import {LabelOptions, PaymentLabels} from './PaymentLabels';
 import {WebSearch} from './WebSearch';
 
@@ -103,7 +98,8 @@ export function Payments({
   onFocusCheck,
   showBanks,
 }: Props) {
-  const [everything, setEverything] = useState(loadPaymentsEverything);
+  const [moneyIn, setMoneyIn] = useState(loadPaymentsEverything);
+  const [own, setOwn] = useState(loadPaymentsOwn);
   const [limit, setLimit] = useState(PAGE);
   const [sort, setSort] = useState<PaymentSort>(loadPaymentSort);
   const [query, setQuery] = useState('');
@@ -126,7 +122,7 @@ export function Payments({
     .filter(row => {
       if (toCheck && !isUnsure(row)) return false;
       // A category picked in the filter shows its payments, even the ones that are not spending.
-      if (!everything && !row.counts && focus?.type !== 'category' && !toCheck) return false;
+      if (!isListed(row, {moneyIn, own}) && focus?.type !== 'category' && !toCheck) return false;
       if (focus?.type === 'category' && row.category !== focus.key) return false;
       if (focus?.type === 'label' && !row.labels.some(label => label.toLowerCase() === focus.key.toLowerCase())) {
         return false;
@@ -153,6 +149,8 @@ export function Payments({
     (sum, row) => sum + (!row.counts && !row.leftOut && row.amount > 0 ? row.amount : 0),
     0,
   );
+  // Moves between one's own accounts are in no total: their switch counts the period's.
+  const moves = rows.filter(row => row.category === 'own').length;
   const page = visible.slice(0, limit);
   // A time column only when some payments listed have a time (statements give one, the bank sync does not).
   const withTimes = page.some(row => row.time);
@@ -248,7 +246,7 @@ export function Payments({
         <span className="view-total">{money(spent, currency)}</span>
         <span className="hint">
           {paid === 1 ? '1 payment' : `${paid} payments`}
-          {everything && (movedOut > 0 || cameIn > 0) && (
+          {moneyIn && (movedOut > 0 || cameIn > 0) && (
             <>
               {' '}
               · {money(movedOut, currency)} moved out · {money(cameIn, currency)} in
@@ -285,20 +283,7 @@ export function Payments({
             );
           })}
         </div>
-        <label className="toggle">
-          <input
-            type="checkbox"
-            checked={everything}
-            onChange={event => {
-              setEverything(event.target.checked);
-              savePaymentsEverything(event.target.checked);
-            }}
-          />
-          <span className="long">Show transfers and money in</span>
-          <span className="short" aria-hidden="true">
-            Transfers too
-          </span>
-        </label>
+        <ListSwitches moneyIn={moneyIn} own={own} moves={moves} onMoneyIn={setMoneyIn} onOwn={setOwn} />
       </header>
       <div className="payments-filters">
         <label className="pick-all" title={allPicked ? 'Untick all' : `Tick all ${visible.length}`}>
@@ -401,7 +386,7 @@ export function Payments({
                 ),
                 <tr
                   key={row.id}
-                  className={`${row.counts && row.spend !== 0 ? '' : 'is-muted'}${picked.has(row.id) ? ' is-picked' : ''}`}
+                  className={`${(row.counts && row.spend !== 0) || isIncoming(row) ? '' : 'is-muted'}${picked.has(row.id) ? ' is-picked' : ''}`}
                   onClick={event => {
                     // On a phone the list is for fixing categories: a tap anywhere on a payment, off its buttons,
                     // opens its category.

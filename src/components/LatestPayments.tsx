@@ -2,11 +2,12 @@ import {useState} from 'react';
 import {type Categories, colourStyle} from '../categories';
 import {money} from '../format';
 import {dayLabel, weekdayLabel} from '../periods';
-import {isUnsure, type Row, topCategories} from '../report';
-import {loadPaymentsEverything, savePaymentsEverything} from '../storage';
+import {isListed, isIncoming, isUnsure, type Row, topCategories} from '../report';
+import {loadPaymentsEverything, loadPaymentsOwn} from '../storage';
 import type {CategoryKey, Labels} from '../types';
 import {BankBadge} from './BankBadge';
 import {CategorySheet} from './CategorySheet';
+import {ListSwitches} from './ListSwitches';
 import {LabelOptions, PaymentLabels} from './PaymentLabels';
 
 interface Props {
@@ -41,25 +42,17 @@ export function LatestPayments({
   onFocusLabel,
 }: Props) {
   const [sheet, setSheet] = useState<Row | null>(null);
-  // The same choice as the payment list's, remembered in each browser.
-  const [everything, setEverything] = useState(loadPaymentsEverything);
-  const shown = everything ? rows : rows.filter(row => row.counts);
+  // The same choices as the payment list's, remembered in each browser.
+  const [moneyIn, setMoneyIn] = useState(loadPaymentsEverything);
+  const [own, setOwn] = useState(loadPaymentsOwn);
+  const shown = rows.filter(row => isListed(row, {moneyIn, own}));
   const latest = shown.slice(0, SHOWN);
+  const moves = rows.filter(row => row.category === 'own').length;
   return (
     <section className="card is-preview latest">
       <header className="card-head">
         <h2>Latest payments</h2>
-        <label className="toggle">
-          <input
-            type="checkbox"
-            checked={everything}
-            onChange={event => {
-              setEverything(event.target.checked);
-              savePaymentsEverything(event.target.checked);
-            }}
-          />
-          Show transfers and money in
-        </label>
+        <ListSwitches moneyIn={moneyIn} own={own} moves={moves} onMoneyIn={setMoneyIn} onOwn={setOwn} />
         {shown.length > SHOWN && (
           <button type="button" className="link-button" onClick={onSeeAll}>
             All {shown.length} payments →
@@ -73,7 +66,7 @@ export function LatestPayments({
           {latest.map(row => {
             const category = categories.byKey[row.category];
             return (
-              <li key={row.id} className={row.counts ? undefined : 'is-muted'}>
+              <li key={row.id} className={row.counts || isIncoming(row) ? undefined : 'is-muted'}>
                 <span className="latest-store">
                   {showBanks && <BankBadge bank={row.bank} />}
                   <span className="latest-name">{row.store}</span>

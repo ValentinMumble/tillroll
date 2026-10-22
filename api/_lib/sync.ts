@@ -1,7 +1,17 @@
 import type {Balance, Connection, Transaction} from '../../src/types';
 import {BankError, fetchBalance, fetchTransactions, psuHeaders, toTransaction, type Session} from './bank.js';
 import {HttpError} from './http.js';
-import {BALANCES, PENDING, redis, saveTransactions, SESSION, SESSIONS, SYNCED_AT} from './store.js';
+import {
+  BALANCES,
+  LABELS,
+  PAYMENT_CATEGORIES,
+  PENDING,
+  redis,
+  saveTransactions,
+  SESSION,
+  SESSIONS,
+  SYNCED_AT,
+} from './store.js';
 
 /** Error codes that mean the owner has to authorize the access again. */
 const NEEDS_CONSENT = ['EXPIRED_SESSION', 'CLOSED_SESSION', 'REVOKED_SESSION', 'ACCESS_DENIED', 'UNAUTHORIZED_ACCESS'];
@@ -15,6 +25,57 @@ function isExpired(session: Session) {
 
 function dayBefore(date: string, days: number) {
   return new Date(Date.parse(date) - days * 86_400_000).toISOString().slice(0, 10);
+}
+
+/** A pending payment and the payment the bank books for it are this many days apart at most. */
+const BOOKING_DAYS = 10;
+
+/**
+ * A pending payment gets a new id once the bank books it (or when its text changes). The labels and the category
+ * picked for it move to the payment that took its place: same account, amount and currency, a few days apart at most.
+ */
+async function carryOver(before: Transaction[], pending: Transaction[], booked: Transaction[]) {
+  const pendingIds = new Set(pending.map(item => item.id));
+  const gone = before.filter(item => !pendingIds.has(item.id));
+  if (gone.length === 0) return;
+  const store = redis();
+  const ids = gone.map(item => item.id);
+  const [labels, categories] = await Promise.all([
+    store.hmget<Record<string, string[] | null>>(LABELS, ...ids),
+    store.hmget<Record<string, string | null>>(PAYMENT_CATEGORIES, ...ids),
+  ]);
+  const beforeIds = new Set(before.map(item => item.id));
+  const candidates = [...booked, ...pending.filter(item => !beforeIds.has(item.id))];
+  const account = (id: string) => id.split(':').slice(0, 2).join(':');
+  const days = (first: string, second: string) => Math.abs(Date.parse(first) - Date.parse(second)) / 86_400_000;
+  const movedLabels: Record<string, string[]> = {};
+  const movedCategories: Record<string, string> = {};
+  const dropped: string[] = [];
+  for (const old of gone) {
+    const label = labels?.[old.id];
+    const category = categories?.[old.id];
+    if (!label?.length && !category) continue;
+    const next = candidates
+      .filter(
+        item =>
+          account(item.id) === account(old.id) &&
+          item.amount === old.amount &&
+          item.currency === old.currency &&
+          days(item.date, old.date) <= BOOKING_DAYS,
+      )
+      .sort((first, second) => days(first.date, old.date) - days(second.date, old.date))[0];
+    if (!next) continue;
+    candidates.splice(candidates.indexOf(next), 1);
+    if (label?.length) movedLabels[next.id] = label;
+    if (category) movedCategories[next.id] = category;
+    dropped.push(old.id);
+  }
+  if (Object.keys(movedLabels).length) await store.hset(LABELS, movedLabels);
+  if (Object.keys(movedCategories).length) await store.hset(PAYMENT_CATEGORIES, movedCategories);
+  if (dropped.length) {
+    await store.hdel(LABELS, ...dropped);
+    await store.hdel(PAYMENT_CATEGORIES, ...dropped);
+  }
 }
 
 /**
@@ -103,7 +164,7 @@ async function syncSession(session: Session, request: Request | null) {
     }
   }
   if (Object.keys(balances).length > 0) await redis().hset(BALANCES, balances);
-  return {booked: booked.length, pending};
+  return {booked, pending};
 }
 
 /**
@@ -123,8 +184,9 @@ export async function sync(request: Request | null, only?: string) {
   for (const session of live) {
     try {
       const result = await syncSession(session, request);
+      await carryOver(pending[bankKey(session.bank)] ?? [], result.pending, result.booked);
       pending[bankKey(session.bank)] = result.pending;
-      booked += result.booked;
+      booked += result.booked.length;
       synced += 1;
     } catch (error) {
       if (!(error instanceof HttpError)) throw error;
