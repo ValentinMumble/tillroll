@@ -147,13 +147,9 @@ export function CategoryBreakdown({
                   onClick={() => onFocus(active ? null : {type: 'category', key})}
                 >
                   <span className="bar-label">
-                    {preview ? (
-                      <span className="cat-dot" aria-hidden="true" />
-                    ) : (
-                      <span className="bar-icon" aria-hidden="true">
-                        {category.icon}
-                      </span>
-                    )}
+                    <span className="bar-icon" aria-hidden="true">
+                      {category.icon}
+                    </span>
                     {category.label}
                   </span>
                   {!preview && <Trend values={series.map(item => item.categories.get(key) ?? 0)} marked={marked} />}

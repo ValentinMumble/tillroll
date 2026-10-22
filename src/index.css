@@ -2526,6 +2526,21 @@ main {
   border: 1.5px dashed var(--cat, var(--axis));
 }
 
+/* In the picker every category wears its colour, like its pill in the lists. */
+.category-sheet .category-chip {
+  border-color: transparent;
+  background: color-mix(in srgb, var(--cat, var(--cat-grey)) var(--tint), var(--surface));
+}
+
+.category-sheet .category-chip:hover,
+.category-sheet .category-chip.is-current {
+  border-color: var(--cat, var(--accent));
+}
+
+.category-sheet .category-chip.is-guess {
+  border: 1.5px dashed var(--cat, var(--axis));
+}
+
 .category-chip.is-big {
   min-height: 48px;
   padding: 0 16px;

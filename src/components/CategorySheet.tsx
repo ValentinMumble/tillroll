@@ -67,7 +67,7 @@ export function CategorySheet({
         style={colourStyle(categories.colours[key])}
         onClick={() => pick(key)}
       >
-        <span className="cat-dot" aria-hidden="true" />
+        <span aria-hidden="true">{category.icon}</span>
         {category.label}
       </button>
     );
