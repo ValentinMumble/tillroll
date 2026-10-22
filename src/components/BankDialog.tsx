@@ -93,6 +93,9 @@ export function BankDialog({connected, busy, onConnect, onClose}: Props) {
     >
       <header className="dialog-head">
         <h2 id="bank-dialog-title">Connect a bank</h2>
+        <button type="button" className="dialog-close" aria-label="Close" onClick={closeDialog}>
+          ✕
+        </button>
         <p className="hint">
           Link the bank's accounts in the Enable Banking Control Panel first: its free mode only reads accounts linked
           there. Then pick the bank here and approve in its app.

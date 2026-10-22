@@ -83,6 +83,9 @@ export function CategorySheet({
     >
       <header className="dialog-head">
         <h2 id="category-sheet-title">{title}</h2>
+        <button type="button" className="dialog-close" aria-label="Close" onClick={closeDialog}>
+          ✕
+        </button>
         <p className="hint">{detail}</p>
       </header>
       <div className="sheet-body">

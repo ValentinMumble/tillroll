@@ -77,6 +77,9 @@ export function CategoryEditor({categories, forStore, onSave, onClose}: Props) {
     >
       <header className="dialog-head">
         <h2 id="category-editor-title">Categories</h2>
+        <button type="button" className="dialog-close" aria-label="Close" onClick={closeDialog}>
+          ✕
+        </button>
         <p className="hint">
           {forStore
             ? `Add a category for ${forStore}: it will be picked for all its payments.`

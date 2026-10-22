@@ -1658,11 +1658,6 @@ main {
   cursor: pointer;
 }
 
-/* The category sheet: where the choice applies, then the categories. */
-.category-sheet {
-  width: min(600px, calc(100vw - 32px));
-}
-
 /* A choice of options in rows (the duplicates deck's name to keep). */
 .scopes {
   display: grid;
@@ -2131,9 +2126,11 @@ main {
 
 /* Dialogs: category editor, store merging */
 
+/* Every dialog is the same size, roomy enough for a chart and two fields side by side; on a phone it takes the screen's
+   width less a 16px margin. */
 .dialog {
-  width: min(560px, calc(100vw - 32px));
-  max-height: min(760px, calc(100dvh - 32px));
+  width: min(720px, calc(100vw - 32px));
+  max-height: min(860px, calc(100dvh - 32px));
   padding: 0;
   border: 0;
   border-radius: 20px;
@@ -2168,7 +2165,7 @@ main {
   font-size: 18px;
 }
 
-/* A ✕ in the corner, for the decks whose footer is full of answers. */
+/* Every dialog has a ✕ in its corner, whatever its footer holds. */
 .dialog-head:has(.dialog-close) {
   position: relative;
   padding-right: 56px;
@@ -2198,8 +2195,7 @@ main {
 
 .dialog > .text-input,
 .category-add,
-.keep-name,
-.merged {
+.keep-name {
   margin: 8px 20px;
 }
 
@@ -2983,10 +2979,6 @@ main {
 
 /* One store's dialog: name and category */
 
-.store-dialog {
-  width: min(560px, calc(100vw - 32px));
-}
-
 /* The dialog can outgrow a small screen: its content scrolls inside. */
 .store-dialog-form {
   min-height: 0;
@@ -2998,7 +2990,7 @@ main {
 }
 
 .store-months .stat-bars-plot {
-  height: 120px;
+  height: 160px;
 }
 
 .store-dialog-form {
@@ -3006,10 +2998,17 @@ main {
   gap: 12px;
 }
 
+/* Name and category side by side, one above the other on a phone. */
+.store-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px 16px;
+  margin: 0 20px;
+}
+
 .store-dialog .field {
   display: grid;
   gap: 6px;
-  margin: 0 20px;
   color: var(--ink-soft);
   font-size: 13px;
 }
@@ -3290,33 +3289,64 @@ main {
   min-width: 0;
 }
 
-.merged {
-  max-height: 150px;
+/* Merged stores: each store with the stores merged into it, then the renamed ones. Only the list scrolls. */
+.merges-body {
+  display: grid;
+  align-content: start;
+  gap: 16px;
+  min-height: 0;
+  padding: 4px 0 20px;
   overflow: auto;
 }
 
-.merged h3 {
-  margin: 0 0 6px;
-  color: var(--ink-soft);
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.merged ul {
-  display: grid;
-  gap: 6px;
+.merge-groups {
   margin: 0;
-  padding: 0;
+  padding: 0 20px;
   list-style: none;
 }
 
-.merged li {
+.merge-groups > li {
+  display: grid;
+  gap: 6px;
+  padding: 12px 0;
+  border-top: 1px solid var(--line);
+}
+
+.merge-groups > li:first-child {
+  border-top: 0;
+}
+
+.merge-group-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+}
+
+.merge-group-head .store-line-rename {
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.merge-parts {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0 0 0 14px;
+  border-left: 2px solid var(--line);
+  list-style: none;
+}
+
+.merge-parts li {
   display: flex;
   justify-content: space-between;
+  align-items: baseline;
   gap: 12px;
   font-size: 14px;
+}
+
+.merges-body .empty {
+  margin: 0 20px;
 }
 
 /* App shell: one view at a time. Wide screens pick it in a sidebar, which also holds the account; narrower ones in a

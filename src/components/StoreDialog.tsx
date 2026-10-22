@@ -92,6 +92,9 @@ export function StoreDialog({
           <h2 id="store-dialog-title">
             {store.name} <WebSearch name={store.name} />
           </h2>
+          <button type="button" className="dialog-close" aria-label="Close" onClick={closeDialog}>
+            ✕
+          </button>
           <p className="hint">
             {facts.payments === 1 ? '1 payment' : `${facts.payments} payments`}
             {facts.spent > 0 && ` · ${money(facts.spent, facts.currency)}`}
@@ -102,30 +105,32 @@ export function StoreDialog({
             ))}
           </ul>
         </header>
-        <label className="field">
-          Name
-          <input
-            className="text-input"
-            value={name}
-            maxLength={80}
-            autoFocus
-            onFocus={event => event.target.select()}
-            onChange={event => setName(event.target.value)}
-          />
-        </label>
-        <label className="field">
-          Category
-          <select className="select" value={category} onChange={event => setCategory(event.target.value)}>
-            <option value="">
-              {auto?.icon} {auto?.label} (auto)
-            </option>
-            {categories.alphabetical.map(item => (
-              <option key={item.key} value={item.key}>
-                {item.icon} {item.label}
+        <div className="store-fields">
+          <label className="field">
+            Name
+            <input
+              className="text-input"
+              value={name}
+              maxLength={80}
+              autoFocus
+              onFocus={event => event.target.select()}
+              onChange={event => setName(event.target.value)}
+            />
+          </label>
+          <label className="field">
+            Category
+            <select className="select" value={category} onChange={event => setCategory(event.target.value)}>
+              <option value="">
+                {auto?.icon} {auto?.label} (auto)
               </option>
-            ))}
-          </select>
-        </label>
+              {categories.alphabetical.map(item => (
+                <option key={item.key} value={item.key}>
+                  {item.icon} {item.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
         {facts.months.length > 1 && (
           <section className="store-months">
             <BarStrip

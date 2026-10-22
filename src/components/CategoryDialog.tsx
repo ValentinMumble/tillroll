@@ -72,6 +72,9 @@ export function CategoryDialog({category, rows, categories, currency, onOpenPaym
           <h2 id="category-dialog-title">
             <span aria-hidden="true">{details?.icon}</span> {details?.label ?? category}
           </h2>
+          <button type="button" className="dialog-close" aria-label="Close" onClick={closeDialog}>
+            ✕
+          </button>
           <p className="hint">
             {facts.payments === 1 ? '1 payment' : `${facts.payments} payments`} · {money(facts.total, currency)} in all
           </p>

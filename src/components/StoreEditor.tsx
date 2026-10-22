@@ -16,7 +16,8 @@ interface Props {
   onRename: (storeKey: string, name: string, newName: string) => void;
   onCategory: (storeKey: string, category: CategoryKey | null) => void;
   onMerge: (storeKeys: string[], into: string) => void;
-  onSeparate: (storeKey: string) => void;
+  /** The merged stores' screen takes this dialog's place. */
+  onShowMerges: () => void;
   onClose: () => void;
 }
 
@@ -43,7 +44,7 @@ function mostCommon(counts: Map<CategoryKey, number>) {
 
 /** Every store: rename it, pick its category, or tick the ones that are the same place and merge them. */
 export function StoreEditor(props: Props) {
-  const {rows, rules, categories, merges, preselected, onRename, onCategory, onMerge, onSeparate, onClose} = props;
+  const {rows, rules, categories, merges, preselected, onRename, onCategory, onMerge, onShowMerges, onClose} = props;
   const {ref: dialogRef, onKeyDown: onDialogKeyDown, close: closeDialog} = useDialog();
   const [query, setQuery] = useState('');
   const [picked, setPicked] = useState<string[]>(preselected ? [preselected] : []);
@@ -72,11 +73,6 @@ export function StoreEditor(props: Props) {
       .map(({guesses, ...store}) => ({...store, guessed: mostCommon(guesses)}))
       .sort((first, second) => second.total - first.total || second.payments - first.payments);
   }, [rows]);
-
-  const merged = useMemo(() => {
-    const names = new Map(rows.map(row => [row.ownStoreKey, row.ownStore]));
-    return Object.entries(merges).map(([key, into]) => ({key, name: names.get(key) ?? key, into}));
-  }, [rows, merges]);
 
   const words = plain(query).split(/\s+/).filter(Boolean);
   const pickedStores = stores.filter(store => picked.includes(store.key));
@@ -123,6 +119,9 @@ export function StoreEditor(props: Props) {
     >
       <header className="dialog-head">
         <h2 id="store-editor-title">Stores</h2>
+        <button type="button" className="dialog-close" aria-label="Close" onClick={closeDialog}>
+          ✕
+        </button>
         <p className="hint">
           Rename a store or pick its category. Tick stores that are the same place to merge them into one.
         </p>
@@ -223,24 +222,12 @@ export function StoreEditor(props: Props) {
           </p>
         </div>
       )}
-      {merged.length > 0 && (
-        <section className="merged">
-          <h3>Merged and renamed</h3>
-          <ul>
-            {merged.map(item => (
-              <li key={item.key}>
-                <span>
-                  {item.name} <span className="muted">→ {item.into}</span>
-                </span>
-                <button type="button" className="link-button" onClick={() => onSeparate(item.key)}>
-                  Undo
-                </button>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
       <footer className="dialog-foot">
+        {Object.keys(merges).length > 0 && (
+          <button type="button" className="link-button store-dialog-more" onClick={onShowMerges}>
+            See merged stores ({Object.keys(merges).length})
+          </button>
+        )}
         <button type="button" className="button is-primary" onClick={closeDialog}>
           Close
         </button>

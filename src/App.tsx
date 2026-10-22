@@ -42,6 +42,7 @@ import {OverviewSkeleton} from './components/Skeleton';
 import {Sorter} from './components/Sorter';
 import {StoreDialog} from './components/StoreDialog';
 import {StoreEditor} from './components/StoreEditor';
+import {MergesDialog} from './components/MergesDialog';
 import {PeriodChart} from './components/PeriodChart';
 import {Summary} from './components/Summary';
 import {TabBar} from './components/TabBar';
@@ -102,6 +103,8 @@ interface Data {
 type Dialog =
   | {type: 'categories'; store: {key: string; name: string} | null}
   | {type: 'stores'; store: string | null}
+  /** Every merged and renamed store. */
+  | {type: 'merges'}
   /** One store, opened with a double-click. */
   | {type: 'store'; store: {key: string; name: string}}
   /** One category's month by month, opened from its trend. */
@@ -1160,6 +1163,8 @@ export default function App() {
               onOpenStore={store => setDialog({type: 'store', store})}
               duplicates={duplicates.length}
               onDuplicates={() => setDialog({type: 'duplicates', pairs: duplicates})}
+              merges={Object.keys(data?.merges ?? {}).length}
+              onMerges={() => setDialog({type: 'merges'})}
             />
           )}
           {tab === 'payments' && (
@@ -1210,7 +1215,16 @@ export default function App() {
           onRename={(storeKey, name, newName) => void renameStore(storeKey, name, newName)}
           onCategory={(storeKey, category) => void changeCategory(storeKey, category)}
           onMerge={(storeKeys, into) => void mergeStores(storeKeys, into)}
+          onShowMerges={() => setDialog({type: 'merges'})}
+          onClose={() => setDialog(null)}
+        />
+      )}
+      {dialog?.type === 'merges' && (
+        <MergesDialog
+          rows={rows}
+          merges={data?.merges ?? {}}
           onSeparate={storeKey => void separateStore(storeKey)}
+          onOpenStore={store => setDialog({type: 'store', store})}
           onClose={() => setDialog(null)}
         />
       )}

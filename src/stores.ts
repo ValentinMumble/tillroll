@@ -21,15 +21,17 @@ const BRANDS: [RegExp, string][] = [
   [/mcdo(nald)?/i, "McDonald's"],
   [/strava/i, 'Strava'],
   [/eurail|interrail/i, 'Eurail'],
+  [/vinted/i, 'Vinted'],
 ];
 
 /**
  * Payment apps that put their name before the store's: "SUMUP *CAFE DU COIN", "SUM*ADDU MAMMA" (cut by the bank),
- * "SUNDAY*LA FELICITA" (restaurant bills), "TRIBEE*", "LSP*LE BATEAU-LAVOIR" (Lightspeed), and Shopify's "SP " and
- * HiPay's "HPY " with no star.
+ * "SUNDAY*LA FELICITA" (restaurant bills), "TRIBEE*", "LSP*LE BATEAU-LAVOIR" (Lightspeed), HiPay's "HPY*FNAC PHOTO",
+ * MangoPay's "MGP*VINTED", PayPlug's "PPG*", Mollie's "MOL*", Lemonway's "LW*", Nayax's "NYA*" and "NYX*", CM.com's
+ * "CM *" and Lemon Squeezy's "LEMSQZY*". Some also come with a space instead of the star ("HPY ZOOMALIA.COM").
  */
 const PROCESSOR =
-  /^((sumup|sum|sq|zettle|izettle|paypal|pp|sp|stripe|lydia|zen|mollie|sunday|tribee|payplug|lyf|lsp)\s*[*_]+|(sp|hpy)\s+(?=\S))\s*/i;
+  /^((sumup|sum|sq|zettle|izettle|paypal|pp|sp|stripe|lydia|zen|mollie|mol|sunday|tribee|payplug|ppg|lyf|lsp|hpy|mgp|lw|nya|nyx|sta|uzr|wp|cm|lemsqzy)\s*[*_]+|(sp|hpy|mgp|ppg|sta|lw|lemsqzy)\s+(?=\S))\s*/i;
 
 /**
  * A French bank's card payment around the store's name: "CB CAFE POP FACT 270826 378902******7" (the day it was

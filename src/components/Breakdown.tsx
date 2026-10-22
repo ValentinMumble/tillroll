@@ -219,12 +219,17 @@ export function StoreBreakdown({
   onOpenStore,
   duplicates,
   onDuplicates,
+  merges,
+  onMerges,
 }: Props & {
   onEdit: () => void;
   onOpenStore: (store: {key: string; name: string}) => void;
   /** Look-alike stores waiting in the duplicates deck. */
   duplicates?: number;
   onDuplicates?: () => void;
+  /** How many stores are merged into others or renamed. */
+  merges?: number;
+  onMerges?: () => void;
 }) {
   const [query, setQuery] = useState('');
   const stores = [...report.current.stores.values()]
@@ -247,6 +252,11 @@ export function StoreBreakdown({
             {Boolean(duplicates) && onDuplicates && (
               <button type="button" className="link-button" onClick={onDuplicates}>
                 {duplicates === 1 ? '1 possible duplicate' : `${duplicates} possible duplicates`}
+              </button>
+            )}
+            {Boolean(merges) && onMerges && (
+              <button type="button" className="link-button" onClick={onMerges}>
+                Merged stores ({merges})
               </button>
             )}
             <button type="button" className="link-button" onClick={onEdit}>
