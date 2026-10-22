@@ -43,6 +43,9 @@ interface Props {
 
 const PAGE = 60;
 
+/** The phone layout's width, as the stylesheet has it. */
+const PHONE = '(max-width: 560px)';
+
 const plain = (text: string) =>
   text
     .normalize('NFKD')
@@ -257,7 +260,10 @@ export function Payments({
               savePaymentsEverything(event.target.checked);
             }}
           />
-          Show transfers and money in
+          <span className="long">Show transfers and money in</span>
+          <span className="short" aria-hidden="true">
+            Transfers too
+          </span>
         </label>
       </header>
       <div className="payments-filters">
@@ -332,6 +338,13 @@ export function Payments({
                 <tr
                   key={row.id}
                   className={`${row.counts && row.spend !== 0 ? '' : 'is-muted'}${picked.has(row.id) ? ' is-picked' : ''}`}
+                  onClick={event => {
+                    // On a phone the list is for fixing categories: a tap anywhere on a payment, off its buttons,
+                    // opens its category.
+                    if (!window.matchMedia(PHONE).matches) return;
+                    if ((event.target as HTMLElement).closest('button, a, input, form')) return;
+                    setSheet([row]);
+                  }}
                 >
                   <td className="payment-pick">
                     <input

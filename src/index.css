@@ -2993,13 +2993,9 @@ main {
 }
 
 @media (max-width: 560px) {
-  /* The tick-all box beside the search, the category filter under them. */
+  /* The search, the category filter under it (no tick-all box: a phone does not tick). */
   .payments-filters {
-    grid-template-columns: auto minmax(0, 1fr);
-  }
-
-  .payments-filters > :last-child {
-    grid-column: 1 / -1;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
@@ -3326,16 +3322,26 @@ main {
     display: block;
   }
 
-  /* Two lines per payment: tick, store, amount; then the date or time, and the category. */
+  /* Two lines per payment: store and amount, then the date or time and the category. On a phone the list is for
+     fixing categories: no ticks, and no search link or label button on each row (the store's dialog has the search;
+     labels already given still show). A tap on the row opens its category. */
   .payments tr {
     display: grid;
-    grid-template-columns: 28px minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr) auto;
     grid-template-areas:
-      'pick store amount'
-      'pick meta category';
-    gap: 2px 8px;
-    padding: 10px 0;
+      'store amount'
+      'meta meta';
+    align-items: center;
+    gap: 6px 12px;
+    padding: 12px 0;
     border-top: 1px solid var(--line);
+  }
+
+  .payments .payment-pick,
+  .payments .pick-all,
+  .payments .web-search,
+  .payments .label-add {
+    display: none;
   }
 
   .payments td {
@@ -3344,11 +3350,6 @@ main {
   }
 
   /* The table's cells only: the overview and the calendar list payments with the same classes, in their own grids. */
-  .payments .payment-pick {
-    grid-area: pick;
-    padding-top: 2px;
-  }
-
   .payments .payment-day {
     grid-area: meta;
     width: auto;
@@ -3363,9 +3364,12 @@ main {
     width: auto;
   }
 
+  /* The category shares the second line with the time, on its right: it never widens the amount's column, so a
+     wide category leaves the store's name its room. */
   .payments .payment-category {
-    grid-area: category;
+    grid-area: meta;
     width: auto;
+    max-width: calc(100% - 96px);
     justify-self: end;
   }
 
@@ -3373,6 +3377,35 @@ main {
     min-height: 28px;
     padding: 0 6px;
     font-size: 12px;
+  }
+
+  /* The category is what a payment is opened for: a pill that looks like it can be tapped. */
+  .payments .category-button {
+    min-height: 32px;
+    padding: 0 12px;
+    border-color: var(--line);
+    background: var(--surface-sunk);
+    font-size: 13px;
+  }
+
+  .payments .tag {
+    margin-left: 6px;
+    padding: 0 5px;
+    font-size: 10px;
+    vertical-align: 1px;
+  }
+
+  /* Sort and the transfers switch on one line, under the total. */
+  .payments .card-head > .segmented {
+    margin-left: 0;
+  }
+
+  .payments .card-head > .segmented + .toggle {
+    margin-left: auto;
+  }
+
+  .payments .card-head > .segmented button {
+    padding: 0 8px;
   }
 
   .selection-bar {
