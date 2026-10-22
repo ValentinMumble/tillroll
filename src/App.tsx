@@ -1085,6 +1085,7 @@ export default function App() {
                 labelNames={labelNames}
                 onLabels={changes => void setLabels(changes)}
                 onFocusLabel={label => focusOn({type: 'label', key: label})}
+                onOpenStore={store => setDialog({type: 'store', store})}
                 onSeeAll={() => {
                   setFocus(null);
                   setTab('payments');

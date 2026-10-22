@@ -25,9 +25,12 @@ interface Props {
   /** Each changed payment's full list of labels. */
   onLabels: (changes: Labels) => void;
   onFocusLabel: (label: string) => void;
+  /** The store's dialog, from its name. */
+  onOpenStore: (store: {key: string; name: string}) => void;
 }
 
 const SHOWN = 6;
+const PHONE = '(max-width: 560px)';
 
 /** The overview's last few payments of the period, each with its category to change, and the way to the full list. */
 export function LatestPayments({
@@ -40,6 +43,7 @@ export function LatestPayments({
   labelNames,
   onLabels,
   onFocusLabel,
+  onOpenStore,
 }: Props) {
   const [sheet, setSheet] = useState<Row | null>(null);
   // The same choices as the payment list's, remembered in each browser.
@@ -66,10 +70,26 @@ export function LatestPayments({
           {latest.map(row => {
             const category = categories.byKey[row.category];
             return (
-              <li key={row.id} className={row.counts || isIncoming(row) ? undefined : 'is-muted'}>
+              <li
+                key={row.id}
+                className={row.counts || isIncoming(row) ? undefined : 'is-muted'}
+                onClick={event => {
+                  // On a phone, like the payment list: a tap anywhere on a payment, off its buttons, opens its category.
+                  if (!window.matchMedia(PHONE).matches) return;
+                  if ((event.target as HTMLElement).closest('button, a, input, form')) return;
+                  setSheet(row);
+                }}
+              >
                 <span className="latest-store">
                   {showBanks && <BankBadge bank={row.bank} />}
-                  <span className="latest-name">{row.store}</span>
+                  <button
+                    type="button"
+                    className="payment-store-name latest-name"
+                    title={`${row.description}\nRename ${row.store} or change its category`}
+                    onClick={() => onOpenStore({key: row.storeKey, name: row.store})}
+                  >
+                    {row.store}
+                  </button>
                   {row.pending && <span className="tag">pending</span>}
                   <PaymentLabels row={row} onLabels={onLabels} onFocusLabel={onFocusLabel} />
                 </span>
