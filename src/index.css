@@ -40,6 +40,7 @@
   --tint: 16%;
   --font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+  --font-brand: 'Space Grotesk', var(--font-body);
   --radius: 14px;
 }
 
@@ -151,36 +152,29 @@ main {
   padding: 18px 0;
 }
 
+/* The name, set in Space Grotesk beside the mark. */
 .brand {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 9px;
   color: var(--ink);
-  font-family: var(--font-mono);
-  font-weight: 600;
-  font-size: 17px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  font-family: var(--font-brand);
+  font-weight: 700;
+  font-size: 21px;
+  letter-spacing: -0.02em;
   text-decoration: none;
 }
 
 .brand-mark {
   flex: none;
-  width: 26px;
-  height: 26px;
+  width: 24px;
+  height: 24px;
 }
 
 .brand-mark path {
   fill: none;
-  stroke-width: 2.5;
+  stroke-width: 5;
   stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.brand-mark .brand-paper {
-  fill: var(--surface);
-  stroke: var(--ink);
-  stroke-width: 2;
 }
 
 .top-actions {
