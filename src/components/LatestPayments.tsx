@@ -1,8 +1,8 @@
 import {useState} from 'react';
-import type {Categories} from '../categories';
+import {type Categories, colourStyle} from '../categories';
 import {money} from '../format';
 import {dayLabel, weekdayLabel} from '../periods';
-import type {Row} from '../report';
+import {isUnsure, type Row, topCategories} from '../report';
 import {loadPaymentsEverything, savePaymentsEverything} from '../storage';
 import type {CategoryKey, Labels} from '../types';
 import {BankBadge} from './BankBadge';
@@ -86,11 +86,14 @@ export function LatestPayments({
                 </span>
                 <button
                   type="button"
-                  className={`category-button${row.basis === 'picked' ? '' : ' is-auto'}`}
+                  className={`category-button${row.basis === 'picked' ? '' : ' is-auto'}${
+                    isUnsure(row) ? ' is-unsure' : ''
+                  }`}
+                  style={colourStyle(categories.colours[row.category])}
                   aria-label={`Category of this payment at ${row.store}: ${category?.label}. Change it`}
                   onClick={() => setSheet(row)}
                 >
-                  <span aria-hidden="true">{category?.icon}</span>
+                  <span className="cat-dot" aria-hidden="true" />
                   <span className="category-button-label">{category?.label}</span>
                   {row.ownCategory && (
                     <span className="own-mark" title="Picked for this payment only">
@@ -112,11 +115,17 @@ export function LatestPayments({
           title={sheet.store}
           detail={`${dayLabel(sheet.date, true)} · ${money(sheet.amount, sheet.currency, true)}`}
           scopes={[
-            {key: 'store', label: `Every payment at ${sheet.store}, past and future`},
-            {key: 'payment', label: 'Only this payment'},
+            {key: 'store', label: 'Whole store', hint: `Every payment at ${sheet.store}, past and future`},
+            {
+              key: 'payment',
+              label: 'This payment',
+              hint: `This payment only: the others at ${sheet.store} keep theirs`,
+            },
           ]}
           categories={categories}
           current={sheet.category}
+          guess={sheet.basis !== 'picked'}
+          frequent={topCategories(rows, 4)}
           onPick={(category, scope) => onCategorize([sheet], category, scope)}
           onCreate={(label, icon, scope) => onCreateCategory([sheet], label, icon, scope)}
           onClose={() => setSheet(null)}

@@ -48,7 +48,7 @@ import {Toolbar} from './components/Toolbar';
 import {timeAgo} from './format';
 import {forgetOwnerKey, isOwnerBrowser, keepOwnerKey, pendingOwnerKey} from './owner';
 import {type Grain, periodEnd, periodOf, shiftPeriod, today} from './periods';
-import {buildReport, type Row, rowsBetween, type StoreToSort, storesToSort, toRows} from './report';
+import {buildReport, isUnsure, type Row, rowsBetween, type StoreToSort, storesToSort, toRows} from './report';
 import {sampleTransactions} from './sample';
 import {readStatement} from './statement';
 import {findDuplicates, type Pair} from './duplicates';
@@ -434,6 +434,7 @@ export default function App() {
     [currencyRows, period, grain, categories],
   );
   const periodRows = useMemo(() => rowsBetween(currencyRows, report.from, report.to), [currencyRows, report]);
+  const toCheck = useMemo(() => periodRows.filter(isUnsure).length, [periodRows]);
 
   function changeGrain(next: Grain) {
     if (next === grain) return;
@@ -1016,7 +1017,7 @@ export default function App() {
                 </button>
               )}
               <section className="receipt">
-                <Summary report={report} period={period} grain={grain} currency={currency} />
+                <Summary report={report} period={period} grain={grain} currency={currency} categories={categories} />
                 <PeriodChart
                   series={report.series}
                   selected={grain === 'all' ? '' : period}
@@ -1026,6 +1027,18 @@ export default function App() {
                   onSelect={selectChartPeriod}
                 />
               </section>
+              {toCheck > 0 && (
+                <button type="button" className="check-card" onClick={() => focusOn({type: 'check'})}>
+                  <span className="check-count">{toCheck}</span>
+                  <span className="check-text">
+                    <strong>{toCheck === 1 ? 'A payment to check' : 'Payments to check'}</strong>
+                    <span>Tillroll guessed their category</span>
+                  </span>
+                  <span className="sort-banner-go" aria-hidden="true">
+                    ›
+                  </span>
+                </button>
+              )}
               <div className="columns">
                 <CategoryBreakdown
                   {...breakdown}
@@ -1155,6 +1168,7 @@ export default function App() {
               onLabels={changes => void setLabels(changes)}
               onFocusLabel={label => focusOn({type: 'label', key: label})}
               onFocusCategory={category => setFocus(category ? {type: 'category', key: category} : null)}
+              onFocusCheck={() => setFocus({type: 'check'})}
               showBanks={showBanks}
             />
           )}

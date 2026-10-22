@@ -1,5 +1,5 @@
 import {useState} from 'react';
-import type {Categories} from '../categories';
+import {type Categories, colourStyle} from '../categories';
 import {money, parseAmount} from '../format';
 import {daysBetween, type Grain, today} from '../periods';
 import type {Report} from '../report';
@@ -86,9 +86,9 @@ export function BudgetCard({report, grain, categories, budgets, currency, onSave
           {items.map(({key, budget, spent, status}) => {
             const details = categories.byKey[key];
             return (
-              <li key={key}>
+              <li key={key} style={colourStyle(categories.colours[key])}>
                 <span className="budget-name">
-                  <span aria-hidden="true">{details.icon}</span> {details.label}
+                  <span className="cat-dot" aria-hidden="true" /> {details.label}
                 </span>
                 <span className="budget-figures">
                   {money(spent, currency)} <small>of {money(budget, currency)}</small>

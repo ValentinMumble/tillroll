@@ -1,3 +1,4 @@
+import type {CSSProperties} from 'react';
 import type {BuiltInCategory, CategoryEdit, CategoryKey, Rules, Transaction} from './types';
 
 export interface Category extends CategoryEdit {
@@ -44,12 +45,47 @@ export function oneIcon(next: string, previous: string) {
   return emoji.find(item => item !== previous) ?? emoji[emoji.length - 1];
 }
 
+/** The style that hands a category's colour to its dot, bar or pill, as --cat. */
+export const colourStyle = (colour: string | undefined) => ({'--cat': colour ?? 'var(--cat-grey)'}) as CSSProperties;
+
 /** The categories in use: the built-in ones as changed by hand, and the new ones (before Other). */
 export interface Categories {
   list: Category[];
   /** The same, by name, for the dropdowns. */
   alphabetical: Category[];
   byKey: Record<CategoryKey, Category>;
+  /** Each one's colour, a CSS value (see colourOf). */
+  colours: Record<CategoryKey, string>;
+}
+
+/**
+ * The built-in spending categories' slots in the categorical palette (--cat-1 to --cat-8 in index.css, stepped for
+ * light and dark). Travel shares Going out and fun's violet: eight hues, nine categories, the two closest share.
+ */
+const SLOTS: Record<CategoryKey, number> = {
+  home: 1,
+  groceries: 2,
+  'eating-out': 3,
+  transport: 4,
+  shopping: 5,
+  bills: 6,
+  fun: 7,
+  travel: 7,
+  health: 8,
+};
+
+/** The slots the categories added by hand take, in turn: the ones the eye mixes up least with the built-in ones first. */
+const ADDED_SLOTS = [5, 7, 3, 4, 6, 2, 8, 1];
+
+/**
+ * A category's colour: its own slot for a built-in spending one, the next in turn for one added by hand (by its
+ * place among those, so it keeps it whatever it costs), and grey for Cash, Other and what is not spending. A
+ * colour always comes with the category's name, so two sharing one are never told apart by it alone.
+ */
+function colourOf(category: Category, added: Category[]) {
+  if (!category.spending) return 'var(--cat-grey)';
+  if (category.custom) return `var(--cat-${ADDED_SLOTS[added.indexOf(category) % ADDED_SLOTS.length]})`;
+  return SLOTS[category.key] ? `var(--cat-${SLOTS[category.key]})` : 'var(--cat-grey)';
 }
 
 export function categoriesFrom(edits: CategoryEdit[]): Categories {
@@ -66,6 +102,7 @@ export function categoriesFrom(edits: CategoryEdit[]): Categories {
       first.label.localeCompare(second.label, 'en', {sensitivity: 'base'}),
     ),
     byKey: Object.fromEntries(list.map(category => [category.key, category])),
+    colours: Object.fromEntries(list.map(category => [category.key, colourOf(category, added)])),
   };
 }
 

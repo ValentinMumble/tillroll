@@ -1,5 +1,5 @@
 import {useState} from 'react';
-import type {Categories} from '../categories';
+import {type Categories, colourStyle} from '../categories';
 import {money} from '../format';
 import type {Report} from '../report';
 import {type CategoryView, loadCategoryView, saveCategoryView} from '../storage';
@@ -7,9 +7,12 @@ import type {CategoryKey} from '../types';
 import {CategoryTrends} from './CategoryTrends';
 import {Delta} from './Delta';
 
-/** What the payment list is narrowed to: a category, a store, or a label (over all time). */
+/** What the payment list is narrowed to: a category, a store, a label (over all time), or the payments to check. */
 export type Focus =
-  {type: 'category'; key: CategoryKey} | {type: 'store'; key: string; name: string} | {type: 'label'; key: string};
+  | {type: 'category'; key: CategoryKey}
+  | {type: 'store'; key: string; name: string}
+  | {type: 'label'; key: string}
+  | {type: 'check'};
 
 interface Props {
   report: Report;
@@ -136,7 +139,7 @@ export function CategoryBreakdown({
             const category = categories.byKey[key];
             const active = focus?.type === 'category' && focus.key === key;
             return (
-              <li key={key}>
+              <li key={key} style={colourStyle(categories.colours[key])}>
                 <button
                   type="button"
                   className={`bar-row${active ? ' is-active' : ''}${preview ? '' : ' has-trend'}`}
@@ -144,9 +147,13 @@ export function CategoryBreakdown({
                   onClick={() => onFocus(active ? null : {type: 'category', key})}
                 >
                   <span className="bar-label">
-                    <span className="bar-icon" aria-hidden="true">
-                      {category.icon}
-                    </span>
+                    {preview ? (
+                      <span className="cat-dot" aria-hidden="true" />
+                    ) : (
+                      <span className="bar-icon" aria-hidden="true">
+                        {category.icon}
+                      </span>
+                    )}
                     {category.label}
                   </span>
                   {!preview && <Trend values={series.map(item => item.categories.get(key) ?? 0)} marked={marked} />}
@@ -175,7 +182,7 @@ export function CategoryBreakdown({
               const category = categories.byKey[key];
               const active = focus?.type === 'category' && focus.key === key;
               return (
-                <li key={key}>
+                <li key={key} style={colourStyle(categories.colours[key])}>
                   <button
                     type="button"
                     className={`bar-row is-other${active ? ' is-active' : ''}`}
@@ -271,7 +278,7 @@ export function StoreBreakdown({
           {shown.map(store => {
             const active = focus?.type === 'store' && focus.key === store.key;
             return (
-              <li key={store.key} className="bar-item">
+              <li key={store.key} className="bar-item" style={colourStyle(categories.colours[store.category])}>
                 <button
                   type="button"
                   className={`bar-row${active ? ' is-active' : ''}${preview ? '' : ' has-trend'}`}
@@ -279,9 +286,12 @@ export function StoreBreakdown({
                   onClick={() => onFocus(active ? null : {type: 'store', key: store.key, name: store.name})}
                 >
                   <span className="bar-label">
-                    <span className="bar-icon" aria-hidden="true">
-                      {categories.byKey[store.category].icon}
-                    </span>
+                    <span
+                      className="cat-dot"
+                      role="img"
+                      aria-label={categories.byKey[store.category]?.label}
+                      title={categories.byKey[store.category]?.label}
+                    />
                     <span className="bar-name">{store.name}</span>
                   </span>
                   {!preview && (

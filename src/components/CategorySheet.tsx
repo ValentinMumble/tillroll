@@ -1,36 +1,76 @@
 import {useState} from 'react';
-import {type Categories, DEFAULT_ICON, oneIcon} from '../categories';
+import {type Categories, colourStyle, DEFAULT_ICON, oneIcon} from '../categories';
 import type {CategoryKey} from '../types';
 import {useDialog} from '../useDialog';
 
 export interface Scope {
   key: string;
   label: string;
+  /** What the choice changes, said in full under the switch. */
+  hint: string;
 }
 
 interface Props {
   title: string;
   detail: string;
-  /** Where the choice applies, the first one picked to start with. */
+  /** Where the choice applies, the first one picked to start with: two, side by side. */
   scopes: Scope[];
   categories: Categories;
   /** The category now, outlined. */
   current: CategoryKey | null;
+  /** The category now is Tillroll's guess: it can be kept as it is, and it is outlined dashed. */
+  guess: boolean;
+  /** The categories used most, offered first. */
+  frequent: CategoryKey[];
   onPick: (category: CategoryKey | null, scope: string) => void;
   onCreate: (label: string, icon: string, scope: string) => void;
   onClose: () => void;
 }
 
-/** Pick a category for one payment or several: first where it applies (these payments, or their stores), then which. */
-export function CategorySheet({title, detail, scopes, categories, current, onPick, onCreate, onClose}: Props) {
+/**
+ * Pick a category for one payment or several: where it applies (these payments, or their stores), then which, the
+ * ones used most first, each in its colour. A guess can be kept as it is, or a new category made.
+ */
+export function CategorySheet({
+  title,
+  detail,
+  scopes,
+  categories,
+  current,
+  guess,
+  frequent,
+  onPick,
+  onCreate,
+  onClose,
+}: Props) {
   const {ref: dialogRef, onKeyDown: onDialogKeyDown, close: closeDialog} = useDialog();
   const [scope, setScope] = useState(scopes[0].key);
+  const [adding, setAdding] = useState(false);
   const [name, setName] = useState('');
   const [icon, setIcon] = useState('');
+  const often = frequent.filter(key => key !== current && categories.byKey[key]).slice(0, 3);
 
   function pick(category: CategoryKey | null) {
     onPick(category, scope);
     closeDialog();
+  }
+
+  function categoryButton(key: CategoryKey, big = false) {
+    const category = categories.byKey[key];
+    const isCurrent = current === key;
+    return (
+      <button
+        key={key}
+        type="button"
+        className={`category-chip${big ? ' is-big' : ''}${isCurrent ? (guess ? ' is-guess' : ' is-current') : ''}`}
+        aria-pressed={isCurrent}
+        style={colourStyle(categories.colours[key])}
+        onClick={() => pick(key)}
+      >
+        <span className="cat-dot" aria-hidden="true" />
+        {category.label}
+      </button>
+    );
   }
 
   return (
@@ -45,63 +85,74 @@ export function CategorySheet({title, detail, scopes, categories, current, onPic
         <h2 id="category-sheet-title">{title}</h2>
         <p className="hint">{detail}</p>
       </header>
-      <fieldset className="scopes">
-        <legend className="visually-hidden">Apply to</legend>
-        {scopes.map(item => (
-          <label key={item.key} className={`scope${scope === item.key ? ' is-on' : ''}`}>
-            <input type="radio" name="scope" checked={scope === item.key} onChange={() => setScope(item.key)} />
-            {item.label}
-          </label>
-        ))}
-      </fieldset>
       <div className="sheet-body">
-        <div className="chip-grid" role="group" aria-label="Category">
-          {categories.alphabetical.map(category => (
-            <button
-              key={category.key}
-              type="button"
-              className={`category-chip${current === category.key ? ' is-current' : ''}`}
-              aria-pressed={current === category.key}
-              onClick={() => pick(category.key)}
-            >
-              <span aria-hidden="true">{category.icon}</span>
-              {category.label}
-            </button>
-          ))}
+        <div className="sheet-scope">
+          <div className="scope-switch" role="group" aria-label="Apply to">
+            {scopes.map(item => (
+              <button key={item.key} type="button" aria-pressed={scope === item.key} onClick={() => setScope(item.key)}>
+                {item.label}
+              </button>
+            ))}
+          </div>
+          <p className="hint">{scopes.find(item => item.key === scope)?.hint}</p>
         </div>
-        <form
-          className="category-add"
-          onSubmit={event => {
-            event.preventDefault();
-            if (!name.trim()) return;
-            onCreate(name.trim(), icon || DEFAULT_ICON, scope);
-            closeDialog();
-          }}
-        >
-          <input
-            className="icon-input"
-            aria-label="Icon of the new category"
-            placeholder={DEFAULT_ICON}
-            value={icon}
-            onChange={event => setIcon(oneIcon(event.target.value, icon))}
-          />
-          <input
-            className="text-input"
-            aria-label="New category"
-            placeholder="Or a new category"
-            value={name}
-            maxLength={40}
-            onChange={event => setName(event.target.value)}
-          />
-          <button type="submit" className="button" disabled={!name.trim()}>
-            Add
-          </button>
-        </form>
+        {often.length > 0 && (
+          <section className="sheet-group" aria-labelledby="sheet-often">
+            <h3 id="sheet-often">Most used</h3>
+            <div className="sheet-often">{often.map(key => categoryButton(key, true))}</div>
+          </section>
+        )}
+        <section className="sheet-group" aria-labelledby="sheet-all">
+          <h3 id="sheet-all">All categories</h3>
+          <div className="chip-grid">{categories.alphabetical.map(category => categoryButton(category.key))}</div>
+          {!adding && (
+            <button type="button" className="link-button sheet-new" onClick={() => setAdding(true)}>
+              + New category
+            </button>
+          )}
+        </section>
+        {adding && (
+          <form
+            className="category-add"
+            onSubmit={event => {
+              event.preventDefault();
+              if (!name.trim()) return;
+              onCreate(name.trim(), icon || DEFAULT_ICON, scope);
+              closeDialog();
+            }}
+          >
+            <input
+              className="icon-input"
+              aria-label="Icon of the new category"
+              placeholder={DEFAULT_ICON}
+              value={icon}
+              onChange={event => setIcon(oneIcon(event.target.value, icon))}
+            />
+            <input
+              className="text-input"
+              aria-label="New category"
+              placeholder="Its name"
+              value={name}
+              maxLength={40}
+              autoFocus
+              onChange={event => setName(event.target.value)}
+            />
+            <button type="submit" className="button" disabled={!name.trim()}>
+              Add
+            </button>
+          </form>
+        )}
       </div>
       <footer className="dialog-foot">
-        <button type="button" className="link-button sheet-auto" onClick={() => pick(null)}>
-          Back to automatic
-        </button>
+        {guess && current ? (
+          <button type="button" className="button sheet-auto" onClick={() => pick(current)}>
+            Keep the guess
+          </button>
+        ) : (
+          <button type="button" className="link-button sheet-auto" onClick={() => pick(null)}>
+            Back to automatic
+          </button>
+        )}
         <button type="button" className="button is-quiet" onClick={closeDialog}>
           Cancel
         </button>

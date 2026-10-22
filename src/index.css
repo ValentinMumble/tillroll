@@ -25,6 +25,19 @@
   --heat-3: #5598e7;
   --heat-4: #2a78d6;
   --heat-5: #1c5cab;
+  /* The categories' colours: the eight hues of the categorical palette, in their validated order, and a grey for Cash,
+     Other and what is not spending. Text never wears them: they go on dots, bars and tints. */
+  --cat-1: #2a78d6;
+  --cat-2: #eb6834;
+  --cat-3: #1baf7a;
+  --cat-4: #eda100;
+  --cat-5: #e87ba4;
+  --cat-6: #008300;
+  --cat-7: #6250d6;
+  --cat-8: #e34948;
+  --cat-grey: #8a8780;
+  /* How much of a category's colour tints its pill. */
+  --tint: 16%;
   --font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
   --radius: 14px;
@@ -55,6 +68,16 @@
     --heat-3: #256abf;
     --heat-4: #3987e5;
     --heat-5: #86b6ef;
+    --cat-1: #3987e5;
+    --cat-2: #d95926;
+    --cat-3: #199e70;
+    --cat-4: #c98500;
+    --cat-5: #d55181;
+    --cat-6: #008300;
+    --cat-7: #9085e9;
+    --cat-8: #e66767;
+    --cat-grey: #77756f;
+    --tint: 24%;
   }
 }
 
@@ -853,7 +876,7 @@ main {
   height: 100%;
   min-width: 2px;
   border-radius: 0 4px 4px 0;
-  background: var(--bar-strong);
+  background: var(--cat, var(--bar-strong));
 }
 
 /* Calendar: a year, one square per day */
@@ -1491,21 +1514,46 @@ main {
   padding: 0 10px;
   border: 1px solid transparent;
   border-radius: 999px;
-  background: none;
+  background: color-mix(in srgb, var(--cat, var(--cat-grey)) var(--tint), var(--surface));
   font-size: 13px;
   font-weight: 500;
   text-align: left;
   cursor: pointer;
 }
 
-.category-button:hover {
-  border-color: var(--line);
-  background: var(--surface-sunk);
+/* A category's colour as a dot before its name (the pills, the lists, the picker). */
+.cat-dot {
+  display: inline-block;
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  background: var(--cat, var(--cat-grey));
 }
 
-.category-button.is-auto {
-  color: var(--ink-soft);
-  font-weight: 400;
+/* What a day spent, by category, beside its heading. */
+.day-strip {
+  display: inline-flex;
+  gap: 2px;
+  width: 56px;
+  height: 6px;
+  margin-left: 10px;
+  vertical-align: 1px;
+}
+
+.day-strip span {
+  flex-basis: 0;
+  border-radius: 2px;
+  background: var(--cat);
+}
+
+.tag.is-check {
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+  color: var(--accent);
+}
+
+.category-button:hover {
+  border-color: var(--cat, var(--line));
 }
 
 .category-button-label {
@@ -1586,6 +1634,7 @@ main {
   width: min(600px, calc(100vw - 32px));
 }
 
+/* A choice of options in rows (the duplicates deck's name to keep). */
 .scopes {
   display: grid;
   gap: 6px;
@@ -1608,6 +1657,59 @@ main {
 .scope.is-on {
   border-color: var(--accent);
   box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+/* Where a category applies: two choices side by side, and what the one picked changes, in full under them. */
+.scope-switch {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding: 3px;
+  border-radius: 12px;
+  background: var(--surface-sunk);
+}
+
+.scope-switch button {
+  min-height: 44px;
+  padding: 4px 8px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: var(--ink-soft);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.scope-switch button[aria-pressed='true'] {
+  background: var(--surface);
+  color: var(--ink);
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(11, 11, 11, 0.08);
+}
+
+.sheet-scope .hint {
+  margin: 6px 2px 0;
+  font-size: 13px;
+}
+
+.sheet-group {
+  display: grid;
+  gap: 8px;
+}
+
+.sheet-group h3 {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* The categories used most: big pills in their colour. */
+.sheet-often {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .sheet-body {
@@ -1820,7 +1922,7 @@ main {
   position: absolute;
   inset: 0 auto 0 0;
   border-radius: inherit;
-  background: var(--accent);
+  background: var(--cat, var(--accent));
 }
 
 .budget-fill.is-fast {
@@ -2387,8 +2489,12 @@ main {
 
 .chip-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
   gap: 8px;
+}
+
+.sheet-new {
+  justify-self: start;
 }
 
 .category-chip {
@@ -2411,8 +2517,22 @@ main {
 }
 
 .category-chip.is-current {
-  border-color: var(--accent);
-  box-shadow: inset 0 0 0 1px var(--accent);
+  border-color: var(--cat, var(--accent));
+  box-shadow: inset 0 0 0 1px var(--cat, var(--accent));
+}
+
+/* The category now, when it is Tillroll's guess: dashed, like its pill in the list. */
+.category-chip.is-guess {
+  border: 1.5px dashed var(--cat, var(--axis));
+}
+
+.category-chip.is-big {
+  min-height: 48px;
+  padding: 0 16px;
+  border-color: transparent;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--cat, var(--cat-grey)) var(--tint), var(--surface));
+  font-size: 15px;
 }
 
 .sorter .category-add {
@@ -2484,6 +2604,74 @@ main {
   font-weight: 600;
   text-align: left;
   cursor: pointer;
+}
+
+/* The period's spending split by category, under the total: each colour as long as its share. */
+.spend-strip {
+  display: flex;
+  gap: 2px;
+  height: 14px;
+  margin: 16px 0 4px;
+}
+
+.spend-strip span {
+  flex-basis: 0;
+  min-width: 3px;
+  background: var(--cat);
+}
+
+.spend-strip span:first-child {
+  border-radius: 4px 0 0 4px;
+}
+
+.spend-strip span:last-child {
+  border-radius: 0 4px 4px 0;
+}
+
+.spend-strip span:only-child {
+  border-radius: 4px;
+}
+
+/* The overview's way to the payments to check: their number, what they are, an arrow. */
+.check-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 60px;
+  padding: 10px 16px;
+  border: 0;
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+  color: var(--accent);
+  text-align: left;
+  cursor: pointer;
+}
+
+.check-count {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  min-width: 30px;
+  height: 30px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.check-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.check-text span {
+  color: var(--ink-soft);
+  font-size: 13px;
 }
 
 .sort-banner-go {
@@ -3002,11 +3190,11 @@ main {
   flex: 1;
   min-height: 2px;
   border-radius: 2px 2px 0 0;
-  background: var(--bar);
+  background: color-mix(in srgb, var(--cat, var(--bar)) 55%, var(--surface));
 }
 
 .trend-card-bar.is-marked {
-  background: var(--bar-strong);
+  background: var(--cat, var(--bar-strong));
 }
 
 .trend-card-total {
@@ -3246,9 +3434,10 @@ main {
   color: var(--accent);
 }
 
-/* A category guessed with little to go on: a dashed outline asks for a look. */
+/* A category guessed with little to go on: a dashed outline in its colour asks for a look. */
 .category-button.is-unsure {
-  border: 1px dashed var(--axis);
+  border: 1.5px dashed var(--cat, var(--axis));
+  background: var(--surface);
 }
 
 @media (max-width: 560px) {
@@ -3274,14 +3463,14 @@ main {
 
 .trend polyline {
   fill: none;
-  stroke: var(--bar);
+  stroke: var(--cat, var(--bar));
   stroke-width: 1.5;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
 
 .trend circle {
-  fill: var(--bar-strong);
+  fill: var(--cat, var(--bar-strong));
   stroke: var(--surface);
   stroke-width: 1.5;
 }
@@ -3646,14 +3835,7 @@ main {
   .payments .category-button {
     min-height: 32px;
     padding: 0 12px;
-    border-color: var(--line);
-    background: var(--surface-sunk);
     font-size: 13px;
-  }
-
-  .payments .category-button.is-unsure {
-    border-color: var(--muted);
-    background: none;
   }
 
   .payments .tag {

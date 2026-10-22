@@ -1,4 +1,4 @@
-import type {Categories} from '../categories';
+import {type Categories, colourStyle} from '../categories';
 import {money} from '../format';
 import {type Grain, periodLabel} from '../periods';
 import type {Report} from '../report';
@@ -44,7 +44,7 @@ export function CategoryTrends({report, categories, currency, onOpen}: Props) {
         {trends.map(({category, values, total}) => {
           const top = Math.max(...values, 1);
           return (
-            <li key={category.key}>
+            <li key={category.key} style={colourStyle(categories.colours[category.key])}>
               <button
                 type="button"
                 className="trend-card"

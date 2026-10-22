@@ -444,6 +444,21 @@ function percent(part: number, whole: number) {
 /** A regular payment's price changed for real: by 50 cents and 3% at least (a bill that moves by a few cents did not). */
 export const priceChanged = (item: Subscription) => Math.abs(item.change) >= Math.max(0.5, item.monthly * 0.03);
 
+/** The categories most payments went to (spending, Other left out), most first: a category picker offers them first. */
+export function topCategories(rows: Row[], count: number): CategoryKey[] {
+  const counts = new Map<CategoryKey, number>();
+  for (const row of rows) {
+    if (row.spend > 0 && row.category !== 'other') counts.set(row.category, (counts.get(row.category) ?? 0) + 1);
+  }
+  return [...counts]
+    .sort((first, second) => second[1] - first[1])
+    .slice(0, count)
+    .map(([key]) => key);
+}
+
+/** A payment whose category Tillroll guessed with little to go on (see UNSURE), money out only: one to check. */
+export const isUnsure = (row: Row) => row.amount < 0 && UNSURE.includes(row.basis);
+
 /** The same day a month later, or the month's last day when it is shorter (31 Jan, then 28 Feb). */
 function monthLater(date: string) {
   const month = shiftPeriod(date.slice(0, 7), 'month', 1);

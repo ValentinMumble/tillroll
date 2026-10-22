@@ -1,9 +1,9 @@
 import {useState} from 'react';
-import {type Categories, UNSURE} from '../categories';
+import {type Categories, colourStyle} from '../categories';
 import {money} from '../format';
 import {tidyLabel, withLabel} from '../labels';
 import {dayLabel, today, weekdayLabel} from '../periods';
-import type {Row} from '../report';
+import {isUnsure, type Row, topCategories} from '../report';
 import {
   loadPaymentSort,
   loadPaymentsEverything,
@@ -37,6 +37,8 @@ interface Props {
   onFocusLabel: (label: string) => void;
   /** The category filter above the list; null shows every category. */
   onFocusCategory: (category: CategoryKey | null) => void;
+  /** Shows the payments to check only. */
+  onFocusCheck: () => void;
   /** The payments come from more than one bank: each shows its bank's letter. */
   showBanks: boolean;
 }
@@ -57,9 +59,6 @@ function searchText(row: Row) {
   const amount = Math.abs(row.amount).toFixed(2);
   return plain(`${row.store} ${row.description} ${amount} ${amount.replace('.', ',')}`);
 }
-
-/** A payment whose category Tillroll guessed with little to go on (see UNSURE), money out only: one to check. */
-const isUnsure = (row: Row) => row.amount < 0 && UNSURE.includes(row.basis);
 
 /** The sort buttons, with the way each one starts: newest, biggest, A to Z. */
 const SORTS: {key: PaymentSort['key']; label: string; descending: boolean}[] = [
@@ -101,6 +100,7 @@ export function Payments({
   onLabels,
   onFocusLabel,
   onFocusCategory,
+  onFocusCheck,
   showBanks,
 }: Props) {
   const [everything, setEverything] = useState(loadPaymentsEverything);
@@ -114,7 +114,7 @@ export function Payments({
   // The payments the category sheet is open for.
   const [sheet, setSheet] = useState<Row[] | null>(null);
   // Only the payments to check; one fixed leaves the list.
-  const [toCheck, setToCheck] = useState(false);
+  const toCheck = focus?.type === 'check';
   const unsure = rows.filter(isUnsure).length;
 
   // An amount searched for can carry its sign or its currency ("-448,80 €").
@@ -158,9 +158,16 @@ export function Payments({
   const withYears = years.size > 1 || (years.size === 1 && !years.has(today().slice(0, 4)));
   const dayTotals = new Map<string, number>();
   const dayCounts = new Map<string, number>();
+  // What each day spent by category, for the strip of colours beside its heading.
+  const dayParts = new Map<string, Map<CategoryKey, number>>();
   for (const row of visible) {
     dayCounts.set(row.date, (dayCounts.get(row.date) ?? 0) + 1);
     if (row.amount < 0 && !row.leftOut) dayTotals.set(row.date, (dayTotals.get(row.date) ?? 0) - row.amount);
+    if (row.spend > 0) {
+      const parts = dayParts.get(row.date) ?? new Map<CategoryKey, number>();
+      parts.set(row.category, (parts.get(row.category) ?? 0) + row.spend);
+      dayParts.set(row.date, parts);
+    }
   }
   // Every category with payments, with their number: picking one shows them all.
   const categoryCounts = new Map<CategoryKey, number>();
@@ -207,14 +214,19 @@ export function Payments({
     ? []
     : sheet.length === 1
       ? [
-          {key: 'store', label: `Every payment at ${sheet[0].store}, past and future`},
-          {key: 'payment', label: 'Only this payment'},
+          {key: 'store', label: 'Whole store', hint: `Every payment at ${sheet[0].store}, past and future`},
+          {
+            key: 'payment',
+            label: 'This payment',
+            hint: `This payment only: the others at ${sheet[0].store} keep theirs`,
+          },
         ]
       : [
-          {key: 'payment', label: `Only these ${sheet.length} payments`},
+          {key: 'payment', label: `Only these ${sheet.length}`, hint: `These ${sheet.length} payments only`},
           {
             key: 'store',
-            label:
+            label: sheetStores.length === 1 ? 'Whole store' : 'Their stores',
+            hint:
               sheetStores.length === 1
                 ? `Every payment at ${sheetStores[0]}, past and future`
                 : `Every payment at these ${sheetStores.length} stores, past and future`,
@@ -310,7 +322,8 @@ export function Payments({
             aria-pressed={toCheck}
             title="The payments whose category Tillroll guessed with little to go on"
             onClick={() => {
-              setToCheck(!toCheck);
+              if (toCheck) onClearFocus();
+              else onFocusCheck();
               setLimit(PAGE);
             }}
           >
@@ -329,7 +342,10 @@ export function Payments({
         >
           <option value="">All categories</option>
           {categories.alphabetical
-            .filter(category => categoryCounts.has(category.key) || focus?.key === category.key)
+            .filter(
+              category =>
+                categoryCounts.has(category.key) || (focus?.type === 'category' && focus.key === category.key),
+            )
             .map(category => (
               <option key={category.key} value={category.key}>
                 {category.icon} {category.label} ({categoryCounts.get(category.key) ?? 0})
@@ -360,6 +376,15 @@ export function Payments({
                   <tr key={`day-${row.date}`} className="day-row">
                     <th colSpan={withTimes ? 4 : 3} scope="rowgroup">
                       {weekdayLabel(row.date, withYears)}
+                      {dayParts.get(row.date) && (
+                        <span className="day-strip" aria-hidden="true">
+                          {[...(dayParts.get(row.date) ?? [])]
+                            .sort((first, second) => second[1] - first[1])
+                            .map(([key, value]) => (
+                              <span key={key} style={{...colourStyle(categories.colours[key]), flexGrow: value}} />
+                            ))}
+                        </span>
+                      )}
                     </th>
                     <td className="payment-amount">
                       {/* A day with one payment already shows its amount on the row. */}
@@ -408,6 +433,7 @@ export function Payments({
                     </button>
                     <WebSearch name={row.store} />
                     {row.pending && <span className="tag">pending</span>}
+                    {isUnsure(row) && <span className="tag is-check">to check</span>}
                     {row.refundOf && (
                       <span className="tag is-refund" title="This payment costs that much less instead">
                         refund of {dayLabel(row.refundOf.date, withYears)}
@@ -437,9 +463,10 @@ export function Payments({
                       aria-label={`Category of this payment at ${row.store}: ${category?.label}${
                         row.basis === 'picked' ? '' : isUnsure(row) ? ' (a guess, to check)' : ' (automatic)'
                       }. Change it`}
+                      style={colourStyle(categories.colours[row.category])}
                       onClick={() => setSheet([row])}
                     >
-                      <span aria-hidden="true">{category?.icon}</span>
+                      <span className="cat-dot" aria-hidden="true" />
                       <span className="category-button-label">{category?.label}</span>
                       {row.ownCategory && (
                         <span className="own-mark" title="Picked for this payment only">
@@ -524,6 +551,8 @@ export function Payments({
           scopes={scopes}
           categories={categories}
           current={sheetCategories.size === 1 ? [...sheetCategories][0] : null}
+          guess={sheet.every(row => row.basis !== 'picked')}
+          frequent={topCategories(rows, 4)}
           onPick={(category, scope) => {
             onCategorize(sheet, category, scope);
             if (sheet.length > 1) setPicked(new Set());
