@@ -36,6 +36,7 @@ import {Sidebar} from './components/Sidebar';
 import {Savings} from './components/Savings';
 import {RegularPayments} from './components/RegularPayments';
 import {BudgetCard} from './components/Budgets';
+import {Logo} from './components/Logo';
 import {MoneyFlow} from './components/MoneyFlow';
 import {OverviewSkeleton} from './components/Skeleton';
 import {Sorter} from './components/Sorter';
@@ -54,7 +55,15 @@ import {readStatement} from './statement';
 import {findDuplicates, type Pair} from './duplicates';
 import {withLabel, withoutLabel} from './labels';
 import {storeKey as keyOfStore} from './stores';
-import {loadGrain, loadLocalData, loadLocalSorting, saveGrain, saveLocalData, saveLocalSorting} from './storage';
+import {
+  loadGrain,
+  loadLocalData,
+  loadLocalSorting,
+  saveGrain,
+  saveLocalData,
+  saveLocalSorting,
+  savePaymentSort,
+} from './storage';
 import {MENU_ONLY, type Tab, TABS} from './tabs';
 import type {
   Balance,
@@ -250,10 +259,11 @@ export default function App() {
   // Bumped to start the payment list over: a new key gives it a fresh search and no ticks.
   const [paymentsRun, setPaymentsRun] = useState(0);
 
-  /** A view picked in the sidebar or the tab bar. Picking Payments again clears its filter and search. */
+  /** A view picked in the sidebar or the tab bar. Picking Payments again clears its filter and search, newest first. */
   function openTab(next: Tab) {
     if (next === 'payments' && tab === 'payments') {
       setFocus(null);
+      savePaymentSort({key: 'date', descending: true});
       setPaymentsRun(run => run + 1);
       window.scrollTo({top: 0});
     }
@@ -864,9 +874,7 @@ export default function App() {
   const header = (
     <header className="top">
       <a className="brand" href="/">
-        <span className="brand-mark" aria-hidden="true">
-          💸
-        </span>
+        <Logo />
         Tillroll
       </a>
       <div className="top-actions">

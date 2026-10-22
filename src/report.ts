@@ -138,16 +138,26 @@ const PAYPAL_DAYS = 4;
  * PayPal of the same amount, up to 4 days apart, is the money that paid it: it moves between one's own accounts, and
  * the purchase counts once, at its shop. A payment in another currency matches on the shop's first word instead
  * ("Paypal *veloviewer" and "VeloViewer Ltd"). Money PayPal pays out to the bank is between one's accounts on both
- * sides. A category picked for the bank payment itself stays.
+ * sides: a withdrawal (PayPal's sync names it "Unknown", its statement "Retrait initié par l'utilisateur") pairs with
+ * the bank's money in of as much first, so money received on PayPal the same day never takes its place. A category
+ * picked for the bank payment itself stays.
  */
 function linkPayPal(rows: Row[]) {
   const paypal = rows.filter(row => row.bank === 'PayPal').sort((first, second) => (first.date < second.date ? -1 : 1));
   if (!paypal.length) return;
   const open = rows.filter(row => row.bank !== 'PayPal' && /paypal/i.test(row.description) && !row.ownCategory);
   const firstWord = (row: Row) => row.storeKey.split(' ')[0];
-  for (const payment of paypal) {
+  const near = (row: Row, payment: Row) =>
+    Math.abs(Date.parse(row.date) - Date.parse(payment.date)) <= PAYPAL_DAYS * 86_400_000;
+  const isWithdrawal = (payment: Row) =>
+    payment.amount < 0 && (payment.kind === 'topup' || /^unknown$|retrait|withdraw/i.test(payment.description));
+  const withdrawals = paypal.filter(isWithdrawal);
+  for (const payment of [...withdrawals, ...paypal.filter(row => !isWithdrawal(row))]) {
     const twin = open.find(row => {
-      if (Math.abs(Date.parse(row.date) - Date.parse(payment.date)) > PAYPAL_DAYS * 86_400_000) return false;
+      if (!near(row, payment)) return false;
+      if (isWithdrawal(payment)) {
+        return row.amount > 0 && row.currency === payment.currency && cents(row.amount) === cents(payment.amount);
+      }
       if (row.currency === payment.currency) return cents(row.amount) === cents(payment.amount);
       return (
         row.amount < 0 && payment.amount < 0 && firstWord(row).length >= 4 && firstWord(row) === firstWord(payment)
@@ -372,6 +382,31 @@ export function rowsBetween(rows: Row[], from: string, to: string) {
   return rows.filter(row => row.date >= from && row.date <= to);
 }
 
+/** Money in that is not a refund or a move between one's own accounts. */
+const isMoneyIn = (row: Row) => !row.leftOut && !row.counts && row.amount > 0;
+
+/**
+ * The rows with pay dated for the month it is for: pay that comes at the end of a month (from the 20th) is the next
+ * month's, so it counts on that month's first day. Pay is money in, in Money in, from a payer who paid 300 or more in
+ * at least three months. Only money in moves this way; the payment list keeps the real day.
+ */
+function withPayDated(rows: Row[]) {
+  const paidMonths = new Map<string, Set<string>>();
+  for (const row of rows) {
+    if (!isMoneyIn(row) || row.category !== 'income' || row.amount < 300) continue;
+    paidMonths.set(row.storeKey, (paidMonths.get(row.storeKey) ?? new Set<string>()).add(row.date.slice(0, 7)));
+  }
+  const payers = new Set([...paidMonths].filter(([, months]) => months.size >= 3).map(([key]) => key));
+  return rows.map(row =>
+    isMoneyIn(row) && payers.has(row.storeKey) && Number(row.date.slice(8, 10)) >= 20
+      ? {...row, date: `${shiftPeriod(row.date.slice(0, 7), 'month', 1)}-01`}
+      : row,
+  );
+}
+
+const moneyInBetween = (rows: Row[], from: string, to: string) =>
+  rows.filter(row => isMoneyIn(row) && row.date >= from && row.date <= to).reduce((sum, row) => sum + row.amount, 0);
+
 export interface Insight {
   icon: string;
   text: string;
@@ -540,6 +575,9 @@ export function buildReport(rows: Row[], period: string, grain: Grain, now: stri
   const to = grain === 'all' ? lastDay : periodEnd(period, grain);
   const ongoing = grain !== 'all' && now >= from && now <= to;
   const current = totalsOf(rowsBetween(rows, from, to));
+  // Money in counts pay in the month it is for.
+  const payDated = withPayDated(rows);
+  current.moneyIn = moneyInBetween(payDated, from, to);
   const {word, scope, spending: spendingWords} = WORDING[grain];
   // A period the data only partly covers (the first one) would make a poor comparison.
   const fullyCovered = (item: string) => periodStart(item, grain) >= firstDay;
@@ -592,7 +630,7 @@ export function buildReport(rows: Row[], period: string, grain: Grain, now: stri
     series.push({
       period: item,
       total: totals.total,
-      moneyIn: totals.moneyIn,
+      moneyIn: moneyInBetween(payDated, itemStart, itemEnd),
       payments: totals.payments,
       categories: totals.categories,
       stores: totals.stores,

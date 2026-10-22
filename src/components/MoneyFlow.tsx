@@ -19,21 +19,32 @@ export function MoneyFlow({report, grain, currency}: Props) {
   if (grain === 'week' || columns.every(item => item.moneyIn < 0.5)) return null;
   const kept = moneyIn - spent;
   const top = Math.max(1, ...columns.map(item => Math.abs(item.kept)));
+  // What usually comes in (the middle of the last three full periods): a period still going that has not had half
+  // of it yet is waiting for its pay, not spending beyond it.
+  const full = columns
+    .filter(item => !item.partial)
+    .slice(-3)
+    .map(item => item.moneyIn)
+    .sort((first, second) => first - second);
+  const usualIn = full.length > 0 ? full[full.length >> 1] : 0;
+  const waiting = report.ongoing && usualIn >= 1 && moneyIn < usualIn / 2;
   const words = grain === 'year' ? 'this year' : grain === 'all' ? 'over all time' : 'this month';
   return (
     <section className="card flow">
       <header className="card-head">
         <h2>Money in and out</h2>
-        <span className={`view-total ${kept >= 0 ? 'is-up-good' : 'is-down-bad'}`}>
+        <span className={`view-total${waiting ? '' : kept >= 0 ? ' is-up-good' : ' is-down-bad'}`}>
           {kept >= 0 ? '+' : '−'}
           {money(Math.abs(kept), currency)}
         </span>
         <span className="hint">
-          {moneyIn < 0.5
-            ? `nothing came in ${words}`
-            : kept >= 0
-              ? `kept ${words}, ${Math.round((kept / moneyIn) * 100)}% of what came in`
-              : `spent beyond what came in ${words}`}
+          {waiting
+            ? `so far ${words}: about ${money(usualIn, currency)} usually comes in, not yet this time`
+            : moneyIn < 0.5
+              ? `nothing came in ${words}`
+              : kept >= 0
+                ? `kept ${words}, ${Math.round((kept / moneyIn) * 100)}% of what came in`
+                : `spent beyond what came in ${words}`}
         </span>
       </header>
       <dl className="facts">

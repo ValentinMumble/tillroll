@@ -1,6 +1,7 @@
 import type {ReactNode} from 'react';
 import {type Tab, TABS} from '../tabs';
 import {TabIcon} from './TabBar';
+import {Logo} from './Logo';
 
 interface Props {
   tab: Tab;
@@ -19,9 +20,7 @@ export function Sidebar({tab, onTab, toSort, onSort, children}: Props) {
   return (
     <aside className="sidebar">
       <a className="brand" href="/">
-        <span className="brand-mark" aria-hidden="true">
-          💸
-        </span>
+        <Logo />
         Tillroll
       </a>
       <nav className="side-nav" aria-label="Views">

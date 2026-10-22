@@ -141,7 +141,10 @@ export function Payments({
   // The totals of what is listed: they follow the filters and the search.
   const currency = rows[0]?.currency ?? 'EUR';
   const spent = visible.reduce((sum, row) => sum + row.spend, 0);
-  const paid = visible.filter(row => row.spend > 0).length;
+  // A payment counts when it cost something (a refund, or one refunded in full, does not); in a category that is not
+  // spending (transfers, money in), every one counts. The header and the category filter count the same way.
+  const counted = (row: Row) => (categories.byKey[row.category]?.spending === false ? true : row.spend > 0);
+  const paid = visible.filter(counted).length;
   const movedOut = visible.reduce(
     (sum, row) => sum + (!row.counts && !row.leftOut && row.amount < 0 ? -row.amount : 0),
     0,
@@ -171,7 +174,9 @@ export function Payments({
   }
   // Every category with payments, with their number: picking one shows them all.
   const categoryCounts = new Map<CategoryKey, number>();
-  for (const row of rows) categoryCounts.set(row.category, (categoryCounts.get(row.category) ?? 0) + 1);
+  for (const row of rows) {
+    categoryCounts.set(row.category, (categoryCounts.get(row.category) ?? 0) + (counted(row) ? 1 : 0));
+  }
   const selection = visible.filter(row => picked.has(row.id));
   const allIgnored = selection.length > 0 && selection.every(row => row.category === 'ignored');
   const allPicked = visible.length > 0 && selection.length === visible.length;
