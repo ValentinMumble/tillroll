@@ -525,6 +525,8 @@ export interface Report {
   usual: number | null;
   insights: Insight[];
   subscriptions: Subscription[];
+  /** The period's spending decided in advance (see fixedBetween); none for a week. */
+  fixed: number | null;
 }
 
 /** How the insights name the period. */
@@ -641,6 +643,25 @@ function findSubscriptions(rows: Row[], month: string, categories: Categories): 
     }
   }
   return found.sort((first, second) => second.monthly - first.monthly);
+}
+
+/**
+ * Spending decided in advance: Bills and subscriptions, and the regular payments (rent, a loan, a gym) as found in
+ * each month, so a payment counts as fixed once it has come back for three months. The rest is flexible.
+ */
+function fixedBetween(rows: Row[], from: string, to: string, categories: Categories) {
+  let total = 0;
+  for (let month = periodOf(from, 'month'); periodStart(month, 'month') <= to; month = shiftPeriod(month, 'month', 1)) {
+    const start = periodStart(month, 'month') < from ? from : periodStart(month, 'month');
+    const end = periodEnd(month, 'month') > to ? to : periodEnd(month, 'month');
+    const regular = new Set(findSubscriptions(rows, month, categories).map(item => item.key));
+    for (const row of rowsBetween(rows, start, end)) {
+      // The same payments as the period's total.
+      if (!row.counts || row.leftOut || row.spend === 0) continue;
+      if (row.category === 'bills' || regular.has(`${row.storeKey}|${row.category}`)) total += row.spend;
+    }
+  }
+  return total;
 }
 
 export function buildReport(rows: Row[], period: string, grain: Grain, now: string, categories: Categories): Report {
@@ -785,7 +806,8 @@ export function buildReport(rows: Row[], period: string, grain: Grain, now: stri
     insights.push({icon: '🔁', text: `${item.name} went up by ${money(item.change, currency, true)} last time.`});
   }
 
-  return {period, from, to, ongoing, current, baseline, series, chartGrain, usual, insights, subscriptions};
+  const fixed = grain === 'week' ? null : fixedBetween(rows, from, to, categories);
+  return {period, from, to, ongoing, current, baseline, series, chartGrain, usual, insights, subscriptions, fixed};
 }
 
 /** A store whose category is a weak guess, waiting to be sorted by hand. */

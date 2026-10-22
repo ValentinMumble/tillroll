@@ -2674,6 +2674,73 @@ main {
   border-radius: 4px;
 }
 
+/* Fixed and flexible: one bar in two blues, the darker for what was set in advance, each part named under it. */
+.split-bar {
+  display: flex;
+  gap: 2px;
+  height: 14px;
+}
+
+.split-bar span {
+  flex-basis: 0;
+  min-width: 3px;
+}
+
+.split-bar span:first-child {
+  border-radius: 4px 0 0 4px;
+}
+
+.split-bar span:last-child {
+  border-radius: 0 4px 4px 0;
+}
+
+.split-bar span:only-child {
+  border-radius: 4px;
+}
+
+.split-bar .is-fixed,
+.split-dot.is-fixed {
+  background: var(--bar-strong);
+}
+
+.split-bar .is-flexible,
+.split-dot.is-flexible {
+  background: var(--bar);
+}
+
+.split-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px 24px;
+  margin: 12px 0 0;
+}
+
+.split-facts dt {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 6px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.split-facts dt .muted {
+  font-weight: 400;
+}
+
+.split-facts dd {
+  margin: 2px 0 0 15px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.split-dot {
+  align-self: center;
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+}
+
 /* The overview's way to the payments to check: their number, what they are, an arrow. */
 .check-card {
   display: flex;

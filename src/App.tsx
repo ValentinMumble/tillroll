@@ -38,6 +38,7 @@ import {RegularPayments} from './components/RegularPayments';
 import {BudgetCard} from './components/Budgets';
 import {Logo} from './components/Logo';
 import {MoneyFlow} from './components/MoneyFlow';
+import {FixedSplit} from './components/FixedSplit';
 import {OverviewSkeleton} from './components/Skeleton';
 import {Sorter} from './components/Sorter';
 import {StoreDialog} from './components/StoreDialog';
@@ -1064,18 +1065,6 @@ export default function App() {
                   onOpenStore={store => setDialog({type: 'store', store})}
                 />
               </div>
-              <BudgetCard
-                report={report}
-                grain={grain}
-                categories={categories}
-                budgets={data?.budgets ?? {}}
-                currency={currency}
-                onEdit={() => {
-                  setTab('categories');
-                  window.scrollTo({top: 0});
-                }}
-              />
-              <MoneyFlow report={report} grain={grain} currency={currency} />
               <LatestPayments
                 rows={periodRows}
                 categories={categories}
@@ -1092,6 +1081,19 @@ export default function App() {
                   window.scrollTo({top: 0});
                 }}
               />
+              <BudgetCard
+                report={report}
+                grain={grain}
+                categories={categories}
+                budgets={data?.budgets ?? {}}
+                currency={currency}
+                onEdit={() => {
+                  setTab('categories');
+                  window.scrollTo({top: 0});
+                }}
+              />
+              <MoneyFlow report={report} grain={grain} currency={currency} />
+              <FixedSplit report={report} grain={grain} currency={currency} />
               <RegularPayments
                 subscriptions={report.subscriptions}
                 currency={currency}
