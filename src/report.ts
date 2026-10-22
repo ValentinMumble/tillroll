@@ -78,6 +78,13 @@ function paidOn({date, description}: Transaction) {
 }
 const cents = (amount: number) => Math.round(Math.abs(amount) * 100);
 
+/** Oldest first, by day, then time, then id: one order for the same payments, however they were loaded. */
+const chronological = (first: Row, second: Row) => {
+  const firstKey = `${first.date} ${first.time ?? ''} ${first.id}`;
+  const secondKey = `${second.date} ${second.time ?? ''} ${second.id}`;
+  return firstKey < secondKey ? -1 : firstKey > secondKey ? 1 : 0;
+};
+
 /**
  * A payment with no category of its own takes the one picked for earlier payments of the same store and amount: two
  * monthly transfers to one account, the loan and the charges, sort themselves. Two picks at least, all the same, so
@@ -145,7 +152,7 @@ const PAYPAL_DAYS = 4;
  * too. A category picked for the bank payment itself stays.
  */
 function linkPayPal(rows: Row[]) {
-  const paypal = rows.filter(row => row.bank === 'PayPal').sort((first, second) => (first.date < second.date ? -1 : 1));
+  const paypal = rows.filter(row => row.bank === 'PayPal');
   if (!paypal.length) return;
   const open = rows.filter(row => row.bank !== 'PayPal' && /paypal/i.test(row.description) && !row.ownCategory);
   const linked = new Set<Row>();
@@ -170,30 +177,38 @@ function linkPayPal(rows: Row[]) {
   const fundings = paypal.filter(isFunding);
   const others = paypal.filter(row => !isWithdrawal(row) && !isFunding(row));
   for (const payment of [...withdrawals, ...fundings, ...others]) {
-    const twin = open.find(row => {
-      if (!near(row, payment)) return false;
-      if (isWithdrawal(payment)) {
-        return row.amount > 0 && row.currency === payment.currency && cents(row.amount) === cents(payment.amount);
-      }
-      if (row.currency === payment.currency) return cents(row.amount) === cents(payment.amount);
-      return (
-        row.amount < 0 && payment.amount < 0 && firstWord(row).length >= 4 && firstWord(row) === firstWord(payment)
-      );
-    });
-    // Money in for a purchase with no debit to pair (another card, the PayPal balance): a move all the same, unless
-    // PayPal calls it a refund.
-    if (!twin && isFunding(payment) && payment.kind !== 'refund' && !payment.ownCategory) {
+    const gap = (row: Row) => Math.abs(Date.parse(row.date) - Date.parse(payment.date));
+    // The closest in time of the bank's lines that fit.
+    const twin = open
+      .filter(row => {
+        if (!near(row, payment)) return false;
+        if (isWithdrawal(payment)) {
+          return row.amount > 0 && row.currency === payment.currency && cents(row.amount) === cents(payment.amount);
+        }
+        if (row.currency === payment.currency) return cents(row.amount) === cents(payment.amount);
+        return (
+          row.amount < 0 && payment.amount < 0 && firstWord(row).length >= 4 && firstWord(row) === firstWord(payment)
+        );
+      })
+      .sort((first, second) => gap(first) - gap(second))[0];
+    // Money in that funds a purchase is never a refund, unless PayPal calls it one: a move between one's accounts,
+    // even with a category picked for it (ticked with the purchase when sorting, say).
+    const funds = isFunding(payment) && payment.kind !== 'refund';
+    const keepsPick = payment.ownCategory && !funds;
+    const toOwn = () => {
       payment.category = 'own';
       payment.basis = 'kind';
+      payment.ownCategory = false;
+    };
+    // With no debit to pair (another card, the PayPal balance), it is a move all the same.
+    if (!twin && funds) {
+      toOwn();
       linked.add(payment);
     }
     if (!twin) continue;
     twin.category = 'own';
     twin.basis = 'kind';
-    if (Math.sign(twin.amount) !== Math.sign(payment.amount) && !payment.ownCategory) {
-      payment.category = 'own';
-      payment.basis = 'kind';
-    }
+    if (Math.sign(twin.amount) !== Math.sign(payment.amount) && !keepsPick) toOwn();
     open.splice(open.indexOf(twin), 1);
     linked.add(payment);
   }
@@ -330,6 +345,8 @@ export function toRows(
       ownCategory,
     };
   });
+  // The pairings below take the first match they meet: the same order every time, whatever order the payments came in.
+  rows.sort(chronological);
   followPicks(rows);
   linkOwnTransfers(rows);
   linkPayPal(rows);
