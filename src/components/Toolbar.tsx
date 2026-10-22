@@ -7,6 +7,8 @@ interface Props {
   onStep: (steps: number) => void;
   canGoBack: boolean;
   canGoForward: boolean;
+  /** Back to the period of the latest payment, given when another one is shown. */
+  onToday?: () => void;
   currencies: string[];
   currency: string;
   onCurrency: (currency: string) => void;
@@ -22,7 +24,15 @@ const GRAINS: [Grain, string, string][] = [
 
 /** The one row of controls: the length of the period, which one, and the currency when there are several. */
 export function Toolbar(props: Props) {
-  const {grain, onGrain, period, onStep, canGoBack, canGoForward, currencies, currency, onCurrency} = props;
+  const {grain, onGrain, period, onStep, canGoBack, canGoForward, onToday, currencies, currency, onCurrency} = props;
+  const label = (
+    <>
+      <span className="long">{periodLabel(period, grain)}</span>
+      <span className="short" aria-hidden="true">
+        {compactPeriodLabel(period, grain)}
+      </span>
+    </>
+  );
   return (
     <div className="toolbar">
       <div className="segmented" role="group" aria-label="Period">
@@ -47,15 +57,24 @@ export function Toolbar(props: Props) {
             ‹
           </button>
           <span className="stepper-label" aria-live="polite">
-            <span className="long">{periodLabel(period, grain)}</span>
-            <span className="short" aria-hidden="true">
-              {compactPeriodLabel(period, grain)}
-            </span>
+            {/* On a phone, where the Today button does not fit, the period's name takes back to today. */}
+            {onToday ? (
+              <button type="button" className="today-link" title="Back to today" onClick={onToday}>
+                {label}
+              </button>
+            ) : (
+              label
+            )}
           </span>
           <button type="button" aria-label={`Next ${grain}`} disabled={!canGoForward} onClick={() => onStep(1)}>
             ›
           </button>
         </div>
+      )}
+      {grain !== 'all' && onToday && (
+        <button type="button" className="chip toolbar-today" onClick={onToday}>
+          Today
+        </button>
       )}
       {currencies.length > 1 && (
         <select

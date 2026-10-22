@@ -1007,6 +1007,7 @@ export default function App() {
           onStep={steps => changePeriod(shiftPeriod(period, grain, steps))}
           canGoBack={period > firstPeriod}
           canGoForward={period < latestPeriod}
+          onToday={period < latestPeriod ? () => changePeriod(latestPeriod) : undefined}
           currencies={currencies}
           currency={currency}
           onCurrency={changeCurrency}
@@ -1165,6 +1166,8 @@ export default function App() {
             <Payments
               key={paymentsRun}
               rows={focus?.type === 'label' ? currencyRows : periodRows}
+              allRows={currencyRows}
+              onAllTime={() => changeGrain('all')}
               categories={categories}
               focus={focus}
               onClearFocus={() => setFocus(null)}

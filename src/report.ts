@@ -155,7 +155,21 @@ function linkPayPal(rows: Row[]) {
   const isWithdrawal = (payment: Row) =>
     payment.amount < 0 && (payment.kind === 'topup' || /^unknown$|retrait|withdraw/i.test(payment.description));
   const withdrawals = paypal.filter(isWithdrawal);
-  for (const payment of [...withdrawals, ...paypal.filter(row => !isWithdrawal(row))]) {
+  // The bank sync names the money a card puts in for a purchase after the shop, like the purchase itself: that money
+  // in pairs with the card's debit before the purchase can, or it would read as a refund of the purchase.
+  const isFunding = (row: Row) =>
+    row.amount > 0 &&
+    paypal.some(
+      other =>
+        other.amount < 0 &&
+        other.storeKey === row.storeKey &&
+        other.currency === row.currency &&
+        other.date === row.date &&
+        cents(other.amount) === cents(row.amount),
+    );
+  const fundings = paypal.filter(isFunding);
+  const others = paypal.filter(row => !isWithdrawal(row) && !isFunding(row));
+  for (const payment of [...withdrawals, ...fundings, ...others]) {
     const twin = open.find(row => {
       if (!near(row, payment)) return false;
       if (isWithdrawal(payment)) {
@@ -166,6 +180,13 @@ function linkPayPal(rows: Row[]) {
         row.amount < 0 && payment.amount < 0 && firstWord(row).length >= 4 && firstWord(row) === firstWord(payment)
       );
     });
+    // Money in for a purchase with no debit to pair (another card, the PayPal balance): a move all the same, unless
+    // PayPal calls it a refund.
+    if (!twin && isFunding(payment) && payment.kind !== 'refund' && !payment.ownCategory) {
+      payment.category = 'own';
+      payment.basis = 'kind';
+      linked.add(payment);
+    }
     if (!twin) continue;
     twin.category = 'own';
     twin.basis = 'kind';

@@ -4,7 +4,15 @@ import {money} from '../format';
 import {tidyLabel, withLabel} from '../labels';
 import {dayLabel, today, weekdayLabel} from '../periods';
 import {isListed, isIncoming, isUnsure, type Row, topCategories} from '../report';
-import {loadPaymentSort, loadPaymentsEverything, loadPaymentsOwn, type PaymentSort, savePaymentSort} from '../storage';
+import {
+  loadPaymentSort,
+  loadPaymentsEverything,
+  loadPaymentsOwn,
+  type PaymentSort,
+  savePaymentSort,
+  savePaymentsEverything,
+  savePaymentsOwn,
+} from '../storage';
 import type {CategoryKey, Labels} from '../types';
 import {BankBadge} from './BankBadge';
 import type {Focus} from './Breakdown';
@@ -15,6 +23,10 @@ import {WebSearch} from './WebSearch';
 
 interface Props {
   rows: Row[];
+  /** Every period's payments in this currency: a search tells how many match outside the period. */
+  allRows: Row[];
+  /** Shows every period, for the matches outside this one. */
+  onAllTime: () => void;
   categories: Categories;
   focus: Focus | null;
   onClearFocus: () => void;
@@ -49,10 +61,14 @@ const plain = (text: string) =>
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase();
 
-/** What the search looks in: the store, the bank's text, and the amount written both ways ("448.80", "448,80"). */
+/**
+ * What the search looks in: the store, the bank's text, the labels (with or without their #), and the amount written
+ * both ways ("448.80", "448,80").
+ */
 function searchText(row: Row) {
   const amount = Math.abs(row.amount).toFixed(2);
-  return plain(`${row.store} ${row.description} ${amount} ${amount.replace('.', ',')}`);
+  const labels = row.labels.map(label => `${label} #${label}`).join(' ');
+  return plain(`${row.store} ${row.description} ${labels} ${amount} ${amount.replace('.', ',')}`);
 }
 
 /** The sort buttons, with the way each one starts: newest, biggest, A to Z. */
@@ -84,6 +100,8 @@ function compare(first: Row, second: Row, {key, descending}: PaymentSort) {
  */
 export function Payments({
   rows,
+  allRows,
+  onAllTime,
   categories,
   focus,
   onClearFocus,
@@ -118,20 +136,41 @@ export function Payments({
     .split(/\s+/)
     .map(word => word.replace(/^[-+−]|€/g, ''))
     .filter(Boolean);
+  const matches = (row: Row) => {
+    const text = searchText(row);
+    return words.every(word => text.includes(word));
+  };
+  const inFocus = (row: Row) => {
+    if (toCheck && !isUnsure(row)) return false;
+    if (focus?.type === 'category' && row.category !== focus.key) return false;
+    if (focus?.type === 'label' && !row.labels.some(label => label.toLowerCase() === focus.key.toLowerCase())) {
+      return false;
+    }
+    return focus?.type !== 'store' || row.storeKey === focus.key;
+  };
+  // A category picked in the filter shows its payments, even the ones that are not spending.
+  const switchedOn = (row: Row) => isListed(row, {moneyIn, own}) || focus?.type === 'category' || toCheck;
   const visible = rows
-    .filter(row => {
-      if (toCheck && !isUnsure(row)) return false;
-      // A category picked in the filter shows its payments, even the ones that are not spending.
-      if (!isListed(row, {moneyIn, own}) && focus?.type !== 'category' && !toCheck) return false;
-      if (focus?.type === 'category' && row.category !== focus.key) return false;
-      if (focus?.type === 'label' && !row.labels.some(label => label.toLowerCase() === focus.key.toLowerCase())) {
-        return false;
-      }
-      if (focus?.type === 'store' && row.storeKey !== focus.key) return false;
-      const text = searchText(row);
-      return words.every(word => text.includes(word));
-    })
+    .filter(row => inFocus(row) && switchedOn(row) && matches(row))
     .sort((first, second) => compare(first, second, sort));
+  // A search also counts the matches the switches, the category filter and the period leave out.
+  const found = words.length ? rows.filter(matches) : [];
+  const hiddenBySwitch = found.filter(row => inFocus(row) && !switchedOn(row));
+  const hidden = {
+    moneyIn: hiddenBySwitch.filter(row => row.category !== 'own').length,
+    own: hiddenBySwitch.filter(row => row.category === 'own').length,
+    category:
+      focus?.type === 'category'
+        ? found.filter(row => row.category !== focus.key && isListed(row, {moneyIn, own})).length
+        : 0,
+    period: 0,
+  };
+  if (words.length) {
+    const here = new Set(rows.map(row => row.id));
+    hidden.period = allRows.filter(
+      row => !here.has(row.id) && inFocus(row) && isListed(row, {moneyIn, own}) && matches(row),
+    ).length;
+  }
   // By date, the list reads like a bank statement: a heading per day, with what went out that day.
   const byDay = sort.key === 'date';
   // The totals of what is listed: they follow the filters and the search.
@@ -298,7 +337,7 @@ export function Payments({
           className="text-input"
           type="search"
           aria-label="Search payments"
-          placeholder="Search a store, the bank's text or an amount"
+          placeholder="Search a store, the bank's text, a label or an amount"
           value={query}
           onChange={event => {
             setQuery(event.target.value);
@@ -343,6 +382,51 @@ export function Payments({
             ))}
         </select>
       </div>
+      {(hidden.moneyIn > 0 || hidden.own > 0 || hidden.category > 0 || hidden.period > 0) && (
+        <p className="search-hidden">
+          More matches:{' '}
+          {[
+            hidden.moneyIn > 0 && (
+              <button
+                key="money-in"
+                type="button"
+                className="link-button"
+                onClick={() => {
+                  setMoneyIn(true);
+                  savePaymentsEverything(true);
+                }}
+              >
+                {hidden.moneyIn} under 💶 Money in
+              </button>
+            ),
+            hidden.own > 0 && (
+              <button
+                key="own"
+                type="button"
+                className="link-button"
+                onClick={() => {
+                  setOwn(true);
+                  savePaymentsOwn(true);
+                }}
+              >
+                {hidden.own} under 🔁 My accounts
+              </button>
+            ),
+            hidden.category > 0 && (
+              <button key="category" type="button" className="link-button" onClick={() => onFocusCategory(null)}>
+                {hidden.category} in other categories
+              </button>
+            ),
+            hidden.period > 0 && (
+              <button key="period" type="button" className="link-button" onClick={onAllTime}>
+                {hidden.period} in other periods
+              </button>
+            ),
+          ]
+            .filter(Boolean)
+            .flatMap((item, index) => (index === 0 ? [item] : [' · ', item]))}
+        </p>
+      )}
       {visible.length === 0 ? (
         <p className="empty">
           {toCheck ? 'Nothing left to check here.' : words.length ? 'No payment matches.' : 'No payments here.'}

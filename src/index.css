@@ -411,6 +411,22 @@ main {
   font-weight: 600;
 }
 
+/* Another period than the latest: its name links back to today (the Today button does that on wider screens). */
+.stepper .today-link {
+  width: auto;
+  height: auto;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  color: inherit;
+  font: inherit;
+}
+
+.toolbar-today {
+  min-height: 36px;
+}
+
 /* Cards */
 
 .card {
@@ -3461,6 +3477,17 @@ main {
   margin-bottom: 12px;
 }
 
+/* A search's matches that the switches, the category filter or the period leave out, each a click away. */
+.search-hidden {
+  margin: -4px 0 12px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.search-hidden .link-button {
+  font-size: 13px;
+}
+
 .payments-filters > .text-input {
   flex: 1 1 200px;
   width: auto;
@@ -3809,6 +3836,16 @@ main {
   .main > .toolbar .stepper button {
     width: 32px;
     height: 32px;
+  }
+
+  .main > .toolbar .stepper .today-link {
+    width: auto;
+    height: auto;
+    color: var(--accent);
+  }
+
+  .toolbar-today {
+    display: none;
   }
 
   .stepper-label {
