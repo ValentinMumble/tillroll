@@ -5,8 +5,8 @@ export const TABS: {key: Tab; label: string; icon: string}[] = [
   // Small line icons, 24 by 24, drawn with the current color.
   {key: 'overview', label: 'Overview', icon: 'M4 20V10M10 20V4M16 20v-7M22 20H2'},
   {key: 'payments', label: 'Payments', icon: 'M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01'},
-  {key: 'stores', label: 'Stores', icon: 'M4 10v10h16V10M3 4h18l-1 6H4L3 4zM10 20v-5h4v5'},
   {key: 'categories', label: 'Categories', icon: 'M3 12V4h8l10 10-8 8L3 12zM7.5 8h.01'},
+  {key: 'stores', label: 'Stores', icon: 'M4 10v10h16V10M3 4h18l-1 6H4L3 4zM10 20v-5h4v5'},
   {
     key: 'savings',
     label: 'Savings',

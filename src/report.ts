@@ -139,13 +139,16 @@ const PAYPAL_DAYS = 4;
  * the purchase counts once, at its shop. A payment in another currency matches on the shop's first word instead
  * ("Paypal *veloviewer" and "VeloViewer Ltd"). Money PayPal pays out to the bank is between one's accounts on both
  * sides: a withdrawal (PayPal's sync names it "Unknown", its statement "Retrait initié par l'utilisateur") pairs with
- * the bank's money in of as much first, so money received on PayPal the same day never takes its place. A category
- * picked for the bank payment itself stays.
+ * the bank's money in of as much first, so money received on PayPal the same day never takes its place. A card can
+ * also name the shop instead of PayPal ("Alipay" for an AliExpress order paid with PayPal): a card payment of the
+ * same amount, on the same day or the next, at a shop whose name starts with the same three letters, is that money
+ * too. A category picked for the bank payment itself stays.
  */
 function linkPayPal(rows: Row[]) {
   const paypal = rows.filter(row => row.bank === 'PayPal').sort((first, second) => (first.date < second.date ? -1 : 1));
   if (!paypal.length) return;
   const open = rows.filter(row => row.bank !== 'PayPal' && /paypal/i.test(row.description) && !row.ownCategory);
+  const linked = new Set<Row>();
   const firstWord = (row: Row) => row.storeKey.split(' ')[0];
   const near = (row: Row, payment: Row) =>
     Math.abs(Date.parse(row.date) - Date.parse(payment.date)) <= PAYPAL_DAYS * 86_400_000;
@@ -171,6 +174,31 @@ function linkPayPal(rows: Row[]) {
       payment.basis = 'kind';
     }
     open.splice(open.indexOf(twin), 1);
+    linked.add(payment);
+  }
+  // Then the card payments naming the shop, for the PayPal purchases left.
+  const start = (row: Row) => row.storeKey.replace(/[^a-z]/g, '').slice(0, 3);
+  const charges = rows.filter(
+    row =>
+      row.bank !== 'PayPal' &&
+      row.amount < 0 &&
+      !row.ownCategory &&
+      row.category !== 'own' &&
+      !/paypal/i.test(row.description),
+  );
+  for (const payment of paypal) {
+    if (linked.has(payment) || payment.amount >= 0 || isWithdrawal(payment) || start(payment).length < 3) continue;
+    const twin = charges.find(
+      row =>
+        row.currency === payment.currency &&
+        cents(row.amount) === cents(payment.amount) &&
+        Math.abs(Date.parse(row.date) - Date.parse(payment.date)) <= 86_400_000 &&
+        start(row) === start(payment),
+    );
+    if (!twin) continue;
+    twin.category = 'own';
+    twin.basis = 'kind';
+    charges.splice(charges.indexOf(twin), 1);
   }
 }
 
