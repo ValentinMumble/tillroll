@@ -21,6 +21,10 @@ export const CATEGORIES = 'tillroll:categories';
 export const DISTINCT = 'tillroll:distinct';
 /** The values typed for each savings account, by account key: a list of {date, value}. */
 export const SAVINGS_VALUES = 'tillroll:savings-values';
+/** A monthly budget per category, by category key. */
+export const BUDGETS = 'tillroll:budgets';
+/** Each bank account's balance at its last sync, by "<bank>|<country>|<account hash>". */
+export const BALANCES = 'tillroll:balances';
 /** Categories picked for one payment only, by transaction id. */
 export const PAYMENT_CATEGORIES = 'tillroll:payment-categories';
 /** Labels put on payments by hand, by transaction id. */

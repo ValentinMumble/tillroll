@@ -378,8 +378,23 @@ export interface Insight {
 }
 
 export interface Subscription {
+  /** The store and the category: a store can hold two (a loan and its charges). */
+  key: string;
+  storeKey: string;
+  store: string;
+  /** The store's name, with the category when the store has two. */
   name: string;
+  category: CategoryKey;
+  /** What it usually costs a month: the middle of its charges. */
   monthly: number;
+  /** Its latest charge. */
+  last: {date: string; amount: number};
+  /** When the next charge should come: a month after the latest one. */
+  next: string;
+  /** The latest charge less the one before it: the price going up (more than 0) or down. */
+  change: number;
+  /** Its first charge ever is in the last four months: a new one. */
+  isNew: boolean;
 }
 
 export interface Report {
@@ -396,6 +411,8 @@ export interface Report {
   series: {
     period: string;
     total: number;
+    /** Money in that is not a refund or a transfer between one's own accounts (pay, money from others). */
+    moneyIn: number;
     payments: number;
     categories: Map<CategoryKey, number>;
     stores: Map<string, StoreTotal>;
@@ -424,25 +441,78 @@ function percent(part: number, whole: number) {
   return Math.round((part / whole) * 100);
 }
 
-/** Stores charged about the same amount in at least 3 of the 4 months up to `month`, at most twice a month. */
-function findSubscriptions(rows: Row[], month: string): Subscription[] {
+/** A regular payment's price changed for real: by 50 cents and 3% at least (a bill that moves by a few cents did not). */
+export const priceChanged = (item: Subscription) => Math.abs(item.change) >= Math.max(0.5, item.monthly * 0.03);
+
+/** The same day a month later, or the month's last day when it is shorter (31 Jan, then 28 Feb). */
+function monthLater(date: string) {
+  const month = shiftPeriod(date.slice(0, 7), 'month', 1);
+  const lastDay = periodEnd(month, 'month');
+  const day = `${month}-${date.slice(8, 10)}`;
+  return day > lastDay ? lastDay : day;
+}
+
+const middleOf = (amounts: number[]) => [...amounts].sort((first, second) => first - second)[amounts.length >> 1];
+
+/** How far apart days of the month are, the 30th and the 2nd being close too. */
+function daySpread(days: number[]) {
+  const spread = (list: number[]) => Math.max(...list) - Math.min(...list);
+  return Math.min(spread(days), spread(days.map(day => (day + 15) % 31)));
+}
+
+/**
+ * Regular payments: charges at one store, in one category, of about the same amount (within 15% of their middle)
+ * around the same day of the month, in at least 3 of the 4 months up to `month`. Each month counts the charge closest
+ * to the middle, so an extra one does not spoil it; a store charged more than twice in a month is a shop.
+ */
+function findSubscriptions(rows: Row[], month: string, categories: Categories): Subscription[] {
   const months = [0, 1, 2, 3].map(step => shiftPeriod(month, 'month', -step));
-  const charges = new Map<string, {name: string; byMonth: Map<string, number[]>}>();
-  for (const row of rowsBetween(rows, periodStart(months[3], 'month'), periodEnd(month, 'month'))) {
+  const start = periodStart(months[3], 'month');
+  type Charge = {date: string; amount: number};
+  const groups = new Map<string, {storeKey: string; name: string; category: CategoryKey; charges: Charge[]}>();
+  for (const row of rowsBetween(rows, start, periodEnd(month, 'month'))) {
     if (row.spend <= 0) continue;
-    const entry = charges.get(row.storeKey) ?? {name: row.store, byMonth: new Map()};
-    const list = entry.byMonth.get(row.date.slice(0, 7)) ?? [];
-    list.push(row.spend);
-    entry.byMonth.set(row.date.slice(0, 7), list);
-    charges.set(row.storeKey, entry);
+    const key = `${row.storeKey}|${row.category}`;
+    const group = groups.get(key) ?? {storeKey: row.storeKey, name: row.store, category: row.category, charges: []};
+    group.charges.push({date: row.date, amount: row.spend});
+    groups.set(key, group);
   }
+  // A store charged before the four months is not a new one.
+  const older = new Set(rows.filter(row => row.spend > 0 && row.date < start).map(row => row.storeKey));
   const found: Subscription[] = [];
-  for (const {name, byMonth} of charges.values()) {
-    const lists = [...byMonth.values()];
-    if (lists.length < 3 || lists.some(list => list.length > 2)) continue;
-    const amounts = lists.flat().sort((first, second) => first - second);
-    const median = amounts[Math.floor(amounts.length / 2)];
-    if (amounts.every(amount => Math.abs(amount - median) <= median * 0.15)) found.push({name, monthly: median});
+  for (const [key, {storeKey, name, category, charges}] of groups) {
+    const byMonth = new Map<string, Charge[]>();
+    for (const charge of charges) {
+      byMonth.set(charge.date.slice(0, 7), [...(byMonth.get(charge.date.slice(0, 7)) ?? []), charge]);
+    }
+    if (byMonth.size < 3 || [...byMonth.values()].some(list => list.length > 2)) continue;
+    const middle = middleOf(charges.map(charge => charge.amount));
+    const distance = (charge: Charge) => Math.abs(charge.amount - middle);
+    const matching = [...byMonth.values()]
+      .map(list => list.reduce((best, charge) => (distance(charge) < distance(best) ? charge : best)))
+      .filter(charge => distance(charge) <= middle * 0.15)
+      .sort((first, second) => (first.date < second.date ? -1 : 1));
+    if (matching.length < 3 || daySpread(matching.map(charge => Number(charge.date.slice(8, 10)))) > 7) continue;
+    const last = matching[matching.length - 1];
+    const before = matching[matching.length - 2];
+    found.push({
+      key,
+      storeKey,
+      store: name,
+      name,
+      category,
+      monthly: middleOf(matching.map(charge => charge.amount)),
+      last,
+      next: monthLater(last.date),
+      change: Math.round((last.amount - before.amount) * 100) / 100,
+      isNew: !older.has(storeKey),
+    });
+  }
+  // A store with two regular payments (a loan and its charges) names each by its category.
+  for (const item of found) {
+    if (found.filter(other => other.storeKey === item.storeKey).length > 1) {
+      item.name = `${item.name} · ${categories.byKey[item.category]?.label ?? item.category}`;
+    }
   }
   return found.sort((first, second) => second.monthly - first.monthly);
 }
@@ -507,6 +577,7 @@ export function buildReport(rows: Row[], period: string, grain: Grain, now: stri
     series.push({
       period: item,
       total: totals.total,
+      moneyIn: totals.moneyIn,
       payments: totals.payments,
       categories: totals.categories,
       stores: totals.stores,
@@ -515,7 +586,8 @@ export function buildReport(rows: Row[], period: string, grain: Grain, now: stri
   }
 
   // Regular payments, as of the last month of the period that has data.
-  const subscriptions = grain === 'week' ? [] : findSubscriptions(rows, periodOf(to < lastDay ? to : lastDay, 'month'));
+  const subscriptions =
+    grain === 'week' ? [] : findSubscriptions(rows, periodOf(to < lastDay ? to : lastDay, 'month'), categories);
   const currency = rows[0]?.currency ?? 'EUR';
   const amount = (value: number) => money(value, currency);
   const insights: Insight[] = [];
@@ -579,14 +651,9 @@ export function buildReport(rows: Row[], period: string, grain: Grain, now: stri
     }
   }
 
-  if (subscriptions.length >= 2) {
-    const sum = subscriptions.reduce((total, item) => total + item.monthly, 0);
-    const names = subscriptions.slice(0, 4).map(item => item.name);
-    const more = subscriptions.length > 4 ? ` and ${subscriptions.length - 4} more` : '';
-    insights.push({
-      icon: '🔁',
-      text: `${subscriptions.length} regular payments add up to ${amount(sum)} a month: ${names.join(', ')}${more}.`,
-    });
+  // Regular payments have a card of their own; a price that went up is news.
+  for (const item of subscriptions.filter(subscription => subscription.change > 0 && priceChanged(subscription))) {
+    insights.push({icon: '🔁', text: `${item.name} went up by ${money(item.change, currency, true)} last time.`});
   }
 
   return {period, from, to, ongoing, current, baseline, series, chartGrain, usual, insights, subscriptions};

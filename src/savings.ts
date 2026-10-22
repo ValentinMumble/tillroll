@@ -1,6 +1,6 @@
 import {shiftPeriod} from './periods';
 import type {Row} from './report';
-import type {SavingsValue, SavingsValues} from './types';
+import type {Balance, SavingsValue, SavingsValues} from './types';
 
 /**
  * The savings accounts found from the bank text of the money moved to and from them, as the current accounts see
@@ -152,6 +152,37 @@ export function savingsAccounts(
 export function estimateNow(account: SavingsAccount, latest: SavingsValue) {
   const moved = account.moves.filter(row => row.date > latest.date).reduce((sum, row) => sum - row.amount, 0);
   return {value: latest.value + moved, moved, isEstimate: Math.abs(moved) >= 0.005};
+}
+
+/**
+ * Its value on a day, estimated: the value typed nearest before it plus the money moved since or, before the first
+ * value typed, that one less the money moved in between. Null with no value typed.
+ */
+export function valueOn(account: SavingsAccount, values: SavingsValue[], date: string) {
+  const sorted = [...values].sort((first, second) => (first.date < second.date ? -1 : 1));
+  if (sorted.length === 0) return null;
+  const moved = (from: string, to: string) =>
+    account.moves.filter(row => row.date > from && row.date <= to).reduce((sum, row) => sum - row.amount, 0);
+  const before = sorted.filter(item => item.date <= date).at(-1);
+  return before ? before.value + moved(before.date, date) : sorted[0].value - moved(date, sorted[0].date);
+}
+
+/**
+ * A bank's balance on a day (its accounts in one currency together: a payment does not say which account it is
+ * from): the balance at the last sync, less what was booked after that day.
+ */
+export function balanceOn(balance: Balance, rows: Row[], date: string) {
+  if (date >= balance.date) return balance.amount;
+  return rows
+    .filter(
+      row =>
+        (row.bank ?? 'Revolut') === balance.bank &&
+        row.currency === balance.currency &&
+        !row.pending &&
+        row.date > date &&
+        row.date <= balance.date,
+    )
+    .reduce((sum, row) => sum - row.amount, balance.amount);
 }
 
 /**

@@ -1,10 +1,18 @@
 import {useState} from 'react';
 import {BANK_NAMES} from '../banks';
-import {money} from '../format';
-import {dayLabel, periodLabel, shortMonth, today} from '../periods';
+import {money, parseAmount} from '../format';
+import {dayLabel, periodEnd, periodLabel, shiftPeriod, shortMonth, today} from '../periods';
 import type {Row} from '../report';
-import {addedAccountKey, estimateNow, growthBetween, type SavingsAccount, savingsAccounts} from '../savings';
-import type {SavingsRecord, SavingsValue, SavingsValues} from '../types';
+import {
+  addedAccountKey,
+  balanceOn,
+  estimateNow,
+  growthBetween,
+  type SavingsAccount,
+  savingsAccounts,
+  valueOn,
+} from '../savings';
+import type {Balance, SavingsRecord, SavingsValue, SavingsValues} from '../types';
 import {BankBadge} from './BankBadge';
 import {BarStrip} from './BarStrip';
 
@@ -15,17 +23,10 @@ interface Props {
   values: SavingsValues;
   /** The account holders each bank names, as the bank connections give them. */
   holders: Record<string, string[]>;
+  /** The bank accounts' balances at their last sync, for the net worth. */
+  balances: Balance[];
   /** An account's values typed by hand, all of them, or an account added by hand; null takes it off. */
   onSave: (account: string, record: SavingsRecord | null) => void;
-}
-
-/** "1 913,37", "1913.37" or "1,913.37": a typed amount. */
-function parseAmount(text: string) {
-  const value = text.replace(/[\s  €]/g, '');
-  const lastComma = value.lastIndexOf(',');
-  const lastDot = value.lastIndexOf('.');
-  const normal = lastComma > lastDot ? value.replace(/\./g, '').replace(',', '.') : value.replace(/,/g, '');
-  return normal && /^-?\d*\.?\d+$/.test(normal) ? Number(normal) : null;
 }
 
 /** The values typed for an account, oldest first. */
@@ -211,7 +212,7 @@ function AccountCard({
  * Savings: each account money is put aside in (an assurance vie, a livret, Revolut's savings), what went in and out
  * month by month and year by year, and its value when typed by hand, with how much it grew beyond what was paid in.
  */
-export function Savings({rows, currency, values, holders, onSave}: Props) {
+export function Savings({rows, currency, values, holders, balances, onSave}: Props) {
   const accounts = savingsAccounts(rows, today().slice(0, 7), values, holders);
   const [name, setName] = useState('');
   const [value, setValue] = useState('');
@@ -230,6 +231,33 @@ export function Savings({rows, currency, values, holders, onSave}: Props) {
     .sort()
     .at(-1);
 
+  // The net worth: each bank's balance in this currency, its accounts together, and the savings. PayPal is left out:
+  // it pays from the bank accounts and holds nothing itself, and its payments repeat theirs.
+  const banks = new Map<string, Balance>();
+  for (const balance of balances) {
+    if (balance.currency !== currency || balance.bank === 'PayPal') continue;
+    const other = banks.get(balance.bank);
+    banks.set(
+      balance.bank,
+      other
+        ? {...other, amount: other.amount + balance.amount, date: other.date < balance.date ? other.date : balance.date}
+        : balance,
+    );
+  }
+  const worthOn = (date: string) =>
+    [...banks.values()].reduce((sum, balance) => sum + balanceOn(balance, rows, date), 0) +
+    accounts.reduce((sum, account) => sum + (valueOn(account, values[account.key]?.values ?? [], date) ?? 0), 0);
+  // At each month's end, from the first payment, over two years at most; this month's is today's.
+  const thisMonth = today().slice(0, 7);
+  const firstMonth = rows.at(-1)?.date.slice(0, 7) ?? thisMonth;
+  const worthMonths: string[] = [];
+  for (let month = thisMonth; month >= firstMonth && worthMonths.length < 24; month = shiftPeriod(month, 'month', -1)) {
+    worthMonths.unshift(month);
+  }
+  const history =
+    banks.size > 0 ? worthMonths.map(month => worthOn(month === thisMonth ? today() : periodEnd(month, 'month'))) : [];
+  const bankTotal = [...banks.values()].reduce((sum, balance) => sum + balance.amount, 0);
+
   function addAccount() {
     const amount = parseAmount(value);
     if (!name.trim()) return;
@@ -241,6 +269,38 @@ export function Savings({rows, currency, values, holders, onSave}: Props) {
 
   return (
     <div className="savings">
+      {banks.size > 0 && (
+        <section className="card savings-total net-worth">
+          <header className="card-head">
+            <h2>Net worth</h2>
+            <span className="view-total">{money(bankTotal + total, currency, true)}</span>
+            <span className="hint">bank accounts and savings{estimated ? ', savings estimated' : ''}</span>
+          </header>
+          <p className="savings-years">
+            {[...banks.values()].map(balance => (
+              <span key={balance.bank} title={`Balance on ${dayLabel(balance.date, true)}`}>
+                <BankBadge bank={balance.bank} />
+                {balance.bank} <strong>{money(balance.amount, currency, true)}</strong>
+              </span>
+            ))}
+            <span>
+              Savings <strong>{money(total, currency, true)}</strong>
+            </span>
+          </p>
+          {history.length > 1 && (
+            <BarStrip
+              caption="At each month's end, worked out from today's balances and the payments since"
+              values={history.map(worth => Math.max(0, worth))}
+              // Every third month, counted back from the last one, so the last label never runs into another.
+              labels={worthMonths.map((month, index) =>
+                (worthMonths.length - 1 - index) % 3 === 0 ? shortMonth(month) : '',
+              )}
+              titles={worthMonths.map(month => periodLabel(month, 'month'))}
+              currency={currency}
+            />
+          )}
+        </section>
+      )}
       {valued.length > 0 && (
         <section className="card savings-total">
           <header className="card-head">

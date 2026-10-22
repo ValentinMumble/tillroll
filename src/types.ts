@@ -29,6 +29,20 @@ export interface Transaction {
 /** A built-in category's key, or "custom-..." for one added by hand. */
 export type CategoryKey = string;
 
+/** A monthly budget per category, by category key. */
+export type Budgets = Record<CategoryKey, number>;
+
+/** A bank account's balance, as the bank gave it at the last sync. */
+export interface Balance {
+  bank: string;
+  /** The account's name at the bank. */
+  name: string;
+  currency: string;
+  amount: number;
+  /** The day the bank gives it for. */
+  date: string;
+}
+
 export type BuiltInCategory =
   | 'groceries'
   | 'eating-out'

@@ -1,7 +1,7 @@
-import type {Connection, Transaction} from '../../src/types';
-import {BankError, fetchTransactions, psuHeaders, toTransaction, type Session} from './bank.js';
+import type {Balance, Connection, Transaction} from '../../src/types';
+import {BankError, fetchBalance, fetchTransactions, psuHeaders, toTransaction, type Session} from './bank.js';
 import {HttpError} from './http.js';
-import {PENDING, redis, saveTransactions, SESSION, SESSIONS, SYNCED_AT} from './store.js';
+import {BALANCES, PENDING, redis, saveTransactions, SESSION, SESSIONS, SYNCED_AT} from './store.js';
 
 /** Error codes that mean the owner has to authorize the access again. */
 const NEEDS_CONSENT = ['EXPIRED_SESSION', 'CLOSED_SESSION', 'REVOKED_SESSION', 'ACCESS_DENIED', 'UNAUTHORIZED_ACCESS'];
@@ -87,6 +87,22 @@ async function syncSession(session: Session, request: Request | null) {
   }
   await saveTransactions(booked);
   await saveSession({...session, syncedAt: new Date().toISOString()});
+  // The balances come last and never fail a sync: a bank may give none, or allow too few calls a day.
+  const balances: Record<string, Balance> = {};
+  for (const account of session.accounts) {
+    try {
+      const balance = await fetchBalance(account.uid, headers);
+      if (balance)
+        balances[`${bankKey(session.bank)}|${account.hash}`] = {
+          bank: session.bank.name,
+          name: account.name,
+          ...balance,
+        };
+    } catch {
+      // Logged by the bank call: the last balance kept stays.
+    }
+  }
+  if (Object.keys(balances).length > 0) await redis().hset(BALANCES, balances);
   return {booked: booked.length, pending};
 }
 

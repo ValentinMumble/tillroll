@@ -1,5 +1,5 @@
 import {useState} from 'react';
-import type {Categories} from '../categories';
+import {type Categories, UNSURE} from '../categories';
 import {money} from '../format';
 import {tidyLabel, withLabel} from '../labels';
 import {dayLabel, today, weekdayLabel} from '../periods';
@@ -51,6 +51,15 @@ const plain = (text: string) =>
     .normalize('NFKD')
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase();
+
+/** What the search looks in: the store, the bank's text, and the amount written both ways ("448.80", "448,80"). */
+function searchText(row: Row) {
+  const amount = Math.abs(row.amount).toFixed(2);
+  return plain(`${row.store} ${row.description} ${amount} ${amount.replace('.', ',')}`);
+}
+
+/** A payment whose category Tillroll guessed with little to go on (see UNSURE), money out only: one to check. */
+const isUnsure = (row: Row) => row.amount < 0 && UNSURE.includes(row.basis);
 
 /** The sort buttons, with the way each one starts: newest, biggest, A to Z. */
 const SORTS: {key: PaymentSort['key']; label: string; descending: boolean}[] = [
@@ -104,18 +113,26 @@ export function Payments({
   const [pickedLabel, setPickedLabel] = useState('');
   // The payments the category sheet is open for.
   const [sheet, setSheet] = useState<Row[] | null>(null);
+  // Only the payments to check; one fixed leaves the list.
+  const [toCheck, setToCheck] = useState(false);
+  const unsure = rows.filter(isUnsure).length;
 
-  const words = plain(query).split(/\s+/).filter(Boolean);
+  // An amount searched for can carry its sign or its currency ("-448,80 €").
+  const words = plain(query)
+    .split(/\s+/)
+    .map(word => word.replace(/^[-+−]|€/g, ''))
+    .filter(Boolean);
   const visible = rows
     .filter(row => {
+      if (toCheck && !isUnsure(row)) return false;
       // A category picked in the filter shows its payments, even the ones that are not spending.
-      if (!everything && !row.counts && focus?.type !== 'category') return false;
+      if (!everything && !row.counts && focus?.type !== 'category' && !toCheck) return false;
       if (focus?.type === 'category' && row.category !== focus.key) return false;
       if (focus?.type === 'label' && !row.labels.some(label => label.toLowerCase() === focus.key.toLowerCase())) {
         return false;
       }
       if (focus?.type === 'store' && row.storeKey !== focus.key) return false;
-      const text = plain(`${row.store} ${row.description}`);
+      const text = searchText(row);
       return words.every(word => text.includes(word));
     })
     .sort((first, second) => compare(first, second, sort));
@@ -279,13 +296,28 @@ export function Payments({
           className="text-input"
           type="search"
           aria-label="Search payments"
-          placeholder="Search a store or the bank's text"
+          placeholder="Search a store, the bank's text or an amount"
           value={query}
           onChange={event => {
             setQuery(event.target.value);
             setLimit(PAGE);
           }}
         />
+        {(unsure > 0 || toCheck) && (
+          <button
+            type="button"
+            className={`chip to-check${toCheck ? ' is-on' : ''}`}
+            aria-pressed={toCheck}
+            title="The payments whose category Tillroll guessed with little to go on"
+            onClick={() => {
+              setToCheck(!toCheck);
+              setLimit(PAGE);
+            }}
+          >
+            {unsure} to check
+            {toCheck && <span aria-hidden="true">✕</span>}
+          </button>
+        )}
         <select
           className="select"
           aria-label="Category"
@@ -306,7 +338,9 @@ export function Payments({
         </select>
       </div>
       {visible.length === 0 ? (
-        <p className="empty">{words.length ? 'No payment matches.' : 'No payments here.'}</p>
+        <p className="empty">
+          {toCheck ? 'Nothing left to check here.' : words.length ? 'No payment matches.' : 'No payments here.'}
+        </p>
       ) : (
         <table>
           <thead className="visually-hidden">
@@ -397,9 +431,11 @@ export function Payments({
                   <td className="payment-category">
                     <button
                       type="button"
-                      className={`category-button${row.basis === 'picked' ? '' : ' is-auto'}`}
+                      className={`category-button${row.basis === 'picked' ? '' : ' is-auto'}${
+                        isUnsure(row) ? ' is-unsure' : ''
+                      }`}
                       aria-label={`Category of this payment at ${row.store}: ${category?.label}${
-                        row.basis === 'picked' ? '' : ' (automatic)'
+                        row.basis === 'picked' ? '' : isUnsure(row) ? ' (a guess, to check)' : ' (automatic)'
                       }. Change it`}
                       onClick={() => setSheet([row])}
                     >

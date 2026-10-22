@@ -56,6 +56,17 @@ interface BankTransaction {
   bank_transaction_code?: {description?: string | null} | null;
 }
 
+interface BankBalance {
+  balance_amount: {currency: string; amount: string};
+  /** CLBD (booked at the end of a day), ITBD (booked so far today), ITAV (available)... */
+  balance_type: string;
+  reference_date?: string | null;
+  last_change_date_time?: string | null;
+}
+
+/** The balances Tillroll prefers, first to last: booked ones match the booked payments it keeps. */
+const BALANCE_TYPES = ['ITBD', 'CLBD', 'XPCD', 'ITAV', 'CLAV', 'OPBD'];
+
 /** An error answer of Enable Banking, with its error code (EXPIRED_SESSION, ASPSP_RATE_LIMIT_EXCEEDED...). */
 export class BankError extends HttpError {
   constructor(
@@ -194,6 +205,20 @@ export function psuHeaders(request: Request, required: string[]) {
   };
   if (!ip || required.some(name => !values[name.toLowerCase()])) return {};
   return Object.fromEntries(Object.entries(values).filter((entry): entry is [string, string] => Boolean(entry[1])));
+}
+
+/** An account's balance, the booked one first, or null when the bank gives none. */
+export async function fetchBalance(uid: string, headers: Record<string, string>) {
+  const answer = await call<{balances?: BankBalance[]}>(`/accounts/${uid}/balances`, {headers});
+  const rank = (balance: BankBalance) => {
+    const index = BALANCE_TYPES.indexOf(balance.balance_type);
+    return index < 0 ? BALANCE_TYPES.length : index;
+  };
+  const best = [...(answer.balances ?? [])].sort((first, second) => rank(first) - rank(second))[0];
+  const amount = Number(best?.balance_amount.amount);
+  if (!best || !Number.isFinite(amount)) return null;
+  const date = best.reference_date ?? best.last_change_date_time ?? new Date().toISOString();
+  return {amount, currency: best.balance_amount.currency, date: date.slice(0, 10)};
 }
 
 /** All transactions of an account since a day, or as far back as the bank allows when there is no day. */

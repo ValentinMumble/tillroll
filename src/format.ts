@@ -16,6 +16,15 @@ export function money(value: number, currency: string, cents = false) {
   return format.format(value);
 }
 
+/** "1 913,37", "1913.37" or "1,913.37": a typed amount, or null. */
+export function parseAmount(text: string) {
+  const value = text.replace(/[\s  €]/g, '');
+  const lastComma = value.lastIndexOf(',');
+  const lastDot = value.lastIndexOf('.');
+  const normal = lastComma > lastDot ? value.replace(/\./g, '').replace(',', '.') : value.replace(/,/g, '');
+  return normal && /^-?\d*\.?\d+$/.test(normal) ? Number(normal) : null;
+}
+
 /** "€1.2K" for axis ticks. */
 export function compactMoney(value: number, currency: string) {
   return new Intl.NumberFormat('en-GB', {

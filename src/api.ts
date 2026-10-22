@@ -1,4 +1,6 @@
 import type {
+  Balance,
+  Budgets,
   CategoryEdit,
   CategoryKey,
   Connection,
@@ -52,6 +54,8 @@ export interface OwnerData {
   /** Pairs of stores marked "not the same". */
   distinct: string[];
   savingsValues: SavingsValues;
+  budgets: Budgets;
+  balances: Balance[];
   connections: Connection[];
 }
 
@@ -110,6 +114,11 @@ export function saveSavingsValues(account: string, record: SavingsRecord | null)
     method: 'PUT',
     body: JSON.stringify({account, ...(record ?? {values: []})}),
   });
+}
+
+/** A category's monthly budget (null takes it off). */
+export function saveBudget(category: CategoryKey, amount: number | null) {
+  return request<{ok: true}>('/api/sorting?part=budgets', {method: 'PUT', body: JSON.stringify({category, amount})});
 }
 
 export function saveDistinct(pairs: string[]) {

@@ -1694,6 +1694,232 @@ main {
   }
 }
 
+/* A price that went up costs more: red; down: green. */
+.tag.is-up {
+  color: var(--up);
+}
+
+.tag.is-down {
+  color: var(--down);
+}
+
+/* Money in and out: three figures, then what each period kept (a bar up) or spent beyond what came in (down). */
+.flow .facts {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0 0 18px;
+}
+
+.flow-chart {
+  display: grid;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  gap: 4px;
+  height: 140px;
+}
+
+.flow-column {
+  display: grid;
+  grid-template-rows: 1fr 1fr auto;
+  min-width: 0;
+}
+
+.flow-half {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.flow-half.is-below {
+  align-items: flex-start;
+  border-top: 1px solid var(--axis);
+}
+
+.flow-bar {
+  width: min(100%, 22px);
+  border-radius: 4px 4px 0 0;
+}
+
+.flow-bar.is-kept {
+  background: var(--down);
+}
+
+.flow-bar.is-short {
+  border-radius: 0 0 4px 4px;
+  background: var(--up);
+}
+
+/* A period still going, or only partly in the data: lighter. */
+.flow-column.is-partial .flow-bar {
+  opacity: 0.45;
+}
+
+.flow-label {
+  display: flex;
+  justify-content: center;
+  padding-top: 4px;
+  color: var(--muted);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.flow-column.is-marked .flow-label {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+/* Budgets: per category, what was spent against the budget, a bar with today's pace marked, and a word on it. */
+.budgets ul {
+  display: grid;
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.budgets li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-areas:
+    'name figures remove'
+    'track track track'
+    'status status status';
+  align-items: center;
+  gap: 6px 12px;
+}
+
+.budget-name {
+  grid-area: name;
+  min-width: 0;
+  font-weight: 500;
+}
+
+.budget-figures {
+  grid-area: figures;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.budget-figures small {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.budget-remove {
+  grid-area: remove;
+}
+
+.budget-track {
+  position: relative;
+  grid-area: track;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--surface-sunk);
+}
+
+.budget-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: inherit;
+  background: var(--accent);
+}
+
+.budget-fill.is-fast {
+  background: color-mix(in srgb, var(--up) 55%, var(--accent));
+}
+
+.budget-fill.is-over {
+  background: var(--up);
+}
+
+/* Where the spending would be by today, on pace. */
+.budget-pace {
+  position: absolute;
+  top: -4px;
+  bottom: -4px;
+  width: 2px;
+  border-radius: 1px;
+  background: var(--ink);
+  transform: translateX(-1px);
+}
+
+.budget-status {
+  grid-area: status;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.budget-status.is-over,
+.budget-status.is-fast {
+  color: var(--up);
+}
+
+.budget-form {
+  display: grid;
+  grid-template-columns: minmax(0, 220px) minmax(0, 1fr) auto;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.budget-form .text-input,
+.budget-form .select {
+  width: 100%;
+  min-width: 0;
+}
+
+/* Regular payments: the store and its tags, its dates, what it costs a month. */
+.regular ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.regular li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 4px 16px;
+  padding: 8px 0;
+  border-top: 1px solid var(--line);
+}
+
+.regular-name {
+  min-width: 0;
+  font-weight: 500;
+}
+
+.regular-dates {
+  color: var(--muted);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.regular .payment-amount {
+  width: auto;
+}
+
+/* On a phone: the store and what it costs a month, its dates under them. */
+@media (max-width: 560px) {
+  .regular li {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'name amount'
+      'dates dates';
+  }
+
+  .regular-name {
+    grid-area: name;
+  }
+
+  .regular-dates {
+    grid-area: dates;
+    font-size: 12px;
+  }
+
+  .regular .payment-amount {
+    grid-area: amount;
+  }
+}
+
 .tag.is-refund {
   color: var(--down);
 }
@@ -2604,6 +2830,10 @@ main {
   margin-top: 12px;
 }
 
+.net-worth .stat-bars {
+  margin-top: 20px;
+}
+
 /* What was paid in, under the value in the header. */
 .savings-paid {
   margin: -6px 0 14px;
@@ -2985,17 +3215,50 @@ main {
   margin-bottom: 12px;
 }
 
+/* Tick-all, the search, the "to check" switch when some are, and the category filter. */
 .payments-filters {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) minmax(0, 240px);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   gap: 8px;
   margin-bottom: 12px;
 }
 
+.payments-filters > .text-input {
+  flex: 1 1 200px;
+  width: auto;
+  min-width: 0;
+}
+
+.payments-filters > .select {
+  flex: 0 1 240px;
+  min-width: 0;
+}
+
+.payments-filters > .pick-all,
+.chip.to-check {
+  flex: none;
+}
+
+.chip.to-check.is-on {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
+}
+
+/* A category guessed with little to go on: a dashed outline asks for a look. */
+.category-button.is-unsure {
+  border: 1px dashed var(--axis);
+}
+
 @media (max-width: 560px) {
-  /* The search, the category filter under it (no tick-all box: a phone does not tick). */
-  .payments-filters {
-    grid-template-columns: minmax(0, 1fr);
+  /* The search and the "to check" switch, the category filter under them (no tick-all box: a phone does not tick). */
+  .payments-filters > .text-input {
+    flex-basis: 120px;
+  }
+
+  .payments-filters > .select {
+    flex: 1 1 100%;
   }
 }
 
@@ -3386,6 +3649,11 @@ main {
     border-color: var(--line);
     background: var(--surface-sunk);
     font-size: 13px;
+  }
+
+  .payments .category-button.is-unsure {
+    border-color: var(--muted);
+    background: none;
   }
 
   .payments .tag {

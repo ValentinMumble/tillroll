@@ -1,7 +1,17 @@
 import type {CategoryEdit} from '../src/types';
 import {handle, HttpError, json, readJson} from './_lib/http.js';
 import {requireOwner} from './_lib/owner.js';
-import {CATEGORIES, DISTINCT, LABELS, MERGES, PAYMENT_CATEGORIES, redis, RULES, SAVINGS_VALUES} from './_lib/store.js';
+import {
+  BUDGETS,
+  CATEGORIES,
+  DISTINCT,
+  LABELS,
+  MERGES,
+  PAYMENT_CATEGORIES,
+  redis,
+  RULES,
+  SAVINGS_VALUES,
+} from './_lib/store.js';
 
 /*
  * Everything the owner sorts by hand, saved through one route: the Hobby plan takes 12 functions at most.
@@ -133,6 +143,18 @@ const PARTS: Record<string, (body: Record<string, unknown>) => Promise<unknown>>
     });
   },
 
+  /** { category, amount }: a category's monthly budget; null takes it off. */
+  async budgets({category, amount}) {
+    const valid =
+      typeof category === 'string' &&
+      category.length > 0 &&
+      category.length <= 60 &&
+      (amount === null || (typeof amount === 'number' && Number.isFinite(amount) && amount > 0 && amount < 1e9));
+    if (!valid) throw new HttpError(400, 'Expected a category and its monthly budget');
+    if (amount === null) return redis().hdel(BUDGETS, category);
+    return redis().hset(BUDGETS, {[category]: amount});
+  },
+
   /** { pairs }: pairs of stores marked "not the same", so the duplicates deck never shows them again. */
   async distinct({pairs}) {
     if (
@@ -148,7 +170,10 @@ const PARTS: Record<string, (body: Record<string, unknown>) => Promise<unknown>>
   },
 };
 
-/** PUT /api/sorting?part=<rules|categories|merges|payment-categories|labels|distinct|savings-values>, with that part's body. */
+/**
+ * PUT /api/sorting?part=<rules|categories|merges|payment-categories|labels|distinct|savings-values|budgets>, with that
+ * part's body.
+ */
 export function PUT(request: Request) {
   return handle(async () => {
     requireOwner(request);

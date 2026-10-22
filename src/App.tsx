@@ -4,6 +4,7 @@ import {
   fetchOwnerData,
   importStatement,
   RequestError,
+  saveBudget,
   saveCategories,
   saveDistinct,
   saveSavingsValues,
@@ -33,6 +34,9 @@ import {Menu} from './components/Menu';
 import {Payments} from './components/Payments';
 import {Sidebar} from './components/Sidebar';
 import {Savings} from './components/Savings';
+import {RegularPayments} from './components/RegularPayments';
+import {BudgetCard} from './components/Budgets';
+import {MoneyFlow} from './components/MoneyFlow';
 import {OverviewSkeleton} from './components/Skeleton';
 import {Sorter} from './components/Sorter';
 import {StoreDialog} from './components/StoreDialog';
@@ -53,6 +57,8 @@ import {storeKey as keyOfStore} from './stores';
 import {loadGrain, loadLocalData, loadLocalSorting, saveGrain, saveLocalData, saveLocalSorting} from './storage';
 import {MENU_ONLY, type Tab, TABS} from './tabs';
 import type {
+  Balance,
+  Budgets,
   CategoryEdit,
   CategoryKey,
   Connection,
@@ -77,6 +83,9 @@ interface Data {
   distinct: string[];
   /** Savings accounts' values typed by hand. */
   savingsValues: SavingsValues;
+  budgets: Budgets;
+  /** The bank accounts' balances: the owner's bank sync only. */
+  balances?: Balance[];
   connections: Connection[];
 }
 
@@ -295,6 +304,8 @@ export default function App() {
         paymentCategories: owner.paymentCategories ?? {},
         distinct: owner.distinct ?? [],
         savingsValues: owner.savingsValues ?? {},
+        budgets: owner.budgets ?? {},
+        balances: owner.balances ?? [],
         connections: owner.connections ?? [],
       });
       return owner;
@@ -511,6 +522,15 @@ export default function App() {
     await change({savingsValues}, () => saveSavingsValues(account, record));
   }
 
+  /** A category's monthly budget (null takes it off). */
+  async function setBudget(category: CategoryKey, amount: number | null) {
+    if (!data) return;
+    const budgets = {...data.budgets};
+    if (amount === null) delete budgets[category];
+    else budgets[category] = amount;
+    await change({budgets}, () => saveBudget(category, amount));
+  }
+
   /** A pair of stores marked "not the same" in the duplicates deck. */
   async function markDistinct(pair: string) {
     if (!data) return;
@@ -672,6 +692,7 @@ export default function App() {
               paymentCategories: data.paymentCategories,
               distinct: data.distinct,
               savingsValues: data.savingsValues,
+              budgets: data.budgets,
             }
           : loadLocalSorting();
         setData({source: 'statement', transactions: merged, ...sorting, connections: []});
@@ -1018,6 +1039,18 @@ export default function App() {
                   onOpenStore={store => setDialog({type: 'store', store})}
                 />
               </div>
+              <BudgetCard
+                report={report}
+                grain={grain}
+                categories={categories}
+                budgets={data?.budgets ?? {}}
+                currency={currency}
+                onEdit={() => {
+                  setTab('categories');
+                  window.scrollTo({top: 0});
+                }}
+              />
+              <MoneyFlow report={report} grain={grain} currency={currency} />
               <LatestPayments
                 rows={periodRows}
                 categories={categories}
@@ -1032,6 +1065,11 @@ export default function App() {
                   setTab('payments');
                   window.scrollTo({top: 0});
                 }}
+              />
+              <RegularPayments
+                subscriptions={report.subscriptions}
+                currency={currency}
+                onOpenStore={store => setDialog({type: 'store', store})}
               />
               <Insights insights={report.insights} />
             </>
@@ -1065,6 +1103,7 @@ export default function App() {
               currency={currency}
               values={data?.savingsValues ?? {}}
               holders={holders}
+              balances={data?.balances ?? []}
               onSave={(account, record) => void setSavings(account, record)}
             />
           )}
@@ -1074,6 +1113,14 @@ export default function App() {
                 {...breakdown}
                 onEdit={() => setDialog({type: 'categories', store: null})}
                 onOpenCategory={category => setDialog({type: 'category', category})}
+              />
+              <BudgetCard
+                report={report}
+                grain={grain}
+                categories={categories}
+                budgets={data?.budgets ?? {}}
+                currency={currency}
+                onSave={(category, amount) => void setBudget(category, amount)}
               />
               <LabelList
                 rows={currencyRows}
