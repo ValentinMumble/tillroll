@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {type ReactNode, useState} from 'react';
 import {type Categories, colourStyle, DEFAULT_ICON, oneIcon} from '../categories';
 import type {CategoryKey} from '../types';
 import {useDialog} from '../useDialog';
@@ -22,6 +22,8 @@ interface Props {
   guess: boolean;
   /** The categories used most, offered first. */
   frequent: CategoryKey[];
+  /** One payment's labels, to add or take off here (a phone has no label button on each row). */
+  labels?: ReactNode;
   onPick: (category: CategoryKey | null, scope: string) => void;
   onCreate: (label: string, icon: string, scope: string) => void;
   onClose: () => void;
@@ -39,6 +41,7 @@ export function CategorySheet({
   current,
   guess,
   frequent,
+  labels,
   onPick,
   onCreate,
   onClose,
@@ -99,6 +102,12 @@ export function CategorySheet({
           </div>
           <p className="hint">{scopes.find(item => item.key === scope)?.hint}</p>
         </div>
+        {labels && (
+          <section className="sheet-group" aria-labelledby="sheet-labels">
+            <h3 id="sheet-labels">Labels</h3>
+            <div className="sheet-labels">{labels}</div>
+          </section>
+        )}
         {often.length > 0 && (
           <section className="sheet-group" aria-labelledby="sheet-often">
             <h3 id="sheet-often">Most used</h3>

@@ -3,6 +3,7 @@ import {
   disconnectBank,
   fetchOwnerData,
   importStatement,
+  type OwnerData,
   RequestError,
   saveBudget,
   saveCategories,
@@ -39,6 +40,7 @@ import {BudgetCard} from './components/Budgets';
 import {Logo} from './components/Logo';
 import {MoneyFlow} from './components/MoneyFlow';
 import {FixedSplit} from './components/FixedSplit';
+import {PullToRefresh} from './components/PullToRefresh';
 import {OverviewSkeleton} from './components/Skeleton';
 import {Sorter} from './components/Sorter';
 import {StoreDialog} from './components/StoreDialog';
@@ -50,6 +52,7 @@ import {TabBar} from './components/TabBar';
 import {Toolbar} from './components/Toolbar';
 import {timeAgo} from './format';
 import {forgetOwnerKey, isOwnerBrowser, keepOwnerKey, pendingOwnerKey} from './owner';
+import {forgetCachedOwnerData, loadCachedOwnerData, saveCachedOwnerData} from './ownerCache';
 import {type Grain, periodEnd, periodOf, shiftPeriod, today} from './periods';
 import {buildReport, isUnsure, type Row, rowsBetween, type StoreToSort, storesToSort, toRows} from './report';
 import {sampleTransactions} from './sample';
@@ -124,6 +127,24 @@ interface Notice {
 
 /** A sync older than this runs again when the owner opens the page. */
 const SYNC_AFTER = 6 * 3_600_000;
+
+/** The owner's data as the page holds it: fields an older server (or an older kept copy) may not have start empty. */
+function fromOwner(owner: OwnerData): Data {
+  return {
+    source: 'owner',
+    ...owner,
+    rules: owner.rules ?? {},
+    categories: owner.categories ?? [],
+    merges: owner.merges ?? {},
+    labels: owner.labels ?? {},
+    paymentCategories: owner.paymentCategories ?? {},
+    distinct: owner.distinct ?? [],
+    savingsValues: owner.savingsValues ?? {},
+    budgets: owner.budgets ?? {},
+    balances: owner.balances ?? [],
+    connections: owner.connections ?? [],
+  };
+}
 
 function localData(): Data | null {
   const saved = loadLocalData();
@@ -297,6 +318,7 @@ export default function App() {
   /** Back to the public version, for instance after the owner key changed. */
   const leaveOwnerMode = useCallback((message: string) => {
     forgetOwnerKey();
+    void forgetCachedOwnerData();
     void signOut().catch(() => undefined);
     setIsOwner(false);
     setData(localData());
@@ -304,24 +326,19 @@ export default function App() {
     setNotice({tone: 'error', text: message});
   }, []);
 
+  // Changes being saved: a load that overlaps one starts again, since its answer may not have it (see change).
+  const edits = useRef(0);
+
   const loadOwner = useCallback(async () => {
     try {
-      const owner = await fetchOwnerData();
-      // Fields an older server may not send yet start empty.
-      setData({
-        source: 'owner',
-        ...owner,
-        rules: owner.rules ?? {},
-        categories: owner.categories ?? [],
-        merges: owner.merges ?? {},
-        labels: owner.labels ?? {},
-        paymentCategories: owner.paymentCategories ?? {},
-        distinct: owner.distinct ?? [],
-        savingsValues: owner.savingsValues ?? {},
-        budgets: owner.budgets ?? {},
-        balances: owner.balances ?? [],
-        connections: owner.connections ?? [],
-      });
+      let owner: OwnerData;
+      let before: number;
+      do {
+        before = edits.current;
+        owner = await fetchOwnerData();
+      } while (edits.current !== before);
+      setData(fromOwner(owner));
+      void saveCachedOwnerData(owner);
       return owner;
     } catch (error) {
       if (error instanceof RequestError && error.status === 403)
@@ -353,6 +370,12 @@ export default function App() {
     if (!isOwner || started.current) return;
     started.current = true;
     const start = async () => {
+      // The data kept on this device from the last visit shows at once; the fresh data replaces it when it comes.
+      const cached = await loadCachedOwnerData();
+      if (cached) {
+        setData(fromOwner(cached));
+        setLoading(false);
+      }
       // A key from a #owner= address or the footer becomes the year-long cookie, then leaves the page's storage.
       const key = pendingOwnerKey();
       if (key) {
@@ -489,10 +512,13 @@ export default function App() {
       saveLocalSorting(update);
       return;
     }
+    edits.current += 1;
     try {
       await saveOnServer();
     } catch (error) {
       setNotice({tone: 'error', text: messageOf(error)});
+    } finally {
+      edits.current += 1;
     }
   }
 
@@ -771,6 +797,7 @@ export default function App() {
   async function leaveOwnerView() {
     await signOut().catch(() => undefined);
     forgetOwnerKey();
+    await forgetCachedOwnerData();
     window.location.reload();
   }
 
@@ -1002,6 +1029,10 @@ export default function App() {
       </Sidebar>
 
       <div className="main">
+        <PullToRefresh
+          // The owner's refresh fetches the banks' latest payments; anyone else's loads the page again.
+          onRefresh={isOwner && data?.connections?.length ? sync : async () => window.location.reload()}
+        />
         {header}
         {noticeBar}
         <Toolbar

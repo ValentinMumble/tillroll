@@ -83,6 +83,10 @@ shows, then the actions as `.link-button`s at the right end (`.card-actions` whe
 - Wide screens (over 960px) pick the view in the sidebar; narrower ones in the frosted tab bar at the bottom.
 - On a phone the main job is fixing categories: a tap on a payment opens the category sheet. Keep rows light (no
   ticks, no extra buttons on each row); the rest lives in the sheet or the store's dialog.
+- Anything a row's buttons do on a computer must also be reachable from the sheet or the store's dialog: the sheet
+  for one payment holds its labels, since a phone row has no # button.
+- The home-screen app has no browser around it, so it has its own pull to refresh at the top of the page
+  (`PullToRefresh`): it syncs the banks for the owner and loads the page again for anyone else.
 
 ## Words
 

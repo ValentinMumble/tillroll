@@ -29,7 +29,7 @@ interface Props {
   onOpenStore: (store: {key: string; name: string}) => void;
 }
 
-const SHOWN = 6;
+const SHOWN = 8;
 const PHONE = '(max-width: 560px)';
 
 /** The overview's last few payments of the period, each with its category to change, and the way to the full list. */
@@ -139,6 +139,17 @@ export function LatestPayments({
           current={sheet.category}
           guess={sheet.basis !== 'picked'}
           frequent={topCategories(rows, 4)}
+          labels={
+            <PaymentLabels
+              // The payment as it is now: labels added in the sheet show at once.
+              row={rows.find(row => row.id === sheet.id) ?? sheet}
+              onLabels={onLabels}
+              onFocusLabel={label => {
+                setSheet(null);
+                onFocusLabel(label);
+              }}
+            />
+          }
           onPick={(category, scope) => onCategorize([sheet], category, scope)}
           onCreate={(label, icon, scope) => onCreateCategory([sheet], label, icon, scope)}
           onClose={() => setSheet(null)}

@@ -2741,6 +2741,45 @@ main {
   border-radius: 999px;
 }
 
+/* Pull to refresh (home-screen app): a round button-like circle that comes down from under the status bar, turns as
+   it comes, turns blue once letting go would refresh, and spins while it does. */
+.pull-refresh {
+  position: fixed;
+  top: calc(env(safe-area-inset-top) - 40px);
+  left: 50%;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  color: var(--muted);
+  font-size: 20px;
+  pointer-events: none;
+}
+
+.pull-refresh.is-ready {
+  color: var(--accent);
+}
+
+.pull-refresh.is-refreshing .pull-refresh-icon {
+  animation: pull-spin 0.8s linear infinite;
+}
+
+@keyframes pull-spin {
+  to {
+    rotate: 360deg;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pull-refresh.is-refreshing .pull-refresh-icon {
+    animation: none;
+  }
+}
+
 /* The overview's way to the payments to check: their number, what they are, an arrow. */
 .check-card {
   display: flex;
@@ -2976,6 +3015,44 @@ main {
   min-height: 28px;
   padding: 0 10px;
   font-size: 13px;
+}
+
+/* In the category sheet: the payment's labels in a row, the # always shown (a phone has no hover), the field wider. */
+.sheet-labels {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.sheet-labels .label-chip,
+.sheet-labels .label-add,
+.sheet-labels .label-form {
+  margin-left: 0;
+}
+
+.payments .sheet-labels .label-add,
+.sheet-labels .label-add {
+  display: inline-block;
+  width: 30px;
+  height: 30px;
+  font-size: 14px;
+  opacity: 1;
+}
+
+.sheet-labels .label-chip {
+  font-size: 13px;
+}
+
+.sheet-labels .label-chip button {
+  padding-top: 5px;
+  padding-bottom: 5px;
+}
+
+.sheet-labels .label-form .text-input {
+  width: min(220px, 60vw);
+  min-height: 34px;
+  font-size: 16px;
 }
 
 .payment-day.with-year {

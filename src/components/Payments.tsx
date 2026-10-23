@@ -627,6 +627,19 @@ export function Payments({
           current={sheetCategories.size === 1 ? [...sheetCategories][0] : null}
           guess={sheet.every(row => row.basis !== 'picked')}
           frequent={topCategories(rows, 4)}
+          labels={
+            sheet.length === 1 && (
+              <PaymentLabels
+                // The payment as it is now: labels added in the sheet show at once.
+                row={rows.find(row => row.id === sheet[0].id) ?? sheet[0]}
+                onLabels={onLabels}
+                onFocusLabel={label => {
+                  setSheet(null);
+                  onFocusLabel(label);
+                }}
+              />
+            )
+          }
           onPick={(category, scope) => {
             onCategorize(sheet, category, scope);
             if (sheet.length > 1) setPicked(new Set());
