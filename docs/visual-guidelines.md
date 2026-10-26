@@ -15,12 +15,13 @@ all live in `src/index.css`.
   `--tint`). Text never wears them: it stays in `--ink`, `--ink-soft` or `--muted`.
 - Never let colour carry meaning alone: a category's colour always comes with its emoji or its name, and up or down
   (`--up` red for more spending, `--down` green for less) always comes with an arrow.
-- Charts of a single series use the one blue (`--bar`, `--bar-strong` for the marked period). The calendar uses the
-  blue ramp `--heat-0` to `--heat-5`.
+- The theme is soft lavender: a lilac page, white cards, violet (`--accent`) for actions. Charts of a single series
+  use the one violet (`--bar`, `--bar-strong` for the marked period). The calendar uses the violet ramp `--heat-0`
+  to `--heat-5`.
 
 ## Type
 
-- Body: Inter, 15px, line height 1.5.
+- Body: DM Sans, 15px, line height 1.5.
 - Hints and secondary facts: `.hint` or `.muted`, 13px, `--muted`.
 - Card titles: `.card h2`, 13px, 600, uppercase, letter spacing 0.08em, `--ink-soft`.
 - Dialog titles: 18px.
@@ -32,8 +33,8 @@ all live in `src/index.css`.
 
 ## Shape and space
 
-- Cards: `.card`, 20px padding, `--radius` (14px), `--shadow`.
-- Dialogs: 20px radius, 20px side padding.
+- Cards: `.card`, 20px padding, `--radius` (20px), `--shadow`.
+- Dialogs: 24px radius, 20px side padding.
 - Buttons and chips are pills (radius 999px). Text fields and selects have a 10px radius and are at least 38px tall.
 - At phone width keep a 16px gutter on each side and never scroll the page sideways.
 
