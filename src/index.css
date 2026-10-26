@@ -2021,6 +2021,63 @@ main {
   color: var(--down);
 }
 
+/* Balances: the banks side by side on one row, each with its letter and name over its balance, a hairline
+   between them. */
+.balance-lines {
+  display: grid;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.balance-lines li {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.balance-lines li + li {
+  padding-left: 16px;
+  border-left: 1px solid var(--line);
+}
+
+.balance-lines li:not(:last-child) {
+  padding-right: 16px;
+}
+
+.balance-bank {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  color: var(--ink-soft);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.balance-bank > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.balance-amount {
+  overflow: hidden;
+  font-family: var(--font-mono);
+  font-size: clamp(22px, 7vw, 30px);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.balance-amount.is-negative {
+  color: var(--up);
+}
+
 .tag {
   margin-left: 8px;
   padding: 1px 6px;

@@ -6,6 +6,7 @@ import type {Row} from '../report';
 import {
   addedAccountKey,
   balanceOn,
+  bankBalances,
   estimateNow,
   growthBetween,
   type SavingsAccount,
@@ -231,19 +232,8 @@ export function Savings({rows, currency, values, holders, balances, onSave}: Pro
     .sort()
     .at(-1);
 
-  // The net worth: each bank's balance in this currency, its accounts together, and the savings. PayPal is left out:
-  // it pays from the bank accounts and holds nothing itself, and its payments repeat theirs.
-  const banks = new Map<string, Balance>();
-  for (const balance of balances) {
-    if (balance.currency !== currency || balance.bank === 'PayPal') continue;
-    const other = banks.get(balance.bank);
-    banks.set(
-      balance.bank,
-      other
-        ? {...other, amount: other.amount + balance.amount, date: other.date < balance.date ? other.date : balance.date}
-        : balance,
-    );
-  }
+  // The net worth: each bank's balance in this currency (see bankBalances), and the savings.
+  const banks = bankBalances(balances, currency);
   const worthOn = (date: string) =>
     [...banks.values()].reduce((sum, balance) => sum + balanceOn(balance, rows, date), 0) +
     accounts.reduce((sum, account) => sum + (valueOn(account, values[account.key]?.values ?? [], date) ?? 0), 0);

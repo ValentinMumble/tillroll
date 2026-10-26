@@ -1,13 +1,8 @@
 import {useEffect, useRef, useState} from 'react';
+import {isHomeScreenApp} from '../homeScreen';
 
 /** How far the circle comes down (half the finger's drag) before letting go refreshes. */
 const THRESHOLD = 64;
-
-/** A home-screen app has no browser around it, so no pull to refresh of its own (Safari has one). */
-function isHomeScreenApp() {
-  const navigatorWithStandalone = navigator as Navigator & {standalone?: boolean};
-  return window.matchMedia('(display-mode: standalone)').matches || navigatorWithStandalone.standalone === true;
-}
 
 interface Props {
   /** What a refresh does: sync the banks for the owner, load the page again otherwise. */

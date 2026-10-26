@@ -40,6 +40,7 @@ import {BudgetCard} from './components/Budgets';
 import {Logo} from './components/Logo';
 import {MoneyFlow} from './components/MoneyFlow';
 import {FixedSplit} from './components/FixedSplit';
+import {Balances} from './components/Balances';
 import {PullToRefresh} from './components/PullToRefresh';
 import {OverviewSkeleton} from './components/Skeleton';
 import {Sorter} from './components/Sorter';
@@ -51,6 +52,7 @@ import {Summary} from './components/Summary';
 import {TabBar} from './components/TabBar';
 import {Toolbar} from './components/Toolbar';
 import {timeAgo} from './format';
+import {isHomeScreenApp} from './homeScreen';
 import {forgetOwnerKey, isOwnerBrowser, keepOwnerKey, pendingOwnerKey} from './owner';
 import {forgetCachedOwnerData, loadCachedOwnerData, saveCachedOwnerData} from './ownerCache';
 import {type Grain, periodEnd, periodOf, shiftPeriod, today} from './periods';
@@ -270,6 +272,7 @@ const messageOf = (error: unknown) => (error instanceof Error ? error.message : 
 
 export default function App() {
   const [isOwner, setIsOwner] = useState(isOwnerBrowser);
+  const [homeScreenApp] = useState(isHomeScreenApp);
   const [data, setData] = useState<Data | null>(() => (isOwnerBrowser() ? null : localData()));
   const [loading, setLoading] = useState(isOwner);
   const [notice, setNotice] = useState<Notice | null>(noticeFromAddress);
@@ -832,26 +835,31 @@ export default function App() {
           ? 'Sample data'
           : 'Your statement'
         : null;
-  // Reconnecting and syncing stay in view on a phone; adding a bank goes in the header's ⋯ menu there.
+  // Reconnecting and syncing stay in view on a phone; adding a bank goes in the header's ⋯ menu there. The
+  // home-screen app syncs with a pull at the top of the page: its header leaves the Sync button to the ⋯ menu.
+  const reconnectActions =
+    isOwner &&
+    expired.map(item => (
+      <button
+        key={item.id}
+        type="button"
+        className="button is-primary"
+        disabled={busy !== null}
+        onClick={() => void connect({name: item.bank, country: item.id.split('|')[1] ?? 'FR'})}
+      >
+        Reconnect {item.bank}
+      </button>
+    ));
+  const canSync = isOwner && live.length > 0;
+  const syncButton = canSync && (
+    <button type="button" className="button" disabled={busy !== null} onClick={() => void sync()}>
+      {busy === 'sync' ? 'Syncing…' : 'Sync'}
+    </button>
+  );
   const syncAction = (
     <>
-      {isOwner &&
-        expired.map(item => (
-          <button
-            key={item.id}
-            type="button"
-            className="button is-primary"
-            disabled={busy !== null}
-            onClick={() => void connect({name: item.bank, country: item.id.split('|')[1] ?? 'FR'})}
-          >
-            Reconnect {item.bank}
-          </button>
-        ))}
-      {isOwner && live.length > 0 && (
-        <button type="button" className="button" disabled={busy !== null} onClick={() => void sync()}>
-          {busy === 'sync' ? 'Syncing…' : 'Sync'}
-        </button>
-      )}
+      {reconnectActions}
+      {syncButton}
     </>
   );
   const addBank = isOwner && hasData && (
@@ -911,9 +919,15 @@ export default function App() {
       <div className="top-actions">
         {/* The owner's sync status names every bank: too long for a phone's header, it opens the ⋯ menu there. */}
         {!isOwner && status && <span className="status">{status}</span>}
-        {syncAction}
+        {reconnectActions}
+        {!homeScreenApp && syncButton}
         <Menu label="More">
           {isOwner && status && <p className="menu-status">{status}</p>}
+          {homeScreenApp && canSync && (
+            <button type="button" className="button is-quiet" disabled={busy !== null} onClick={() => void sync()}>
+              {busy === 'sync' ? 'Syncing…' : 'Sync now'}
+            </button>
+          )}
           {currencies.length > 1 && (
             // A click on the list must not close the menu before a currency is picked.
             <label className="menu-field" onClick={event => event.stopPropagation()}>
@@ -1054,6 +1068,14 @@ export default function App() {
               <section className="receipt">
                 <Summary report={report} period={period} grain={grain} currency={currency} categories={categories} />
               </section>
+              <Balances
+                balances={data?.balances ?? []}
+                currency={currency}
+                onSavings={() => {
+                  openTab('savings');
+                  window.scrollTo({top: 0});
+                }}
+              />
               {toSort.length > 0 && (
                 <button type="button" className="sort-banner" onClick={openSorter}>
                   <span aria-hidden="true">🗂️</span>

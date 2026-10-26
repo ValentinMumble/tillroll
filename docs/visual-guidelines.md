@@ -85,9 +85,10 @@ The overview answers "how is this month going?" first, above all on a phone, so 
 1. The receipt: what the period has cost so far, against last month at the same point, and time against money: how
    much of the period has gone next to how much of a usual period was spent, as two lines, two bars or two rings (a
    switch picks one for now), with what is left per day under them.
-2. The prompts, when there is something to do: stores to sort, payments to check.
-3. The latest payments.
-4. Everything else: the period chart, top categories and stores, budgets, money in and out, fixed and flexible,
+2. Balances: each bank's balance from its last sync, and their total (owner only).
+3. The prompts, when there is something to do: stores to sort, payments to check.
+4. The latest payments.
+5. Everything else: the period chart, top categories and stores, budgets, money in and out, fixed and flexible,
    regular payments, insights.
 
 ## Phone (560px and below)
@@ -99,6 +100,8 @@ The overview answers "how is this month going?" first, above all on a phone, so 
   for one payment holds its labels, since a phone row has no # button.
 - The home-screen app has no browser around it, so it has its own pull to refresh at the top of the page
   (`PullToRefresh`): it syncs the banks for the owner and loads the page again for anyone else.
+- So the home-screen app's header has no Sync button: a pull syncs, and "Sync now" stays in the ⋯ menu. A Safari tab
+  keeps the button, since Safari's own pull only reloads the page.
 
 ## Words
 

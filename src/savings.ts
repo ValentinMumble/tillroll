@@ -171,6 +171,25 @@ export function valueOn(account: SavingsAccount, values: SavingsValue[], date: s
  * A bank's balance on a day (its accounts in one currency together: a payment does not say which account it is
  * from): the balance at the last sync, less what was booked after that day.
  */
+/**
+ * Each bank's balance in one currency, its accounts together, at the oldest of their days. PayPal is left out: it pays
+ * from the bank accounts and holds nothing itself, and its payments repeat theirs.
+ */
+export function bankBalances(balances: Balance[], currency: string) {
+  const banks = new Map<string, Balance>();
+  for (const balance of balances) {
+    if (balance.currency !== currency || balance.bank === 'PayPal') continue;
+    const other = banks.get(balance.bank);
+    banks.set(
+      balance.bank,
+      other
+        ? {...other, amount: other.amount + balance.amount, date: other.date < balance.date ? other.date : balance.date}
+        : balance,
+    );
+  }
+  return banks;
+}
+
 export function balanceOn(balance: Balance, rows: Row[], date: string) {
   if (date >= balance.date) return balance.amount;
   return rows
