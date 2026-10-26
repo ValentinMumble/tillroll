@@ -5,18 +5,19 @@
   color-scheme: light;
   --page: #f5f4f8;
   /* The wallpaper, still behind everything (body::before), and the glass over it: cards see-through with a light top
-     edge and a hairline; what floats over moving content (bars, dialogs, menus) is more opaque and blurs. */
+     edge and a hairline; what floats over moving content (bars, dialogs, menus) is more opaque and blurs. The glows
+     stay off the top quarter of the screen, so the period bar and the status bar meet plain page there. */
   --wall:
-    radial-gradient(110% 70% at 10% 0%, #e9e6f6 0, transparent 60%),
-    radial-gradient(80% 60% at 100% 40%, #fbe3ed 0, transparent 60%),
-    radial-gradient(90% 70% at 30% 100%, #dbe9fd 0, transparent 60%), var(--page);
+    radial-gradient(90% 55% at 0% 55%, #ecebf1 0, transparent 60%),
+    radial-gradient(80% 55% at 100% 70%, #fae7ee 0, transparent 60%),
+    radial-gradient(90% 60% at 35% 105%, #e0ebfb 0, transparent 60%), var(--page);
   --glass: rgba(255, 255, 255, 0.46);
   --glass-strong: rgba(255, 255, 255, 0.78);
   --glass-edge: rgba(255, 255, 255, 0.95);
   --glass-line: rgba(255, 255, 255, 0.7);
   /* Light catching the top left of a card, fading by the middle. */
   --glass-sheen: linear-gradient(155deg, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0) 50%);
-  --blur: blur(28px) saturate(180%);
+  --blur: blur(28px) saturate(120%);
   --surface: #ffffff;
   --surface-sunk: #ece9f8;
   --ink: #1e1838;
@@ -65,9 +66,9 @@
     color-scheme: dark;
     --page: #111018;
     --wall:
-      radial-gradient(110% 70% at 10% 0%, #1e1a36 0, transparent 60%),
-      radial-gradient(80% 60% at 100% 40%, #2c1427 0, transparent 60%),
-      radial-gradient(90% 70% at 30% 100%, #0f2441 0, transparent 60%), var(--page);
+      radial-gradient(90% 55% at 0% 55%, #1a1a22 0, transparent 60%),
+      radial-gradient(80% 55% at 100% 70%, #23161e 0, transparent 60%),
+      radial-gradient(90% 60% at 35% 105%, #0f1e33 0, transparent 60%), var(--page);
     --glass: rgba(27, 26, 39, 0.4);
     --glass-strong: rgba(27, 26, 39, 0.78);
     --glass-edge: rgba(255, 255, 255, 0.22);
@@ -3992,14 +3993,15 @@ main {
   min-width: 0;
 }
 
-/* The period bar stays at the top while the view scrolls. */
+/* The period bar stays at the top while the view scrolls, in the page's own colour like the status bar above it
+   (near black in dark mode): the glass cards blur away under it. */
 .main > .toolbar {
   position: sticky;
   top: 0;
   z-index: 5;
   margin: 0 -8px 8px;
   padding: 16px 8px 12px;
-  background: var(--glass);
+  background: color-mix(in srgb, var(--page) 88%, transparent);
   -webkit-backdrop-filter: var(--blur);
   backdrop-filter: var(--blur);
 }
@@ -4113,11 +4115,11 @@ main {
 }
 
 /* Liquid Glass, the same recipe as Chords' and Statva's tab bars: a frosted, see-through capsule with a light top edge,
-   a hairline outline and a soft shadow. */
+   a hairline outline and a soft shadow (with less saturation here, so the colours under it stay calm). */
 .glass {
   background: rgba(245, 244, 248, 0.75);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
-  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: var(--blur);
+  backdrop-filter: var(--blur);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.9),
     0 0 0 0.5px rgba(0, 0, 0, 0.1),
@@ -4257,7 +4259,7 @@ main {
     left: 5px;
     width: calc((100% - 10px - (var(--count) - 1) * 2px) / var(--count));
     border-radius: 999px;
-    background: color-mix(in srgb, var(--accent) 14%, transparent);
+    background: rgba(118, 118, 128, 0.16);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
     transform: translateX(calc(var(--index) * (100% + 2px)));
     transition: transform 320ms cubic-bezier(0.2, 0.8, 0.2, 1);
@@ -4278,7 +4280,7 @@ main {
 
 @media (max-width: 960px) and (prefers-color-scheme: dark) {
   .tab-glow {
-    background: color-mix(in srgb, var(--accent) 24%, transparent);
+    background: rgba(118, 118, 128, 0.24);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
   }
 }

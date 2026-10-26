@@ -19,8 +19,10 @@ all live in `src/index.css`.
   (`--wall`, still behind the page), violet (`--accent`) for actions only. Charts of a single series use the one violet (`--bar`, `--bar-strong` for the marked period). The
   calendar uses the violet ramp `--heat-0` to `--heat-5`.
 - Glass: a card is `--glass` under `--glass-sheen` (see-through, light catching its top left, no blur: nothing moves
-  behind it). What floats over moving content (the period bar, the tab bar, dialogs, menus, the selection bar) is
-  `--glass-strong` with `backdrop-filter: var(--blur)`. Both have the bright top edge and inner rim of `--shadow`. Controls inside (fields, buttons, chips) stay solid
+  behind it). What floats over moving content (the tab bar, dialogs, menus, the selection bar) is `--glass-strong`
+  with `backdrop-filter: var(--blur)`. Both have the bright top edge and inner rim of `--shadow`. The period bar at the
+  top takes the page's own colour, like the status bar above it (near black in dark mode), and blurs what passes
+  under it. Violet stays off the glass: the tab bar's lens is neutral grey, only the chosen tab's icon is violet. Controls inside (fields, buttons, chips) stay solid
   `--surface`. With "Reduce transparency" on, glass turns solid and the wallpaper goes.
 - Text keeps 4.5:1 both on the glass and on the bare wallpaper (the header and the sidebar sit on it): check any new
   wallpaper or glass value against the wallpaper's brightest spots.
