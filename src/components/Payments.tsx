@@ -540,7 +540,9 @@ export function Payments({
                       style={colourStyle(categories.colours[row.category])}
                       onClick={() => setSheet([row])}
                     >
-                      <span className="cat-dot" aria-hidden="true" />
+                      <span className="category-button-icon" aria-hidden="true">
+                        {category?.icon}
+                      </span>
                       <span className="category-button-label">{category?.label}</span>
                       {row.ownCategory && (
                         <span className="own-mark" title="Picked for this payment only">

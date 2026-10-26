@@ -78,6 +78,18 @@ shows, then the actions as `.link-button`s at the right end (`.card-actions` whe
 - Show a search field above a list once it has more than 8 items, and an `.empty` line when nothing matches.
 - A category always shows as its emoji and its name, with its colour as a dot or a tint.
 
+## Overview
+
+The overview answers "how is this month going?" first, above all on a phone, so its order is fixed:
+
+1. The receipt: what the period has cost so far, against last month at the same point, and time against money: how
+   much of the period has gone next to how much of a usual period was spent, as two lines, two bars or two rings (a
+   switch picks one for now), with what is left per day under them.
+2. The prompts, when there is something to do: stores to sort, payments to check.
+3. The latest payments.
+4. Everything else: the period chart, top categories and stores, budgets, money in and out, fixed and flexible,
+   regular payments, insights.
+
 ## Phone (560px and below)
 
 - Wide screens (over 960px) pick the view in the sidebar; narrower ones in the frosted tab bar at the bottom.

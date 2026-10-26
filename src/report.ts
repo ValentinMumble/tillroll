@@ -527,6 +527,18 @@ export interface Report {
   subscriptions: Subscription[];
   /** The period's spending decided in advance (see fixedBetween); none for a week. */
   fixed: number | null;
+  /** The period day by day (see paceOf); none for all time. */
+  pace: Pace | null;
+}
+
+/** What was spent by each day of the period, against what the usual period had spent by the same day. */
+export interface Pace {
+  /** The period's days. */
+  days: number;
+  /** Spent by the end of each day so far: up to today while the period is going, every day after it. */
+  spent: number[];
+  /** The usual period (the mean of the earlier full ones) by the end of each day, all of them; none without any. */
+  usual: number[] | null;
 }
 
 /** How the insights name the period. */
@@ -646,6 +658,77 @@ function findSubscriptions(rows: Row[], month: string, categories: Categories): 
 }
 
 /**
+ * A pace's three amounts: spent so far, the usual period by the same day (while the period is going, else none) and
+ * the usual whole period (none without earlier periods).
+ */
+export function paceAmounts(pace: Pace, ongoing: boolean) {
+  const spent = pace.spent.at(-1) ?? 0;
+  const whole = pace.usual?.at(-1) ?? null;
+  const byNow = ongoing && pace.usual && pace.spent.length > 0 ? pace.usual[pace.spent.length - 1] : null;
+  return {spent, byNow, whole};
+}
+
+/**
+ * Time against money: how much of the period has gone and how much of a usual period was spent, as shares and as
+ * lines to show ("Month · 26 of 31 days · 84%", "Spent · €3,074 of €2,758 · 111%"). No usual period: no money share.
+ */
+export function timeAndMoney(pace: Pace, ongoing: boolean, grain: Grain, currency: string) {
+  const {spent, whole} = paceAmounts(pace, ongoing);
+  const gone = ongoing ? pace.spent.length : pace.days;
+  const timeShare = gone / pace.days;
+  const moneyShare = whole ? spent / whole : 0;
+  const {word} = WORDING[grain];
+  const percent = (share: number) => `${Math.round(share * 100)}%`;
+  return {
+    spent,
+    whole,
+    left: pace.days - gone,
+    timeShare,
+    moneyShare,
+    word,
+    time: {
+      label: word.charAt(0).toUpperCase() + word.slice(1),
+      value: `${gone} of ${pace.days} days · ${percent(timeShare)}`,
+    },
+    money: {
+      label: 'Spent',
+      value: `${money(spent, currency)} of ${money(whole ?? 0, currency)} · ${percent(moneyShare)}`,
+    },
+  };
+}
+
+/** What the period spent by the end of each of its days, counted like its total. */
+function runningTotals(rows: Row[], from: string, days: number) {
+  const daily = Array.from({length: days}, () => 0);
+  for (const row of rowsBetween(rows, from, addDays(from, days - 1))) {
+    if (!row.counts || row.leftOut || row.spend === 0) continue;
+    const index = daysBetween(from, row.date) - 1;
+    if (index >= 0 && index < days) daily[index] += row.spend;
+  }
+  let sum = 0;
+  return daily.map(value => (sum += value));
+}
+
+function paceOf(rows: Row[], grain: Grain, from: string, to: string, now: string, earlier: string[]): Pace {
+  const days = daysBetween(from, to);
+  const shown = now >= from && now <= to ? daysBetween(from, now) : now < from ? 0 : days;
+  const spent = runningTotals(rows, from, days).slice(0, shown);
+  // Each earlier period by the same day: a shorter one (February under a 31-day month) keeps its total to the end.
+  const earlierTotals = earlier.map(item => {
+    const start = periodStart(item, grain);
+    const totals = runningTotals(rows, start, daysBetween(start, periodEnd(item, grain)));
+    return Array.from({length: days}, (_value, index) => totals[Math.min(index, totals.length - 1)]);
+  });
+  const usual = earlierTotals.length
+    ? Array.from(
+        {length: days},
+        (_value, index) => earlierTotals.reduce((sum, totals) => sum + totals[index], 0) / earlierTotals.length,
+      )
+    : null;
+  return {days, spent, usual};
+}
+
+/**
  * Spending decided in advance: Bills and subscriptions, and the regular payments (rent, a loan, a gym) as found in
  * each month, so a payment counts as fixed once it has come back for three months. The rest is flexible.
  */
@@ -680,13 +763,11 @@ export function buildReport(rows: Row[], period: string, grain: Grain, now: stri
   const fullyCovered = (item: string) => periodStart(item, grain) >= firstDay;
 
   // The usual period: the mean of up to six full periods before this one.
-  const earlier =
-    grain === 'all'
-      ? []
-      : [1, 2, 3, 4, 5, 6]
-          .map(step => shiftPeriod(period, grain, -step))
-          .filter(fullyCovered)
-          .map(item => totalsOf(rowsBetween(rows, periodStart(item, grain), periodEnd(item, grain))));
+  const earlierPeriods =
+    grain === 'all' ? [] : [1, 2, 3, 4, 5, 6].map(step => shiftPeriod(period, grain, -step)).filter(fullyCovered);
+  const earlier = earlierPeriods.map(item =>
+    totalsOf(rowsBetween(rows, periodStart(item, grain), periodEnd(item, grain))),
+  );
   const usualCategories = new Map<CategoryKey, number>();
   for (const totals of earlier) {
     for (const [key, value] of totals.categories) {
@@ -807,7 +888,22 @@ export function buildReport(rows: Row[], period: string, grain: Grain, now: stri
   }
 
   const fixed = grain === 'week' ? null : fixedBetween(rows, from, to, categories);
-  return {period, from, to, ongoing, current, baseline, series, chartGrain, usual, insights, subscriptions, fixed};
+  const pace = grain === 'all' ? null : paceOf(rows, grain, from, to, now, earlierPeriods);
+  return {
+    period,
+    from,
+    to,
+    ongoing,
+    current,
+    baseline,
+    series,
+    chartGrain,
+    usual,
+    insights,
+    subscriptions,
+    fixed,
+    pace,
+  };
 }
 
 /** A store whose category is a weak guess, waiting to be sorted by hand. */

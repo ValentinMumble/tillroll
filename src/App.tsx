@@ -1051,6 +1051,9 @@ export default function App() {
         <main className="view">
           {tab === 'overview' && (
             <>
+              <section className="receipt">
+                <Summary report={report} period={period} grain={grain} currency={currency} categories={categories} />
+              </section>
               {toSort.length > 0 && (
                 <button type="button" className="sort-banner" onClick={openSorter}>
                   <span aria-hidden="true">🗂️</span>
@@ -1060,17 +1063,6 @@ export default function App() {
                   </span>
                 </button>
               )}
-              <section className="receipt">
-                <Summary report={report} period={period} grain={grain} currency={currency} categories={categories} />
-                <PeriodChart
-                  series={report.series}
-                  selected={grain === 'all' ? '' : period}
-                  grain={report.chartGrain}
-                  currency={currency}
-                  usual={report.usual}
-                  onSelect={selectChartPeriod}
-                />
-              </section>
               {toCheck > 0 && (
                 <button type="button" className="check-card" onClick={() => focusOn({type: 'check'})}>
                   <span className="check-count">{toCheck}</span>
@@ -1083,19 +1075,6 @@ export default function App() {
                   </span>
                 </button>
               )}
-              <div className="columns">
-                <CategoryBreakdown
-                  {...breakdown}
-                  preview={{limit: 5, onSeeAll: () => setTab('categories')}}
-                  onEdit={() => setDialog({type: 'categories', store: null})}
-                />
-                <StoreBreakdown
-                  {...breakdown}
-                  preview={{limit: 5, onSeeAll: () => setTab('stores')}}
-                  onEdit={() => setDialog({type: 'stores', store: null})}
-                  onOpenStore={store => setDialog({type: 'store', store})}
-                />
-              </div>
               <LatestPayments
                 rows={periodRows}
                 categories={categories}
@@ -1112,6 +1091,38 @@ export default function App() {
                   window.scrollTo({top: 0});
                 }}
               />
+              <section className="card period-card">
+                <header className="card-head">
+                  <h2>
+                    {report.chartGrain === 'week'
+                      ? 'Week by week'
+                      : report.chartGrain === 'year'
+                        ? 'Year by year'
+                        : 'Month by month'}
+                  </h2>
+                </header>
+                <PeriodChart
+                  series={report.series}
+                  selected={grain === 'all' ? '' : period}
+                  grain={report.chartGrain}
+                  currency={currency}
+                  usual={report.usual}
+                  onSelect={selectChartPeriod}
+                />
+              </section>
+              <div className="columns">
+                <CategoryBreakdown
+                  {...breakdown}
+                  preview={{limit: 5, onSeeAll: () => setTab('categories')}}
+                  onEdit={() => setDialog({type: 'categories', store: null})}
+                />
+                <StoreBreakdown
+                  {...breakdown}
+                  preview={{limit: 5, onSeeAll: () => setTab('stores')}}
+                  onEdit={() => setDialog({type: 'stores', store: null})}
+                  onOpenStore={store => setDialog({type: 'store', store})}
+                />
+              </div>
               <BudgetCard
                 report={report}
                 grain={grain}

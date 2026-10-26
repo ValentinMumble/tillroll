@@ -501,8 +501,6 @@ main {
 .summary {
   display: grid;
   gap: 6px;
-  padding-bottom: 20px;
-  border-bottom: 1px solid var(--line);
 }
 
 .hero {
@@ -514,6 +512,258 @@ main {
 
 .summary-delta {
   color: var(--ink-soft);
+}
+
+.summary-pace {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/* Time against money, three ways for now (a switch picks one): how much of the period has gone (grey) and how much
+   of a usual period was spent (blue, red past it), as two lines, two bars or two rings, each named in a key, with a
+   line on what is left per day under them. */
+.pace-switch {
+  flex-wrap: wrap;
+  justify-self: end;
+  margin-top: 8px;
+}
+
+.pace {
+  display: grid;
+  gap: 6px;
+  margin: 10px 0 4px;
+}
+
+.pace-text {
+  font-size: 14px;
+}
+
+.pace-key {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  color: var(--ink-soft);
+  font-size: 13px;
+}
+
+.pace-key strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.pace-key-dot {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--bar-strong);
+}
+
+.pace-key-dot.is-over {
+  background: var(--up);
+}
+
+.pace-key-dot.is-time {
+  background: var(--muted);
+}
+
+/* Two lines over the period: the top line a usual period, the time a straight grey line, the money blue (red above
+   the top line) with a dot on its last day. A finger or the mouse shows any day. */
+.progress {
+  margin: 8px 0 4px;
+}
+
+.progress-plot {
+  position: relative;
+  height: 140px;
+  border-bottom: 1px solid var(--axis);
+  cursor: crosshair;
+  touch-action: pan-y;
+}
+
+.progress-plot svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.progress-whole,
+.progress-time,
+.progress-spent,
+.progress-over {
+  fill: none;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.progress-whole {
+  stroke: var(--line);
+  stroke-width: 1px;
+}
+
+.progress-time {
+  stroke: var(--muted);
+  stroke-width: 2px;
+}
+
+.progress-spent {
+  stroke: var(--bar-strong);
+  stroke-width: 2px;
+}
+
+.progress-over {
+  stroke: var(--up);
+  stroke-width: 2px;
+}
+
+.progress-whole-label {
+  position: absolute;
+  left: 0;
+  color: var(--muted);
+  font-size: 12px;
+  transform: translateY(-130%);
+  pointer-events: none;
+}
+
+.progress-dot {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--bar-strong);
+  box-shadow: 0 0 0 2px var(--surface);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.progress-dot.is-over {
+  background: var(--up);
+}
+
+.progress-cursor {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--axis);
+  pointer-events: none;
+}
+
+.progress-tip {
+  top: 0;
+}
+
+.progress-axis {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* Two bars on one scale: a label and its value on one line, the bar under them. */
+.pace-time {
+  gap: 10px;
+}
+
+.pace-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 4px 12px;
+  align-items: baseline;
+}
+
+.pace-row-label {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.pace-row-value {
+  color: var(--ink-soft);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.pace-track {
+  grid-column: 1 / -1;
+  display: block;
+  height: 12px;
+  border-radius: 4px;
+  background: var(--surface-sunk);
+}
+
+.pace-time-fill,
+.pace-money-fill {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+}
+
+.pace-time-fill {
+  background: var(--muted);
+}
+
+.pace-money-fill {
+  background: var(--bar-strong);
+}
+
+.pace-money-fill.is-over {
+  background: var(--up);
+}
+
+/* Two rings, outside in: the money, then the time; the key beside them. */
+.pace-ring {
+  grid-template-columns: 112px minmax(0, 1fr);
+  align-items: center;
+  gap: 16px;
+}
+
+.pace-ring svg {
+  width: 112px;
+  height: 112px;
+  overflow: visible;
+}
+
+.pace-ring circle {
+  fill: none;
+  stroke-width: 10;
+}
+
+.pace-ring-track {
+  stroke: var(--surface-sunk);
+}
+
+/* The arcs end round, like an activity ring's. */
+.pace-ring-fill,
+.pace-ring-over,
+.pace-ring-time {
+  stroke-linecap: round;
+}
+
+.pace-ring-fill {
+  stroke: var(--bar-strong);
+}
+
+.pace-ring-over {
+  stroke: var(--up);
+}
+
+.pace-ring-time {
+  stroke: var(--muted);
+}
+
+.pace-ring-words {
+  display: grid;
+  gap: 6px;
+}
+
+/* The periods one after another, below the latest payments. */
+.period-card .chart {
+  margin-top: 0;
 }
 
 .facts {
@@ -1583,6 +1833,13 @@ main {
 
 .category-button:hover {
   border-color: var(--cat, var(--line));
+}
+
+/* The category's emoji leads its pill, the pill tinted in its colour. */
+.category-button-icon {
+  flex: none;
+  font-size: 14px;
+  line-height: 1;
 }
 
 .category-button-label {
@@ -3969,6 +4226,10 @@ main {
 
   .receipt {
     padding: 20px 16px 32px;
+  }
+
+  .progress-plot {
+    height: 120px;
   }
 
   .chart {

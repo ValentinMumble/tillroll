@@ -106,7 +106,9 @@ export function LatestPayments({
                   aria-label={`Category of this payment at ${row.store}: ${category?.label}. Change it`}
                   onClick={() => setSheet(row)}
                 >
-                  <span className="cat-dot" aria-hidden="true" />
+                  <span className="category-button-icon" aria-hidden="true">
+                    {category?.icon}
+                  </span>
                   <span className="category-button-label">{category?.label}</span>
                   {row.ownCategory && (
                     <span className="own-mark" title="Picked for this payment only">

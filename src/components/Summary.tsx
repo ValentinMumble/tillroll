@@ -1,8 +1,13 @@
+import {useState} from 'react';
 import {type Categories, colourStyle} from '../categories';
 import {money} from '../format';
 import {daysBetween, type Grain, periodLabel, today} from '../periods';
 import type {Report} from '../report';
+import {loadPaceView, type PaceView, savePaceView} from '../storage';
 import {Delta} from './Delta';
+import {PaceBars} from './PaceBars';
+import {PaceLines} from './PaceLines';
+import {PaceRings} from './PaceRings';
 
 interface Props {
   report: Report;
@@ -13,8 +18,9 @@ interface Props {
 }
 
 /**
- * The receipt's total: what the period cost, against the usual period or the previous one so far, and a strip of the
- * categories' colours, each as long as its share.
+ * The receipt's total: what the period cost, against the usual period or the previous one so far, how far into the
+ * period it is, the period day by day against the usual one, and a strip of the categories' colours, each as long as
+ * its share.
  */
 export function Summary({report, period, grain, currency, categories}: Props) {
   const {current, baseline, ongoing} = report;
@@ -23,6 +29,10 @@ export function Summary({report, period, grain, currency, categories}: Props) {
     .sort((first, second) => second[1] - first[1]);
   const labelOf = (key: string) => categories.byKey[key]?.label ?? key;
   const days = daysBetween(report.from, ongoing ? today() : report.to);
+  const pace = report.pace;
+  const left = pace ? pace.days - pace.spent.length : 0;
+  // Three ways to draw time against money, side by side for now to pick one; the choice stays in this browser.
+  const [paceView, setPaceView] = useState(loadPaceView);
   return (
     <div className="summary">
       <p className="eyebrow">
@@ -41,6 +51,43 @@ export function Summary({report, period, grain, currency, categories}: Props) {
           )}
         </p>
       )}
+      {ongoing && pace && (
+        <p className="summary-pace">
+          Day {pace.spent.length} of {pace.days} ·{' '}
+          {left === 0 ? 'the last day' : left === 1 ? '1 day left' : `${left} days left`}
+        </p>
+      )}
+      {pace && pace.usual && (
+        <div className="segmented is-small pace-switch" role="group" aria-label="Show the progress as">
+          {(
+            [
+              ['lines', 'Lines'],
+              ['bars', 'Bars'],
+              ['rings', 'Rings'],
+            ] as [PaceView, string][]
+          ).map(([view, label]) => (
+            <button
+              key={view}
+              type="button"
+              aria-pressed={paceView === view}
+              onClick={() => {
+                setPaceView(view);
+                savePaceView(view);
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
+      {pace &&
+        (paceView === 'lines' ? (
+          <PaceLines pace={pace} ongoing={ongoing} grain={grain} currency={currency} from={report.from} />
+        ) : paceView === 'rings' ? (
+          <PaceRings pace={pace} ongoing={ongoing} grain={grain} currency={currency} />
+        ) : (
+          <PaceBars pace={pace} ongoing={ongoing} grain={grain} currency={currency} />
+        ))}
       {parts.length > 0 && (
         <div
           className="spend-strip"

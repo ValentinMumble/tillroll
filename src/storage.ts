@@ -28,6 +28,7 @@ const PAYMENT_SORT = 'tillroll.payment-sort';
 const PAYMENTS_EVERYTHING = 'tillroll.payments-everything';
 const PAYMENTS_OWN = 'tillroll.payments-own';
 const CATEGORY_VIEW = 'tillroll.category-view';
+const PACE_VIEW = 'tillroll.pace-view';
 
 export type LocalData = {source: 'sample'} | {source: 'statement'; transactions: Transaction[]};
 
@@ -127,3 +128,11 @@ export type CategoryView = 'list' | 'trends';
 export const loadCategoryView = (): CategoryView =>
   read<CategoryView>(CATEGORY_VIEW) === 'trends' ? 'trends' : 'list';
 export const saveCategoryView = (view: CategoryView) => write(CATEGORY_VIEW, view);
+
+/** How the overview draws time against money: two lines, two bars or two rings. */
+export type PaceView = 'lines' | 'bars' | 'rings';
+export function loadPaceView(): PaceView {
+  const view = read<PaceView>(PACE_VIEW);
+  return view === 'lines' || view === 'rings' ? view : 'bars';
+}
+export const savePaceView = (view: PaceView) => write(PACE_VIEW, view);
