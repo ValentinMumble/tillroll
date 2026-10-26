@@ -23,8 +23,8 @@ export function TimeMoneyText({pace, ongoing, grain, currency}: Props) {
         : !ongoing
           ? `Under a usual ${word} by ${money(remaining, currency)}`
           : left === 0
-            ? `${money(remaining, currency)} left of a usual ${word} on its last day`
-            : `About ${money(remaining / left, currency)} a day for the ${left === 1 ? 'day' : `${left} days`} left, to stay within a usual ${word}`}
+            ? `${money(remaining, currency)} left for the last day`
+            : `About ${money(remaining / left, currency)} a day for the ${left === 1 ? 'day' : `${left} days`} left`}
       {ongoing && remaining < 0 && left > 0 && (
         <span className="muted"> · {left === 1 ? '1 day left' : `${left} days left`}</span>
       )}

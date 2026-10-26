@@ -4,8 +4,8 @@
   "description": "Your Revolut spending week by week and month by month, by store and by category",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#f3f1fb",
-  "theme_color": "#f3f1fb",
+  "background_color": "#f5f4f8",
+  "theme_color": "#f5f4f8",
   "icons": [
     {
       "src": "/icon.png",

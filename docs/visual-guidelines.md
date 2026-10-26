@@ -15,9 +15,15 @@ all live in `src/index.css`.
   `--tint`). Text never wears them: it stays in `--ink`, `--ink-soft` or `--muted`.
 - Never let colour carry meaning alone: a category's colour always comes with its emoji or its name, and up or down
   (`--up` red for more spending, `--down` green for less) always comes with an arrow.
-- The theme is soft lavender: a lilac page, white cards, violet (`--accent`) for actions. Charts of a single series
-  use the one violet (`--bar`, `--bar-strong` for the marked period). The calendar uses the violet ramp `--heat-0`
-  to `--heat-5`.
+- The theme is **Liquid Glass over a dusk wallpaper**: a soft haze of lilac, pink and blue on a near-neutral page
+  (`--wall`, still behind the page), violet (`--accent`) for actions only. Charts of a single series use the one violet (`--bar`, `--bar-strong` for the marked period). The
+  calendar uses the violet ramp `--heat-0` to `--heat-5`.
+- Glass: a card is `--glass` under `--glass-sheen` (see-through, light catching its top left, no blur: nothing moves
+  behind it). What floats over moving content (the period bar, the tab bar, dialogs, menus, the selection bar) is
+  `--glass-strong` with `backdrop-filter: var(--blur)`. Both have the bright top edge and inner rim of `--shadow`. Controls inside (fields, buttons, chips) stay solid
+  `--surface`. With "Reduce transparency" on, glass turns solid and the wallpaper goes.
+- Text keeps 4.5:1 both on the glass and on the bare wallpaper (the header and the sidebar sit on it): check any new
+  wallpaper or glass value against the wallpaper's brightest spots.
 
 ## Type
 
