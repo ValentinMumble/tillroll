@@ -11,12 +11,12 @@
     radial-gradient(90% 55% at 0% 55%, #ecebf1 0, transparent 60%),
     radial-gradient(80% 55% at 100% 70%, #fae7ee 0, transparent 60%),
     radial-gradient(90% 60% at 35% 105%, #e0ebfb 0, transparent 60%), var(--page);
-  --glass: rgba(255, 255, 255, 0.46);
-  --glass-strong: rgba(255, 255, 255, 0.78);
-  --glass-edge: rgba(255, 255, 255, 0.95);
-  --glass-line: rgba(255, 255, 255, 0.7);
+  --glass: rgba(255, 255, 255, 0.66);
+  --glass-strong: rgba(255, 255, 255, 0.88);
+  --glass-edge: rgba(255, 255, 255, 0.75);
+  --glass-line: rgba(255, 255, 255, 0.45);
   /* Light catching the top left of a card, fading by the middle. */
-  --glass-sheen: linear-gradient(155deg, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0) 50%);
+  --glass-sheen: linear-gradient(155deg, rgba(255, 255, 255, 0.25), rgba(255, 255, 255, 0) 50%);
   --blur: blur(28px) saturate(120%);
   --surface: #ffffff;
   --surface-sunk: #ece9f8;
@@ -69,11 +69,11 @@
       radial-gradient(90% 55% at 0% 55%, #1a1a22 0, transparent 60%),
       radial-gradient(80% 55% at 100% 70%, #23161e 0, transparent 60%),
       radial-gradient(90% 60% at 35% 105%, #0f1e33 0, transparent 60%), var(--page);
-    --glass: rgba(27, 26, 39, 0.4);
-    --glass-strong: rgba(27, 26, 39, 0.78);
-    --glass-edge: rgba(255, 255, 255, 0.22);
-    --glass-line: rgba(255, 255, 255, 0.08);
-    --glass-sheen: linear-gradient(155deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0) 50%);
+    --glass: rgba(27, 26, 39, 0.6);
+    --glass-strong: rgba(27, 26, 39, 0.88);
+    --glass-edge: rgba(255, 255, 255, 0.12);
+    --glass-line: rgba(255, 255, 255, 0.05);
+    --glass-sheen: linear-gradient(155deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0) 50%);
     --surface: #1b1a27;
     --surface-sunk: #25232f;
     --ink: #ebe8fb;
