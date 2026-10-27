@@ -56,7 +56,7 @@ shows, then the actions as `.link-button`s at the right end (`.card-actions` whe
 ### Buttons
 
 - `.button.is-primary`: the one main action of a dialog (Save), at the right end of the footer.
-- `.button.is-quiet`: Cancel, just before it.
+- `.button.is-quiet`: a secondary answer in a deck (Back, Later). Never Cancel or Close: the ✕ does that.
 - `.link-button`: secondary actions, in card heads, inside lists (Separate, Undo, Merge into this) and on the left of
   a dialog footer for "go somewhere else" (`.store-dialog-more`: "Merge with other stores…", "See its payments").
 
@@ -74,9 +74,12 @@ shows, then the actions as `.link-button`s at the right end (`.card-actions` whe
 - Head: the `h2` title, the ✕, then a `.hint` that says what the dialog is for in one or two sentences.
 - Body: when the content can be longer than the screen, only the body scrolls (`min-height: 0; overflow: auto`); the
   head and the footer stay in place.
-- Footer (`.dialog-foot`, a hairline on top): actions at the right, a "go elsewhere" link at the left.
+- Footer (`.dialog-foot`, a hairline on top): actions at the right, a "go elsewhere" link at the left. No Cancel or
+  Close button: the ✕ closes without saving. A dialog with nothing left to do has no footer.
 - One dialog at a time: a dialog that opens another gives it its place (`setDialog({type: ...})`), it never stacks.
 - Two short fields (a name and a category) sit side by side on a wide screen and one above the other on a phone.
+- Keep a dialog's first screen to what it is for. What is rarely needed (what the bank writes, merged names,
+  look-alike stores) folds away in `<details className="fold">`: one quiet line each with a chevron, under a hairline.
 
 ### Lists of stores, payments, labels
 

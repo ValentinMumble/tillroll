@@ -165,9 +165,6 @@ export function CategorySheet({
             Back to automatic
           </button>
         )}
-        <button type="button" className="button is-quiet" onClick={closeDialog}>
-          Cancel
-        </button>
       </footer>
     </dialog>
   );

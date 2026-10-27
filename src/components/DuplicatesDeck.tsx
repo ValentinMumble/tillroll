@@ -224,41 +224,34 @@ export function DuplicatesDeck({pairs, categories, onMerge, onDistinct, onCatego
         )
       )}
 
-      <footer className="dialog-foot">
-        {pair && (
-          <>
-            <button
-              type="button"
-              className="button is-quiet"
-              disabled={position === 0}
-              onClick={() => setPosition(position - 1)}
-            >
-              Back
-            </button>
-            <button type="button" className="button is-quiet" onClick={() => setPosition(position + 1)}>
-              Later
-            </button>
-            <button
-              type="button"
-              className="button"
-              onClick={() => {
-                onDistinct(key);
-                setPosition(position + 1);
-              }}
-            >
-              Not the same
-            </button>
-            <button type="button" className="button is-primary" onClick={merge}>
-              Merge
-            </button>
-          </>
-        )}
-        {!pair && (
-          <button type="button" className="button is-primary" onClick={closeDialog}>
-            Close
+      {pair && (
+        <footer className="dialog-foot">
+          <button
+            type="button"
+            className="button is-quiet"
+            disabled={position === 0}
+            onClick={() => setPosition(position - 1)}
+          >
+            Back
           </button>
-        )}
-      </footer>
+          <button type="button" className="button is-quiet" onClick={() => setPosition(position + 1)}>
+            Later
+          </button>
+          <button
+            type="button"
+            className="button"
+            onClick={() => {
+              onDistinct(key);
+              setPosition(position + 1);
+            }}
+          >
+            Not the same
+          </button>
+          <button type="button" className="button is-primary" onClick={merge}>
+            Merge
+          </button>
+        </footer>
+      )}
     </dialog>
   );
 }

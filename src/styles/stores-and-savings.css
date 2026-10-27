@@ -14,6 +14,81 @@
   height: 160px;
 }
 
+/* The chart's title stays quiet: the average is in the head already. */
+.store-months .stat-bars figcaption {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+/* What the dialog folds away until asked for (what the bank writes, merged names, look-alikes): one quiet line each
+   with a chevron that turns when it opens, a hairline above them. */
+.folds {
+  display: grid;
+  margin: 0 20px;
+  padding-top: 4px;
+  border-top: 1px solid var(--line);
+}
+
+.fold > summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  color: var(--ink-soft);
+  font-size: 14px;
+  font-weight: 500;
+  list-style: none;
+  cursor: pointer;
+}
+
+.fold > summary::-webkit-details-marker {
+  display: none;
+}
+
+.fold > summary::before {
+  content: '›';
+  width: 10px;
+  color: var(--muted);
+  font-size: 18px;
+  line-height: 1;
+  transition: rotate 0.15s ease;
+}
+
+.fold[open] > summary::before {
+  rotate: 90deg;
+}
+
+.fold > :not(summary) {
+  margin: 0 0 10px 18px;
+}
+
+.fold-list {
+  display: grid;
+  gap: 8px;
+  padding: 0;
+  list-style: none;
+}
+
+.fold-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  font-size: 14px;
+}
+
+@media (max-width: 560px) {
+  .store-months .stat-bars-plot {
+    height: 120px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fold > summary::before {
+    transition: none;
+  }
+}
+
 .store-dialog-form {
   display: grid;
   gap: 12px;

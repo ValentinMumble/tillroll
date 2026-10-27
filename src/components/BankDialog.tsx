@@ -125,11 +125,6 @@ export function BankDialog({connected, busy, onConnect, onClose}: Props) {
         {favourites.map(line)}
         {others.map(line)}
       </ul>
-      <footer className="dialog-foot">
-        <button type="button" className="button is-quiet" onClick={closeDialog}>
-          Close
-        </button>
-      </footer>
     </dialog>
   );
 }

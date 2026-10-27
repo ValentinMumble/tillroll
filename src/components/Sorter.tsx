@@ -268,28 +268,21 @@ export function Sorter({queues, categories, rules, onPick, onNewCategory, onRena
         )
       )}
 
-      <footer className="dialog-foot">
-        {store && (
-          <>
-            <button
-              type="button"
-              className="button is-quiet"
-              disabled={position === 0}
-              onClick={() => setPosition(position - 1)}
-            >
-              Back
-            </button>
-            <button type="button" className="button" onClick={next}>
-              Later
-            </button>
-          </>
-        )}
-        {!store && (
-          <button type="button" className="button is-primary" onClick={closeDialog}>
-            Close
+      {store && (
+        <footer className="dialog-foot">
+          <button
+            type="button"
+            className="button is-quiet"
+            disabled={position === 0}
+            onClick={() => setPosition(position - 1)}
+          >
+            Back
           </button>
-        )}
-      </footer>
+          <button type="button" className="button" onClick={next}>
+            Later
+          </button>
+        </footer>
+      )}
     </dialog>
   );
 }

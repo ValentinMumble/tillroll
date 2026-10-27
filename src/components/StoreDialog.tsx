@@ -27,8 +27,9 @@ interface Props {
 }
 
 /**
- * One store, opened from its pencil or its name: its name and its category, the stores merged into it (each can be
- * separated again) and look-alike stores to merge in with one tap.
+ * One store, opened from its pencil or its name: what it cost, its name and its category, its month by month, and
+ * folded away until asked for, what the bank writes, the names merged into it (each can be separated again) and
+ * look-alike stores to merge in with one tap. The ✕ closes without saving.
  */
 export function StoreDialog({
   store,
@@ -67,6 +68,9 @@ export function StoreDialog({
     };
   }, [rows, store.key, merges]);
   const auto = categories.byKey[facts.guessed];
+  const monthly = facts.months.length
+    ? facts.months.reduce((sum, item) => sum + item.total, 0) / facts.months.length
+    : 0;
 
   function save() {
     const newName = name.trim() || store.name;
@@ -99,12 +103,8 @@ export function StoreDialog({
           <p className="hint">
             {paymentCount(facts.payments)}
             {facts.spent > 0 && ` · ${money(facts.spent, facts.currency)}`}
+            {facts.months.length > 1 && monthly >= 0.5 && ` · ${money(monthly, facts.currency)} a month`}
           </p>
-          <ul className="sorter-examples" aria-label="What the bank says">
-            {facts.texts.map(text => (
-              <li key={text}>{text}</li>
-            ))}
-          </ul>
         </header>
         <div className="store-fields">
           <label className="field">
@@ -135,10 +135,7 @@ export function StoreDialog({
         {facts.months.length > 1 && (
           <section className="store-months">
             <BarStrip
-              caption={`Month by month: ${money(
-                facts.months.reduce((sum, item) => sum + item.total, 0) / facts.months.length,
-                facts.currency,
-              )} on average`}
+              caption="Month by month"
               values={facts.months.map(item => Math.max(0, item.total))}
               // Every third month, counted back from the last one, so the last label never runs into another.
               labels={facts.months.map((item, index) =>
@@ -149,38 +146,50 @@ export function StoreDialog({
             />
           </section>
         )}
-        {facts.parts.length > 0 && (
-          <section className="store-parts">
-            <h3>Includes</h3>
-            <ul>
-              {facts.parts.map(part => (
-                <li key={part.key}>
-                  {part.name}
-                  <button type="button" className="link-button" onClick={() => onSeparate(part.key)}>
-                    Separate
-                  </button>
-                </li>
+        <div className="folds">
+          <details className="fold">
+            <summary>What the bank writes</summary>
+            <ul className="sorter-examples">
+              {facts.texts.map(text => (
+                <li key={text}>{text}</li>
               ))}
             </ul>
-          </section>
-        )}
-        {similar.length > 0 && (
-          <section className="store-parts">
-            <h3>Looks like</h3>
-            <ul>
-              {similar.slice(0, 5).map(other => (
-                <li key={other.key}>
-                  <span>
-                    {other.name} <span className="muted">{paymentCount(other.payments)}</span>
-                  </span>
-                  <button type="button" className="link-button" onClick={() => onMergeInto(other.key, store.name)}>
-                    Merge into this
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
+          </details>
+          {facts.parts.length > 0 && (
+            <details className="fold">
+              <summary>Merged from {facts.parts.length === 1 ? '1 name' : `${facts.parts.length} names`}</summary>
+              <ul className="fold-list">
+                {facts.parts.map(part => (
+                  <li key={part.key}>
+                    {part.name}
+                    <button type="button" className="link-button" onClick={() => onSeparate(part.key)}>
+                      Separate
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </details>
+          )}
+          {similar.length > 0 && (
+            <details className="fold">
+              <summary>
+                Looks like {similar.length === 1 ? '1 other store' : `${Math.min(similar.length, 5)} other stores`}
+              </summary>
+              <ul className="fold-list">
+                {similar.slice(0, 5).map(other => (
+                  <li key={other.key}>
+                    <span>
+                      {other.name} <span className="muted">{paymentCount(other.payments)}</span>
+                    </span>
+                    <button type="button" className="link-button" onClick={() => onMergeInto(other.key, store.name)}>
+                      Merge into this
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </details>
+          )}
+        </div>
         <footer className="dialog-foot">
           <button
             type="button"
@@ -189,9 +198,6 @@ export function StoreDialog({
             onClick={onMore}
           >
             Merge with other stores…
-          </button>
-          <button type="button" className="button is-quiet" onClick={closeDialog}>
-            Cancel
           </button>
           <button type="submit" className="button is-primary">
             Save

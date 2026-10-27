@@ -167,9 +167,6 @@ export function CategoryEditor({categories, forStore, onSave, onClose}: Props) {
         ))}
       </ul>
       <footer className="dialog-foot">
-        <button type="button" className="button is-quiet" onClick={closeDialog}>
-          Cancel
-        </button>
         <button type="button" className="button is-primary" onClick={save}>
           Save
         </button>

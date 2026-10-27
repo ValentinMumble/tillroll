@@ -128,9 +128,6 @@ export function CategoryDialog({category, rows, categories, currency, onOpenPaym
         >
           See its payments
         </button>
-        <button type="button" className="button is-primary" onClick={closeDialog}>
-          Close
-        </button>
       </footer>
     </dialog>
   );

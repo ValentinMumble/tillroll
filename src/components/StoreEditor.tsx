@@ -217,16 +217,13 @@ export function StoreEditor(props: Props) {
           </p>
         </div>
       )}
-      <footer className="dialog-foot">
-        {Object.keys(merges).length > 0 && (
+      {Object.keys(merges).length > 0 && (
+        <footer className="dialog-foot">
           <button type="button" className="link-button store-dialog-more" onClick={onShowMerges}>
             See merged stores ({Object.keys(merges).length})
           </button>
-        )}
-        <button type="button" className="button is-primary" onClick={closeDialog}>
-          Close
-        </button>
-      </footer>
+        </footer>
+      )}
     </dialog>
   );
 }
