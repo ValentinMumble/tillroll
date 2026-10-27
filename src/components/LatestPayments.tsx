@@ -52,6 +52,13 @@ export function LatestPayments({
   const shown = rows.filter(row => isListed(row, {moneyIn, own}));
   const latest = shown.slice(0, SHOWN);
   const moves = rows.filter(row => row.category === 'own').length;
+  // What went out each day, over every listed payment of the day, not only the ones shown.
+  const dayTotals = new Map<string, number>();
+  const dayCounts = new Map<string, number>();
+  for (const row of shown) {
+    dayCounts.set(row.date, (dayCounts.get(row.date) ?? 0) + 1);
+    if (row.amount < 0 && !row.leftOut) dayTotals.set(row.date, (dayTotals.get(row.date) ?? 0) - row.amount);
+  }
   return (
     <section className="card is-preview latest">
       <header className="card-head">
@@ -67,9 +74,21 @@ export function LatestPayments({
         <p className="empty">No payments in this period.</p>
       ) : (
         <ul>
-          {latest.map(row => {
+          {latest.map((row, index) => {
             const category = categories.byKey[row.category];
-            return (
+            return [
+              // A heading above each day's payments, as in the payment list.
+              row.date !== latest[index - 1]?.date && (
+                <li key={`day-${row.date}`} className="latest-day-head">
+                  <h3>{recentDayLabel(row.date)}</h3>
+                  <span className="payment-amount">
+                    {/* A day with one payment already shows its amount on the row. */}
+                    {(dayCounts.get(row.date) ?? 0) > 1 && dayTotals.get(row.date)
+                      ? money(-(dayTotals.get(row.date) ?? 0), row.currency, true)
+                      : ''}
+                  </span>
+                </li>
+              ),
               <li
                 key={row.id}
                 // Faded like in the payment list: not spending, or nothing spent in the end (€0, refunded in full).
@@ -91,10 +110,7 @@ export function LatestPayments({
                   {row.pending && <span className="tag">pending</span>}
                   <PaymentLabels row={row} onLabels={onLabels} onFocusLabel={onFocusLabel} />
                 </span>
-                <span className="latest-day">
-                  {recentDayLabel(row.date)}
-                  {row.time && ` ${row.time}`}
-                </span>
+                <span className="latest-day">{row.time}</span>
                 <button
                   type="button"
                   className={`category-button${row.basis === 'picked' ? '' : ' is-auto'}${
@@ -117,8 +133,8 @@ export function LatestPayments({
                 <span className={`payment-amount${row.amount > 0 ? ' is-in' : ''}`}>
                   {money(row.amount, row.currency, true)}
                 </span>
-              </li>
-            );
+              </li>,
+            ];
           })}
         </ul>
       )}

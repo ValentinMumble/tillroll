@@ -99,6 +99,30 @@
   color: var(--muted);
 }
 
+/* A day's heading, as in the payment list: the day on the left, what went out that day under the amounts. */
+.latest li.latest-day-head {
+  padding: 14px 0 4px;
+  border-top: 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.latest li.latest-day-head:first-child {
+  padding-top: 4px;
+}
+
+.latest-day-head h3 {
+  grid-column: 1 / -2;
+  margin: 0;
+  font: inherit;
+}
+
+.latest .latest-day-head .payment-amount {
+  grid-area: 1 / -2;
+  justify-self: end;
+}
+
 /* The store's name, then its tags and labels; they wrap under a long name, and the label field opens there too. */
 .latest-store {
   display: flex;
@@ -147,6 +171,11 @@
 
   .latest-store {
     grid-area: store;
+  }
+
+  .latest li.latest-day-head {
+    grid-template-areas: none;
+    padding-bottom: 2px;
   }
 
   .latest-day {

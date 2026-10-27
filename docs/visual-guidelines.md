@@ -101,7 +101,8 @@ The overview answers "how is this month going?" first, above all on a phone, so 
    is left per day beside them.
 2. Balances: each bank's balance from its last sync, and their total (owner only).
 3. The prompts, when there is something to do: stores to sort, payments to check.
-4. The latest payments.
+4. The latest payments, under day headings like the payment list's ("Today", "Yesterday", "Mon 12 Oct"), with what
+   went out that day on the right when it had more than one payment.
 5. Everything else: the period chart, top categories and stores, budgets, money in and out, fixed and flexible,
    regular payments, insights.
 
