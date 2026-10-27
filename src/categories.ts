@@ -1,5 +1,6 @@
 import type {CSSProperties} from 'react';
 import type {BuiltInCategory, CategoryEdit, CategoryKey, Rules, Transaction} from './types';
+import {plain} from './text';
 
 export interface Category extends CategoryEdit {
   /** Added by hand: it can be deleted. */
@@ -122,10 +123,7 @@ export function editsFrom(list: Category[]): CategoryEdit[] {
 }
 
 export function newCategoryKey(label: string) {
-  const slug = label
-    .normalize('NFKD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
+  const slug = plain(label)
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '')
     .slice(0, 20);
@@ -229,12 +227,7 @@ const HEALTH_REFUND = /\bcpam\b|\bameli\b|mutuelle|gerep|groupe europeen retrai|
 const OWN_TEXT =
   /\b(pockets?|vault|savings?|coffre|flexible (cash funds|account)|instant access|livret|ldds?|lep)\b|[ée]pargne|^top-?up by\b/i;
 
-const wordsOf = (text: string) =>
-  text
-    .normalize('NFKD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .match(/[a-z]+/g) ?? [];
+const wordsOf = (text: string) => plain(text).match(/[a-z]+/g) ?? [];
 
 /** Words around a name in a bank text: "Virement vers M ...", "Payment from ...". */
 const FILLERS = new Set([
@@ -261,7 +254,7 @@ const FILLERS = new Set([
  * bank ("Payment from DIJKSTRA VALENTI", "M DIJKSTRA VALENTIN"). A name needs two words, so "Main" never matches.
  * One more word is fine (a middle name, "Revolut"); two are someone else's name too, as on a joint account.
  */
-export function namesMe(text: string, me: string[]) {
+function namesMe(text: string, me: string[]) {
   const said = wordsOf(text);
   return me.some(name => {
     const parts = wordsOf(name).filter(part => part.length >= 3);
@@ -303,7 +296,7 @@ function bankHint({bankCategory}: Transaction) {
  * The category Tillroll guesses, from the kind of movement, the store name and the merchant code. `me` holds the
  * account holder's names (the bank accounts' names), for the transfers to and from oneself.
  */
-export function guessWithBasis(transaction: Transaction, me: string[] = []): {category: BuiltInCategory; basis: Basis} {
+function guessWithBasis(transaction: Transaction, me: string[] = []): {category: BuiltInCategory; basis: Basis} {
   const {description, mcc} = transaction;
   // Some banks give a transfer out no account on the other side, so it reads as a card payment: "VIR SEPA ...".
   const kind = transaction.kind === 'card' && /^vir(ement)?\b/i.test(description) ? 'transfer' : transaction.kind;

@@ -1,12 +1,33 @@
+import {money as formatMoney} from '../format';
 import type {Grain} from '../periods';
 import {type Pace, timeAndMoney} from '../report';
-import {TimeMoneyText} from './PaceBars';
 
 interface Props {
   pace: Pace;
   ongoing: boolean;
   grain: Grain;
   currency: string;
+}
+
+/** Under the rings: what is left of a usual period for each day left, or how far past it the period is. */
+function TimeMoneyText({pace, ongoing, grain, currency}: Props) {
+  const {spent, whole, left, word} = timeAndMoney(pace, ongoing, grain, currency);
+  if (!whole) return null;
+  const remaining = whole - spent;
+  return (
+    <p className="pace-text">
+      {remaining < 0
+        ? `Over a usual ${word} by ${formatMoney(-remaining, currency)}`
+        : !ongoing
+          ? `Under a usual ${word} by ${formatMoney(remaining, currency)}`
+          : left === 0
+            ? `${formatMoney(remaining, currency)} left for the last day`
+            : `About ${formatMoney(remaining / left, currency)} a day for the ${left === 1 ? 'day' : `${left} days`} left`}
+      {ongoing && remaining < 0 && left > 0 && (
+        <span className="muted"> · {left === 1 ? '1 day left' : `${left} days left`}</span>
+      )}
+    </p>
+  );
 }
 
 /** The two rings, outside in: the money, then the time, with a gap between them. */

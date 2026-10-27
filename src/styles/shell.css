@@ -1,0 +1,620 @@
+/* App shell: one view at a time. Wide screens pick it in a sidebar, which also holds the account; narrower ones in a
+   liquid glass tab bar (like hk's: a frosted capsule, a light top edge and a hairline, with a lens that slides under
+   the chosen tab), with the header and the footer around the view. */
+
+.shell {
+  display: grid;
+  grid-template-columns: 232px minmax(0, 1fr);
+  gap: 32px;
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.sidebar {
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  height: 100dvh;
+  padding: 22px 0 20px;
+  overflow-y: auto;
+}
+
+.side-nav {
+  display: grid;
+  gap: 2px;
+}
+
+.side-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: var(--ink-soft);
+  font-size: 15px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+}
+
+.side-link svg {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.side-link:hover {
+  background: var(--surface-sunk);
+  color: var(--ink);
+}
+
+.side-link.is-active {
+  background: var(--surface);
+  color: var(--accent);
+  box-shadow: var(--shadow);
+}
+
+.badge {
+  margin-left: auto;
+  min-width: 24px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.side-account {
+  display: grid;
+  gap: 12px;
+  margin-top: auto;
+}
+
+.side-account .status {
+  margin: 0;
+}
+
+.side-actions {
+  display: grid;
+  gap: 8px;
+}
+
+.side-actions .button {
+  width: 100%;
+}
+
+.side-links {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.8;
+}
+
+.side-links .link-button {
+  font-size: 12px;
+}
+
+.main {
+  min-width: 0;
+  padding-bottom: 48px;
+}
+
+/* One shrinkable column: a wide child (the chart's 16 week labels) must not widen the page on a phone. */
+.view {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+}
+
+.receipt,
+.card {
+  min-width: 0;
+}
+
+/* The period bar stays at the top while the view scrolls, in the page's own colour like the status bar above it
+   (near black in dark mode): the glass cards blur away under it. */
+.main > .toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  margin: 0 -8px 8px;
+  padding: 16px 8px 12px;
+  background: color-mix(in srgb, var(--page) 88%, transparent);
+  -webkit-backdrop-filter: var(--blur);
+  backdrop-filter: var(--blur);
+}
+
+/* Wide screens: the sidebar has the brand, the account, the links and the stores to sort. */
+.main > .top,
+.main > .foot,
+.tabbar {
+  display: none;
+}
+
+.card-search {
+  margin-bottom: 12px;
+}
+
+/* Tick-all, the search, the "to check" switch when some are, and the category filter. */
+.payments-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+/* A search's matches that the switches, the category filter or the period leave out, each a click away. */
+.search-hidden {
+  margin: -4px 0 12px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.search-hidden .link-button {
+  font-size: 13px;
+}
+
+.payments-filters > .text-input {
+  flex: 1 1 200px;
+  width: auto;
+  min-width: 0;
+}
+
+.payments-filters > .select {
+  flex: 0 1 240px;
+  min-width: 0;
+}
+
+.payments-filters > .pick-all,
+.chip.to-check {
+  flex: none;
+}
+
+.chip.to-check.is-on {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
+}
+
+/* A category guessed with little to go on: a dashed outline in its colour asks for a look. */
+.category-button.is-unsure {
+  border: 1.5px dashed var(--cat, var(--axis));
+  background: var(--surface);
+}
+
+@media (max-width: 560px) {
+  /* The search and the "to check" switch, the category filter under them (no tick-all box: a phone does not tick). */
+  .payments-filters > .text-input {
+    flex-basis: 120px;
+  }
+
+  .payments-filters > .select {
+    flex: 1 1 100%;
+  }
+}
+
+.bar-row.has-trend {
+  grid-template-columns: minmax(0, 1fr) 72px auto 84px;
+}
+
+.trend {
+  width: 72px;
+  height: 22px;
+  overflow: visible;
+}
+
+.trend polyline {
+  fill: none;
+  stroke: var(--cat, var(--bar));
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.trend circle {
+  fill: var(--cat, var(--bar-strong));
+  stroke: var(--surface);
+  stroke-width: 1.5;
+}
+
+.payments tr.day-row th,
+.payments tr.day-row td {
+  padding: 18px 6px 6px;
+  border-top: 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+}
+
+.payments tr.day-row td {
+  text-align: right;
+}
+
+/* Liquid Glass, the same recipe as Chords' and Statva's tab bars: a frosted, see-through capsule with a light top edge,
+   a hairline outline and a soft shadow (with less saturation here, so the colours under it stay calm). */
+.glass {
+  background: color-mix(in srgb, var(--page) 75%, transparent);
+  -webkit-backdrop-filter: var(--blur);
+  backdrop-filter: var(--blur);
+  box-shadow:
+    inset 0 1px 0 var(--glass-edge),
+    0 0 0 0.5px var(--ring),
+    var(--lift);
+}
+
+@media (max-width: 720px) {
+  .store-lines li {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .store-lines .select {
+    grid-column: 2;
+  }
+}
+
+@media (max-width: 960px) {
+  .shell {
+    display: block;
+    padding: 0 16px calc(96px + env(safe-area-inset-bottom));
+  }
+
+  .sidebar {
+    display: none;
+  }
+
+  .main > .top {
+    display: flex;
+  }
+
+  .main > .foot {
+    display: block;
+  }
+
+  .sort-banner {
+    display: flex;
+  }
+
+  .top .status {
+    max-width: 42vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* One row: the brand on the left, Sync and the menu on the right. */
+  .main > .top {
+    flex-wrap: nowrap;
+  }
+
+  .top-actions {
+    flex-wrap: nowrap;
+    min-width: 0;
+  }
+
+  /* The currency picker lives in the ⋯ menu on a phone, so the period bar keeps one row. */
+  .toolbar-currency {
+    display: none;
+  }
+
+  /* Whatever turns out too wide never makes the whole page slide sideways. */
+  .shell {
+    overflow-x: clip;
+  }
+
+  .tabbar {
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 10;
+    display: flex;
+    gap: 2px;
+    width: calc(100% - 28px);
+    max-width: 448px;
+    margin: 0 auto calc(env(safe-area-inset-bottom, 0px) + 8px);
+    padding: 5px;
+    border-radius: 999px;
+  }
+
+  .tab {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    padding: 7px 0 5px;
+    border: 0;
+    border-radius: 999px;
+    background: none;
+    color: var(--ink);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    transition:
+      color 300ms ease,
+      transform 200ms ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .tab svg {
+    width: 22px;
+    height: 22px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .tab.is-active {
+    color: var(--accent);
+  }
+
+  .tab:active {
+    transform: scale(0.95);
+  }
+
+  /* The lens under the chosen tab: one tab wide (bar minus padding and gaps, split by --count). */
+  .tab-glow {
+    position: absolute;
+    top: 5px;
+    bottom: 5px;
+    left: 5px;
+    width: calc((100% - 10px - (var(--count) - 1) * 2px) / var(--count));
+    border-radius: 999px;
+    background: rgba(118, 118, 128, 0.16);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+    transform: translateX(calc(var(--index) * (100% + 2px)));
+    transition: transform 320ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .tab-glow {
+      transition: none;
+    }
+  }
+
+  /* iOS zooms into a field with text under 16px. */
+  input,
+  select {
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 960px) and (prefers-color-scheme: dark) {
+  .tab-glow {
+    background: rgba(118, 118, 128, 0.24);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  }
+}
+
+/* Narrow screens */
+
+@media (max-width: 860px) {
+  .columns,
+  .landing {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 560px) {
+  .months {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px 14px;
+  }
+
+  .day-number {
+    display: none;
+  }
+
+  /* Bars: the name gets the room; the change takes what it needs, a store's number of payments goes. */
+  .bar-row,
+  .bar-row.has-trend {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+  }
+
+  .bar-visits {
+    display: none;
+  }
+
+  .trend {
+    display: none;
+  }
+
+  .payments tr.day-row {
+    grid-template-areas: none;
+    grid-template-columns: minmax(0, 1fr) auto;
+    padding-top: 14px;
+    border-top: 0;
+  }
+
+  /* The day on the left, what went out that day on the right. */
+  .payments tr.day-row th,
+  .payments tr.day-row td {
+    grid-row: 1;
+    padding: 0 0 4px;
+  }
+
+  .payments tr.day-row .payment-amount {
+    grid-area: auto;
+    grid-row: 1;
+    grid-column: 2;
+  }
+
+  .facts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .receipt {
+    padding: 20px 16px 32px;
+  }
+
+  .chart {
+    --gutter: 40px;
+  }
+
+  .chart.is-crowded .chart-axis span:not(:nth-child(4n + 1)) {
+    visibility: hidden;
+  }
+
+  .chart.is-dense .chart-axis span:nth-child(even) {
+    visibility: hidden;
+  }
+
+  /* The period bar on one row: shorter names, smaller buttons. */
+  .long {
+    display: none;
+  }
+
+  .short {
+    display: inline;
+  }
+
+  .main > .toolbar {
+    gap: 8px;
+    padding: 10px 8px 8px;
+  }
+
+  .main > .toolbar .segmented button {
+    min-height: 30px;
+    padding: 0 8px;
+  }
+
+  .main > .toolbar .stepper {
+    flex: 1;
+    justify-content: space-between;
+  }
+
+  .main > .toolbar .stepper button {
+    width: 32px;
+    height: 32px;
+  }
+
+  .main > .toolbar .stepper .today-link {
+    width: auto;
+    height: auto;
+    color: var(--accent);
+  }
+
+  .toolbar-today {
+    display: none;
+  }
+
+  .stepper-label {
+    flex: 1;
+    min-width: 0;
+    font-size: 14px;
+    white-space: nowrap;
+  }
+
+  .payments table,
+  .payments tbody {
+    display: block;
+  }
+
+  /* Two lines per payment: store and amount, then the date or time and the category. On a phone the list is for
+     fixing categories: no ticks, and no search link or label button on each row (the store's dialog has the search;
+     labels already given still show). A tap on the row opens its category. */
+  .payments tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'store amount'
+      'meta meta';
+    align-items: center;
+    gap: 6px 12px;
+    padding: 12px 0;
+    border-top: 1px solid var(--line);
+  }
+
+  .payments .payment-pick,
+  .payments .pick-all,
+  .payments .web-search,
+  .payments .label-add {
+    display: none;
+  }
+
+  .payments td {
+    padding: 0;
+    border: 0;
+  }
+
+  /* The table's cells only: the overview and the calendar list payments with the same classes, in their own grids. */
+  .payments .payment-day {
+    grid-area: meta;
+    width: auto;
+  }
+
+  .payments .payment-store {
+    grid-area: store;
+  }
+
+  .payments .payment-amount {
+    grid-area: amount;
+    width: auto;
+  }
+
+  /* The category shares the second line with the time, on its right: it never widens the amount's column, so a
+     wide category leaves the store's name its room. */
+  .payments .payment-category {
+    grid-area: meta;
+    width: auto;
+    max-width: calc(100% - 96px);
+    justify-self: end;
+  }
+
+  .category-button {
+    min-height: 28px;
+    padding: 0 6px;
+    font-size: 12px;
+  }
+
+  /* The category is what a payment is opened for: a pill that looks like it can be tapped. */
+  .payments .category-button {
+    min-height: 32px;
+    padding: 0 12px;
+    font-size: 13px;
+  }
+
+  .payments .tag {
+    margin-left: 6px;
+    padding: 0 5px;
+    font-size: 10px;
+    vertical-align: 1px;
+  }
+
+  /* Sort and the switches on one line, under the total; the switches keep their icons only. */
+  .payments .card-head > .segmented {
+    margin-left: 0;
+  }
+
+  .payments .card-head > .segmented + .list-switches {
+    margin-left: auto;
+  }
+
+  .payments .card-head > .segmented button {
+    padding: 0 8px;
+  }
+
+  .selection-bar {
+    bottom: calc(80px + env(safe-area-inset-bottom));
+  }
+}

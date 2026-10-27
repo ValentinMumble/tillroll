@@ -1,6 +1,7 @@
 import {shiftPeriod} from './periods';
-import type {Row} from './report';
+import type {Row} from './rows';
 import type {Balance, SavingsValue, SavingsValues} from './types';
+import {plain} from './text';
 
 /**
  * The savings accounts found from the bank text of the money moved to and from them, as the current accounts see
@@ -8,7 +9,7 @@ import type {Balance, SavingsValue, SavingsValues} from './types';
  * account ("VIREMENT VERS COMPTE DE DEPOT" at Crédit Coopératif), Revolut's savings (Vault, Flexible Cash Funds,
  * Instant Access Savings). A pocket's round-ups are left out: they come and go.
  */
-export const FOUND_ACCOUNTS: {key: string; name: string; pattern: RegExp}[] = [
+const FOUND_ACCOUNTS: {key: string; name: string; pattern: RegExp}[] = [
   {key: 'assurance-vie', name: 'Assurance vie', pattern: /bpce vie|assurance.?vie/i},
   {key: 'livret', name: 'Livret', pattern: /\bldds?\b|\blivret\b|\blep\b|compte de depot/i},
   {
@@ -19,15 +20,12 @@ export const FOUND_ACCOUNTS: {key: string; name: string; pattern: RegExp}[] = [
 ];
 
 /** An account added by hand (a livret at another bank) has a key of its own. */
-export const isAddedAccount = (key: string) => key.startsWith('added-');
+const isAddedAccount = (key: string) => key.startsWith('added-');
 
 /** A new key for an account added by hand, from its name. */
 export function addedAccountKey(name: string, taken: string[]) {
   const slug =
-    name
-      .normalize('NFKD')
-      .replace(/[̀-ͯ]/g, '')
-      .toLowerCase()
+    plain(name)
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-|-$/g, '')
       .slice(0, 40) || 'account';

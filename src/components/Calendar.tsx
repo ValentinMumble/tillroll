@@ -3,8 +3,9 @@ import type {Categories} from '../categories';
 import {money} from '../format';
 import {tidyLabel, withLabel} from '../labels';
 import {dayLabel, periodEnd, today, weekdayLabel, weekdayOf} from '../periods';
-import type {Row} from '../report';
+import type {Row} from '../rows';
 import type {CategoryKey, Labels} from '../types';
+import {paymentCount} from '../text';
 
 interface Props {
   /** The payments of one currency, newest first. */
@@ -270,7 +271,7 @@ export function Calendar({rows, categories, currency, initialYear, onOpenMonth, 
                 </button>
               </header>
               <p className="muted">
-                {money(pickedTotal, currency, true)} · {picked.length === 1 ? '1 payment' : `${picked.length} payments`}
+                {money(pickedTotal, currency, true)} · {paymentCount(picked.length)}
                 {!oneDay && ` · ${Math.round((Date.parse(range.to) - Date.parse(range.from)) / 86_400_000) + 1} days`}
               </p>
               {oneDay && (

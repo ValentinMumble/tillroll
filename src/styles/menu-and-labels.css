@@ -1,0 +1,296 @@
+/* The phone header's ⋯ menu. */
+.menu {
+  position: relative;
+}
+
+.menu-button {
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.menu-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 20;
+  display: grid;
+  gap: 6px;
+  min-width: 220px;
+  padding: 10px;
+  border-radius: 14px;
+  background: var(--glass-strong);
+  -webkit-backdrop-filter: var(--blur);
+  backdrop-filter: var(--blur);
+  box-shadow:
+    inset 0 1px 0 var(--glass-edge),
+    0 12px 40px rgba(0, 0, 0, 0.22);
+}
+
+.menu-panel[hidden] {
+  display: none;
+}
+
+.menu-panel {
+  max-width: calc(100vw - 32px);
+}
+
+/* The owner's sync status, every bank: at the top of the phone's menu. */
+.menu-status {
+  margin: 0 0 4px;
+  padding: 2px 4px 8px;
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/* The view open now, when it is one the menu opens (Calendar, Fun stats). */
+.menu-panel .button.is-current {
+  color: var(--accent);
+}
+
+.menu-field {
+  display: grid;
+  gap: 4px;
+  padding: 0 4px 4px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.menu-field .select {
+  width: 100%;
+  color: var(--ink);
+}
+
+.menu-panel .button {
+  width: 100%;
+}
+
+.menu-panel .link-button {
+  padding: 8px 4px;
+  text-align: left;
+}
+
+/* A shorter wording on phones (the period bar). */
+.short {
+  display: none;
+}
+
+.payments .card-head > .link-button {
+  margin-left: 0;
+}
+
+.segmented.is-small button {
+  min-height: 28px;
+  padding: 0 12px;
+  font-size: 13px;
+}
+
+.payments .card-head > .segmented {
+  margin-left: auto;
+}
+
+/* What the list also shows, beside the sort: money in, and the moves between one's own accounts. */
+.list-switches {
+  display: inline-flex;
+  gap: 6px;
+}
+
+.list-switches .chip {
+  min-height: 28px;
+  padding: 0 10px;
+}
+
+.list-switches .chip[aria-pressed='true'] {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
+}
+
+.list-switches .chip-count {
+  color: var(--muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Labels on payments: a tinted chip (click shows every payment with it, × takes it off), and a # to add one, shown on
+   hover where there is a mouse. */
+.label-chip {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+  vertical-align: middle;
+}
+
+.label-chip button {
+  padding: 2px 3px 2px 9px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.label-chip button + button {
+  padding: 2px 8px 2px 3px;
+  opacity: 0.6;
+}
+
+.label-chip button + button:hover {
+  opacity: 1;
+}
+
+.label-add {
+  width: 22px;
+  height: 22px;
+  margin-left: 6px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: none;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  vertical-align: middle;
+  cursor: pointer;
+  opacity: 0;
+}
+
+.payments tr:hover .label-add,
+.latest li:hover .label-add,
+.label-add:focus-visible {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .label-add {
+    opacity: 1;
+  }
+}
+
+.label-form {
+  display: inline-block;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+.label-form .text-input {
+  width: 150px;
+  min-height: 28px;
+  padding: 0 10px;
+  font-size: 13px;
+}
+
+/* In the category sheet: the payment's labels in a row, the # always shown (a phone has no hover), the field wider. */
+.sheet-labels {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.sheet-labels .label-chip,
+.sheet-labels .label-add,
+.sheet-labels .label-form {
+  margin-left: 0;
+}
+
+.payments .sheet-labels .label-add,
+.sheet-labels .label-add {
+  display: inline-block;
+  width: 30px;
+  height: 30px;
+  font-size: 14px;
+  opacity: 1;
+}
+
+.sheet-labels .label-chip {
+  font-size: 13px;
+}
+
+.sheet-labels .label-chip button {
+  padding-top: 5px;
+  padding-bottom: 5px;
+}
+
+.sheet-labels .label-form .text-input {
+  width: min(220px, 60vw);
+  min-height: 34px;
+  font-size: 16px;
+}
+
+.payment-day.with-year {
+  width: 112px;
+}
+
+.payment-time {
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+/* The Google search link beside a store's name; in the payment list it shows on hover where there is a mouse. */
+.web-search {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  margin-left: 2px;
+  border-radius: 999px;
+  color: var(--muted);
+  vertical-align: middle;
+}
+
+.web-search:hover {
+  background: var(--surface-sunk);
+  color: var(--accent);
+}
+
+.web-search svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.payments .web-search {
+  opacity: 0;
+}
+
+.payments tr:hover .web-search,
+.payments .web-search:focus-visible {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .payments .web-search {
+    opacity: 1;
+  }
+}
+
+.payment-store-name {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+}
+
+.payment-store-name:hover {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}

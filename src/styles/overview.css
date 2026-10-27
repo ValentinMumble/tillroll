@@ -1,0 +1,429 @@
+/* Cards */
+
+/* A card is glass: see-through over the still wallpaper (no blur needed, nothing moves behind it). */
+.card {
+  padding: 20px;
+  border-radius: var(--radius);
+  background: var(--glass-sheen), var(--glass);
+  box-shadow: var(--shadow);
+}
+
+.card-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 12px;
+  margin-bottom: 14px;
+}
+
+/* The header's action sits at the right end. */
+.card-head > .link-button,
+.card-head > .toggle {
+  margin-left: auto;
+}
+
+.card-head > .toggle + .link-button,
+.card-head > .list-switches + .link-button {
+  margin-left: 0;
+}
+
+.latest .card-head > .list-switches {
+  margin-left: auto;
+}
+
+.card h2 {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.hint,
+.muted {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.empty {
+  color: var(--muted);
+}
+
+.eyebrow {
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Overview: the receipt (total and chart), the notes, then the top categories and stores */
+
+.receipt {
+  position: relative;
+  padding: 24px 24px 36px;
+  background: var(--glass-sheen), var(--glass);
+  box-shadow: var(--shadow);
+  border-radius: var(--radius) var(--radius) 0 0;
+  /* The torn bottom edge of a till roll. */
+  --tooth: 8px;
+  mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) 50% / calc(2 * var(--tooth)) 100%;
+}
+
+.summary {
+  display: grid;
+  gap: 6px;
+}
+
+.hero {
+  font-size: clamp(44px, 8vw, 60px);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+}
+
+.summary-delta {
+  color: var(--ink-soft);
+}
+
+.summary-pace {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/* Time against money as two rings: how much of the period has gone (grey, inside) and how much of a usual period was
+   spent (blue, red past it, outside), named in a key beside them, with a line on what is left per day. */
+.pace {
+  display: grid;
+  gap: 6px;
+  margin: 10px 0 4px;
+}
+
+.pace-text {
+  font-size: 14px;
+}
+
+.pace-key {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  color: var(--ink-soft);
+  font-size: 13px;
+}
+
+.pace-key strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.pace-key-dot {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--bar-strong);
+}
+
+.pace-key-dot.is-over {
+  background: var(--up);
+}
+
+.pace-key-dot.is-time {
+  background: var(--muted);
+}
+
+/* Two rings, outside in: the money, then the time; the key beside them. */
+.pace-ring {
+  grid-template-columns: 112px minmax(0, 1fr);
+  align-items: center;
+  gap: 16px;
+}
+
+.pace-ring svg {
+  width: 112px;
+  height: 112px;
+  overflow: visible;
+}
+
+.pace-ring circle {
+  fill: none;
+  stroke-width: 10;
+}
+
+.pace-ring-track {
+  stroke: var(--surface-sunk);
+}
+
+/* The arcs end round, like an activity ring's. */
+.pace-ring-fill,
+.pace-ring-over,
+.pace-ring-time {
+  stroke-linecap: round;
+}
+
+.pace-ring-fill {
+  stroke: var(--bar-strong);
+}
+
+.pace-ring-over {
+  stroke: var(--up);
+}
+
+.pace-ring-time {
+  stroke: var(--muted);
+}
+
+.pace-ring-words {
+  display: grid;
+  gap: 6px;
+}
+
+/* The periods one after another, below the latest payments. */
+.period-card .chart {
+  margin-top: 0;
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin: 12px 0 0;
+}
+
+.facts div {
+  min-width: 0;
+}
+
+.facts dt {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.facts dd {
+  margin: 0;
+  font-weight: 600;
+}
+
+.delta {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.delta.is-up {
+  color: var(--up);
+}
+
+.delta.is-down {
+  color: var(--down);
+}
+
+.delta.is-flat {
+  color: var(--muted);
+}
+
+/* Chart: columns from one baseline, hairline grid, the chosen period strong */
+
+.chart {
+  margin: 20px 0 0;
+  --gutter: 48px;
+}
+
+.chart-plot {
+  position: relative;
+  height: 190px;
+  margin: 10px 0 0 var(--gutter);
+}
+
+.chart-gridline {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-top: 1px solid var(--line);
+}
+
+.chart-gridline:first-child {
+  border-top-color: var(--axis);
+}
+
+.chart-gridline span {
+  position: absolute;
+  right: calc(100% + 8px);
+  transform: translateY(-50%);
+  color: var(--muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.chart-usual {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-top: 1px solid var(--ink-soft);
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.chart-usual span {
+  position: absolute;
+  right: 0;
+  bottom: 2px;
+  padding: 0 4px;
+  background: var(--surface);
+  color: var(--ink-soft);
+  font-size: 11px;
+}
+
+.chart-columns {
+  position: absolute;
+  inset: 0;
+  display: flex;
+}
+
+.chart-column {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.chart-column:hover {
+  background: linear-gradient(var(--surface-sunk), var(--surface-sunk)) bottom / 100% 100% no-repeat;
+  border-radius: 6px 6px 0 0;
+}
+
+.chart-bar {
+  width: min(24px, 62%);
+  min-height: 2px;
+  border-radius: 4px 4px 0 0;
+  background: var(--bar);
+}
+
+.chart-column.is-selected .chart-bar {
+  background: var(--bar-strong);
+}
+
+/* Not a full period yet: striped, so it does not read as a drop. */
+.chart-bar.is-partial,
+.chart-key-swatch {
+  background: repeating-linear-gradient(
+    135deg,
+    var(--bar) 0 3px,
+    color-mix(in srgb, var(--bar) 40%, transparent) 3px 6px
+  );
+}
+
+.chart-column.is-selected .chart-bar.is-partial {
+  background: repeating-linear-gradient(
+    135deg,
+    var(--bar-strong) 0 3px,
+    color-mix(in srgb, var(--bar-strong) 40%, transparent) 3px 6px
+  );
+}
+
+.chart-key {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.chart-key-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+}
+
+.chart-tip {
+  position: absolute;
+  left: 50%;
+  z-index: 2;
+  display: grid;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--ink);
+  color: var(--page);
+  font-size: 12px;
+  text-align: left;
+  white-space: nowrap;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.chart-tip.is-start {
+  left: 0;
+  transform: none;
+}
+
+.chart-tip.is-end {
+  left: auto;
+  right: 0;
+  transform: none;
+}
+
+.chart-axis {
+  display: flex;
+  margin: 6px 0 0 var(--gutter);
+}
+
+.chart-axis span {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 12px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.chart-axis span.is-selected {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+/* What stands out: short notes in a light row under the chart, not a card of their own */
+
+.notes {
+  display: grid;
+  gap: 6px;
+  padding: 0 4px;
+}
+
+.notes h2 {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.notes ul {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.notes li {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  color: var(--ink-soft);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.notes .link-button {
+  justify-self: start;
+  font-size: 13px;
+}

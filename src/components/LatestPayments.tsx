@@ -2,13 +2,14 @@ import {useState} from 'react';
 import {type Categories, colourStyle} from '../categories';
 import {money} from '../format';
 import {dayLabel, recentDayLabel} from '../periods';
-import {isListed, isIncoming, isUnsure, type Row, topCategories} from '../report';
+import {isListed, isIncoming, isUnsure, type Row, topCategories} from '../rows';
 import {loadPaymentsEverything, loadPaymentsOwn} from '../storage';
 import type {CategoryKey, Labels} from '../types';
 import {BankBadge} from './BankBadge';
 import {CategorySheet} from './CategorySheet';
 import {ListSwitches} from './ListSwitches';
 import {LabelOptions, PaymentLabels} from './PaymentLabels';
+import {opensCategory} from '../device';
 
 interface Props {
   /** The period's payments, newest first. */
@@ -30,7 +31,6 @@ interface Props {
 }
 
 const SHOWN = 8;
-const PHONE = '(max-width: 560px)';
 
 /** The overview's last few payments of the period, each with its category to change, and the way to the full list. */
 export function LatestPayments({
@@ -72,12 +72,10 @@ export function LatestPayments({
             return (
               <li
                 key={row.id}
-                className={row.counts || isIncoming(row) ? undefined : 'is-muted'}
+                // Faded like in the payment list: not spending, or nothing spent in the end (€0, refunded in full).
+                className={(row.counts && row.spend !== 0) || isIncoming(row) ? undefined : 'is-muted'}
                 onClick={event => {
-                  // On a phone, like the payment list: a tap anywhere on a payment, off its buttons, opens its category.
-                  if (!window.matchMedia(PHONE).matches) return;
-                  if ((event.target as HTMLElement).closest('button, a, input, form')) return;
-                  setSheet(row);
+                  if (opensCategory(event)) setSheet(row);
                 }}
               >
                 <span className="latest-store">

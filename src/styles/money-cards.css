@@ -1,0 +1,348 @@
+/* Balances: the banks side by side on one row, each with its letter and name over its balance, a hairline
+   between them. */
+.balance-lines {
+  display: grid;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.balance-lines li {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.balance-lines li + li {
+  padding-left: 16px;
+  border-left: 1px solid var(--line);
+}
+
+.balance-lines li:not(:last-child) {
+  padding-right: 16px;
+}
+
+.balance-bank {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  color: var(--ink-soft);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.balance-bank > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.balance-amount {
+  overflow: hidden;
+  font-family: var(--font-mono);
+  font-size: clamp(22px, 7vw, 30px);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.balance-amount.is-negative {
+  color: var(--up);
+}
+
+.tag {
+  margin-left: 8px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--surface-sunk);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* The bank a payment comes from: its initial in the bank's colour (Revolut's is the ink: white on a dark page), the
+   bank's name on hover. */
+.bank-badge {
+  display: inline-block;
+  flex: none;
+  width: 12px;
+  margin-right: 8px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  text-align: center;
+  cursor: default;
+}
+
+.bank-badge.is-revolut {
+  color: var(--ink);
+}
+
+.bank-badge.is-paypal {
+  color: #0070e0;
+}
+
+.bank-badge.is-credit-cooperatif {
+  color: #d1203a;
+}
+
+.bank-badge.is-la-nef {
+  color: #23408e;
+}
+
+@media (prefers-color-scheme: dark) {
+  .bank-badge.is-paypal {
+    color: #4f9bff;
+  }
+
+  .bank-badge.is-credit-cooperatif {
+    color: #ff5c70;
+  }
+
+  .bank-badge.is-la-nef {
+    color: #8aa8ff;
+  }
+}
+
+/* A price that went up costs more: red; down: green. */
+.tag.is-up {
+  color: var(--up);
+}
+
+.tag.is-down {
+  color: var(--down);
+}
+
+/* Money in and out: three figures, then what each period kept (a bar up) or spent beyond what came in (down). */
+.flow .facts {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0 0 18px;
+}
+
+.flow-chart {
+  display: grid;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  gap: 4px;
+  height: 140px;
+}
+
+.flow-column {
+  display: grid;
+  grid-template-rows: 1fr 1fr auto;
+  min-width: 0;
+}
+
+.flow-half {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.flow-half.is-below {
+  align-items: flex-start;
+  border-top: 1px solid var(--axis);
+}
+
+.flow-bar {
+  width: min(100%, 22px);
+  border-radius: 4px 4px 0 0;
+}
+
+.flow-bar.is-kept {
+  background: var(--down);
+}
+
+.flow-bar.is-short {
+  border-radius: 0 0 4px 4px;
+  background: var(--up);
+}
+
+/* A period still going, or only partly in the data: lighter. */
+.flow-column.is-partial .flow-bar {
+  opacity: 0.45;
+}
+
+/* Every column's label row is as tall, labelled or not, so the zero line runs straight across. */
+.flow-label {
+  display: flex;
+  justify-content: center;
+  height: 22px;
+  padding-top: 4px;
+  color: var(--muted);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.flow-column.is-marked .flow-label {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+/* Budgets: per category, what was spent against the budget, a bar with today's pace marked, and a word on it. */
+.budgets ul {
+  display: grid;
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.budgets li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-areas:
+    'name figures remove'
+    'track track track'
+    'status status status';
+  align-items: center;
+  gap: 6px 12px;
+}
+
+.budget-name {
+  grid-area: name;
+  min-width: 0;
+  font-weight: 500;
+}
+
+.budget-figures {
+  grid-area: figures;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.budget-figures small {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.budget-remove {
+  grid-area: remove;
+}
+
+.budget-track {
+  position: relative;
+  grid-area: track;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--surface-sunk);
+}
+
+.budget-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: inherit;
+  background: var(--cat, var(--accent));
+}
+
+.budget-fill.is-fast {
+  background: color-mix(in srgb, var(--up) 55%, var(--accent));
+}
+
+.budget-fill.is-over {
+  background: var(--up);
+}
+
+/* Where the spending would be by today, on pace. */
+.budget-pace {
+  position: absolute;
+  top: -4px;
+  bottom: -4px;
+  width: 2px;
+  border-radius: 1px;
+  background: var(--ink);
+  transform: translateX(-1px);
+}
+
+.budget-status {
+  grid-area: status;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.budget-status.is-over,
+.budget-status.is-fast {
+  color: var(--up);
+}
+
+.budget-form {
+  display: grid;
+  grid-template-columns: minmax(0, 220px) minmax(0, 1fr) auto;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.budget-form .text-input,
+.budget-form .select {
+  width: 100%;
+  min-width: 0;
+}
+
+/* Regular payments: the store and its tags, its dates, what it costs a month. */
+.regular ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.regular li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 4px 16px;
+  padding: 8px 0;
+  border-top: 1px solid var(--line);
+}
+
+.regular-name {
+  min-width: 0;
+  font-weight: 500;
+}
+
+.regular-dates {
+  color: var(--muted);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.regular .payment-amount {
+  width: auto;
+}
+
+/* On a phone: the store and what it costs a month, its dates under them. */
+@media (max-width: 560px) {
+  .regular li {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'name amount'
+      'dates dates';
+  }
+
+  .regular-name {
+    grid-area: name;
+  }
+
+  .regular-dates {
+    grid-area: dates;
+    font-size: 12px;
+  }
+
+  .regular .payment-amount {
+    grid-area: amount;
+  }
+}
+
+.tag.is-refund {
+  color: var(--down);
+}
+
+.payments > .link-button {
+  margin-top: 12px;
+}

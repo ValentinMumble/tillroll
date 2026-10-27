@@ -3,7 +3,7 @@ import {type Categories, colourStyle} from '../categories';
 import {money} from '../format';
 import {tidyLabel, withLabel} from '../labels';
 import {dayLabel, recentDayLabel, today} from '../periods';
-import {isListed, isIncoming, isUnsure, type Row, topCategories} from '../report';
+import {isListed, isIncoming, isUnsure, type Row, topCategories} from '../rows';
 import {
   loadPaymentSort,
   loadPaymentsEverything,
@@ -20,6 +20,8 @@ import {CategorySheet, type Scope} from './CategorySheet';
 import {ListSwitches} from './ListSwitches';
 import {LabelOptions, PaymentLabels} from './PaymentLabels';
 import {WebSearch} from './WebSearch';
+import {paymentCount, plain} from '../text';
+import {opensCategory} from '../device';
 
 interface Props {
   rows: Row[];
@@ -51,15 +53,6 @@ interface Props {
 }
 
 const PAGE = 60;
-
-/** The phone layout's width, as the stylesheet has it. */
-const PHONE = '(max-width: 560px)';
-
-const plain = (text: string) =>
-  text
-    .normalize('NFKD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase();
 
 /**
  * What the search looks in: the store, the bank's text, the labels (with or without their #), and the amount written
@@ -284,7 +277,7 @@ export function Payments({
         <h2>Payments</h2>
         <span className="view-total">{money(spent, currency)}</span>
         <span className="hint">
-          {paid === 1 ? '1 payment' : `${paid} payments`}
+          {paymentCount(paid)}
           {moneyIn && (movedOut > 0 || cameIn > 0) && (
             <>
               {' '}
@@ -472,11 +465,7 @@ export function Payments({
                   key={row.id}
                   className={`${(row.counts && row.spend !== 0) || isIncoming(row) ? '' : 'is-muted'}${picked.has(row.id) ? ' is-picked' : ''}`}
                   onClick={event => {
-                    // On a phone the list is for fixing categories: a tap anywhere on a payment, off its buttons,
-                    // opens its category.
-                    if (!window.matchMedia(PHONE).matches) return;
-                    if ((event.target as HTMLElement).closest('button, a, input, form')) return;
-                    setSheet([row]);
+                    if (opensCategory(event)) setSheet([row]);
                   }}
                 >
                   <td className="payment-pick">

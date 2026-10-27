@@ -1,0 +1,195 @@
+/* The stores to sort, at the top of the overview where there is no sidebar to show them. */
+.sort-banner {
+  display: none;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--accent) 10%, var(--surface));
+  color: var(--accent);
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+/* The period's spending split by category, under the total: each colour as long as its share. */
+.spend-strip {
+  display: flex;
+  gap: 2px;
+  height: 14px;
+  margin: 16px 0 4px;
+}
+
+.spend-strip span {
+  flex-basis: 0;
+  min-width: 3px;
+  background: var(--cat);
+}
+
+.spend-strip span:first-child {
+  border-radius: 4px 0 0 4px;
+}
+
+.spend-strip span:last-child {
+  border-radius: 0 4px 4px 0;
+}
+
+.spend-strip span:only-child {
+  border-radius: 4px;
+}
+
+/* Fixed and flexible: one bar in two blues, the darker for what was set in advance, each part named under it. */
+.split-bar {
+  display: flex;
+  gap: 2px;
+  height: 14px;
+}
+
+.split-bar span {
+  flex-basis: 0;
+  min-width: 3px;
+}
+
+.split-bar span:first-child {
+  border-radius: 4px 0 0 4px;
+}
+
+.split-bar span:last-child {
+  border-radius: 0 4px 4px 0;
+}
+
+.split-bar span:only-child {
+  border-radius: 4px;
+}
+
+.split-bar .is-fixed,
+.split-dot.is-fixed {
+  background: var(--bar-strong);
+}
+
+.split-bar .is-flexible,
+.split-dot.is-flexible {
+  background: var(--bar);
+}
+
+.split-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px 24px;
+  margin: 12px 0 0;
+}
+
+.split-facts dt {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 6px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.split-facts dt .muted {
+  font-weight: 400;
+}
+
+.split-facts dd {
+  margin: 2px 0 0 15px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.split-dot {
+  align-self: center;
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+}
+
+/* Pull to refresh (home-screen app): a round button-like circle that comes down from under the status bar, turns as
+   it comes, turns blue once letting go would refresh, and spins while it does. */
+.pull-refresh {
+  position: fixed;
+  top: calc(env(safe-area-inset-top) - 40px);
+  left: 50%;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  color: var(--muted);
+  font-size: 20px;
+  pointer-events: none;
+}
+
+.pull-refresh.is-ready {
+  color: var(--accent);
+}
+
+.pull-refresh.is-refreshing .pull-refresh-icon {
+  animation: pull-spin 0.8s linear infinite;
+}
+
+@keyframes pull-spin {
+  to {
+    rotate: 360deg;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pull-refresh.is-refreshing .pull-refresh-icon {
+    animation: none;
+  }
+}
+
+/* The overview's way to the payments to check: their number, what they are, an arrow. */
+.check-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 60px;
+  padding: 10px 16px;
+  border: 0;
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+  color: var(--accent);
+  text-align: left;
+  cursor: pointer;
+}
+
+.check-count {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  min-width: 30px;
+  height: 30px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.check-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.check-text span {
+  color: var(--ink-soft);
+  font-size: 13px;
+}
+
+.sort-banner-go {
+  margin-left: auto;
+  font-size: 20px;
+  line-height: 1;
+}

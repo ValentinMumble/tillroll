@@ -1,6 +1,6 @@
 import {useState} from 'react';
 import {tidyLabel, withLabel, withoutLabel} from '../labels';
-import type {Row} from '../report';
+import type {Row} from '../rows';
 import type {Labels} from '../types';
 
 /** The list of labels in use that a label field offers while typing. */

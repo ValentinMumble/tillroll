@@ -2,7 +2,8 @@ import {useState} from 'react';
 import {money} from '../format';
 import {tidyLabel} from '../labels';
 import {dayLabel} from '../periods';
-import type {Row} from '../report';
+import type {Row} from '../rows';
+import {paymentCount} from '../text';
 
 interface Props {
   /** The payments of one currency, all time. */
@@ -91,7 +92,7 @@ export function LabelList({rows, currency, onOpen, onRename, onDelete}: Props) {
                 <button type="button" className="label-open" onClick={() => onOpen(line.name)}>
                   <span className="label-name"># {line.name}</span>
                   <span className="muted">
-                    {line.payments === 1 ? '1 payment' : `${line.payments} payments`} ·{' '}
+                    {paymentCount(line.payments)} ·{' '}
                     {line.from === line.to
                       ? dayLabel(line.from, true)
                       : `${dayLabel(line.from, line.from.slice(0, 4) !== line.to.slice(0, 4))} to ${dayLabel(line.to, true)}`}

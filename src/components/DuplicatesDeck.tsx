@@ -7,6 +7,7 @@ import {storeKey} from '../stores';
 import type {CategoryKey} from '../types';
 import {useDialog} from '../useDialog';
 import {WebSearch} from './WebSearch';
+import {paymentCount} from '../text';
 
 interface Props {
   /** The pairs when the deck opened: it keeps them, so the count and Back stay put. */
@@ -84,7 +85,7 @@ function StoreCard({
         </div>
       )}
       <p className="muted">
-        {store.payments === 1 ? '1 payment' : `${store.payments} payments`}
+        {paymentCount(store.payments)}
         {store.total > 0 && ` · ${money(store.total, store.currency)}`} · last on {dayLabel(store.lastDate, true)}
       </p>
       <select

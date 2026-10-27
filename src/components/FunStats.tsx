@@ -1,6 +1,6 @@
 import {useMemo} from 'react';
 import {dayLabel, WEEKDAYS} from '../periods';
-import type {Row} from '../report';
+import type {Row} from '../rows';
 import {funStats} from '../stats';
 import {BarStrip} from './BarStrip';
 

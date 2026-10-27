@@ -2,11 +2,12 @@ import {type KeyboardEvent, useEffect, useRef, useState} from 'react';
 import {type Basis, type Categories, DEFAULT_ICON, oneIcon} from '../categories';
 import {money} from '../format';
 import {dayLabel} from '../periods';
-import type {StoreToSort} from '../report';
+import type {StoreToSort} from '../rows';
 import {storeKey} from '../stores';
 import type {CategoryKey, Rules} from '../types';
 import {useDialog} from '../useDialog';
 import {WebSearch} from './WebSearch';
+import {paymentCount} from '../text';
 
 interface Props {
   /**
@@ -185,8 +186,8 @@ export function Sorter({queues, categories, rules, onPick, onNewCategory, onRena
               )}
             </div>
             <p className="muted">
-              {store.payments === 1 ? '1 payment' : `${store.payments} payments`} · {money(store.total, store.currency)}{' '}
-              · last on {dayLabel(store.lastDate, true)}
+              {paymentCount(store.payments)} · {money(store.total, store.currency)} · last on{' '}
+              {dayLabel(store.lastDate, true)}
             </p>
             <ul className="sorter-examples" aria-label="What the bank says">
               {store.examples.map(text => (

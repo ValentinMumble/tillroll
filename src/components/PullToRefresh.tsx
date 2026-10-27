@@ -1,5 +1,5 @@
 import {useEffect, useRef, useState} from 'react';
-import {isHomeScreenApp} from '../homeScreen';
+import {isHomeScreenApp} from '../device';
 
 /** How far the circle comes down (half the finger's drag) before letting go refreshes. */
 const THRESHOLD = 64;

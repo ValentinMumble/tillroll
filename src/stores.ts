@@ -1,3 +1,6 @@
+import {plain} from './text';
+import type {Merges} from './types';
+
 /**
  * A store name from the bank's text: "SUMUP *CAFE DU COIN 75011" and "Cafe du coin" become one store. The key,
  * lowercase without accents, groups the payments and holds the category picked by hand.
@@ -72,8 +75,29 @@ export function storeName(description: string) {
 }
 
 export function storeKey(name: string) {
-  return name
-    .normalize('NFKD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase();
+  return plain(name);
+}
+
+/**
+ * Merges stores into one by its name (`into`). The store of that name may itself be merged back into one of them
+ * (Dr Martens Tour into Dr. Martens, then Dr. Martens into Dr Martens Tour): that would loop, so it becomes the store
+ * they end in again. Returns the merges and the store keys that are no longer merged.
+ */
+export function mergedInto(merges: Merges, storeKeys: string[], into: string) {
+  const next = {...merges};
+  const targetKey = storeKey(into);
+  const freed: string[] = [];
+  let key = targetKey;
+  for (let step = 0; step < 10 && next[key]; step += 1) {
+    const after = storeKey(next[key]);
+    if (after === key) break;
+    if (storeKeys.includes(after)) {
+      delete next[targetKey];
+      freed.push(targetKey);
+      break;
+    }
+    key = after;
+  }
+  for (const storeKey of storeKeys) next[storeKey] = into;
+  return {merges: next, freed};
 }

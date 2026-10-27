@@ -1,10 +1,11 @@
 import {useMemo, useState} from 'react';
 import type {Categories} from '../categories';
 import {money} from '../format';
-import type {Row} from '../report';
+import type {Row} from '../rows';
 import type {CategoryKey, Merges, Rules} from '../types';
 import {useDialog} from '../useDialog';
 import {WebSearch} from './WebSearch';
+import {paymentCount, plain} from '../text';
 
 interface Props {
   rows: Row[];
@@ -31,12 +32,6 @@ interface StoreLine {
   /** The category most of its payments would get without a choice by hand. */
   guessed: CategoryKey;
 }
-
-const plain = (text: string) =>
-  text
-    .normalize('NFKD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase();
 
 function mostCommon(counts: Map<CategoryKey, number>) {
   return [...counts].sort((first, second) => second[1] - first[1])[0][0];
@@ -177,7 +172,7 @@ export function StoreEditor(props: Props) {
                 )}
                 {editing?.key !== store.key && <WebSearch name={store.name} />}
                 <span className="muted">
-                  {store.payments === 1 ? '1 payment' : `${store.payments} payments`}
+                  {paymentCount(store.payments)}
                   {store.total > 0 && ` · ${money(store.total, store.currency)}`}
                 </span>
               </div>

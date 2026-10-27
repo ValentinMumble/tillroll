@@ -1,7 +1,7 @@
 # Visual guidelines
 
 How Tillroll looks and reads. Follow these for every screen, and update this file when a rule changes. The styles
-all live in `src/index.css`.
+live in `src/styles/`, one file per area, imported in order by `src/index.css` (the tokens are in `base.css`).
 
 ## Colours
 
@@ -91,9 +91,9 @@ shows, then the actions as `.link-button`s at the right end (`.card-actions` whe
 
 The overview answers "how is this month going?" first, above all on a phone, so its order is fixed:
 
-1. The receipt: what the period has cost so far, against last month at the same point, and time against money: how
-   much of the period has gone next to how much of a usual period was spent, as two lines, two bars or two rings (a
-   switch picks one for now), with what is left per day under them.
+1. The receipt: what the period has cost so far, against last month at the same point, and time against money as two
+   rings (`PaceRings`): how much of a usual period was spent outside, how much of the period has gone inside, with what
+   is left per day beside them.
 2. Balances: each bank's balance from its last sync, and their total (owner only).
 3. The prompts, when there is something to do: stores to sort, payments to check.
 4. The latest payments.

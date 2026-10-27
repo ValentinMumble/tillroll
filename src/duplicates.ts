@@ -1,5 +1,6 @@
-import type {Row} from './report';
+import type {Row} from './rows';
 import type {CategoryKey} from './types';
+import {plain} from './text';
 
 /** A store as the duplicates deck shows it. */
 export interface StoreInfo {
@@ -39,10 +40,7 @@ const COMMON = new Set(
 function wordsOf(name: string) {
   return [
     ...new Set(
-      name
-        .normalize('NFKD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .toLowerCase()
+      plain(name)
         .split(/[^a-z0-9]+/)
         .filter(word => word.length >= 3 && !/^\d+$/.test(word) && !COMMON.has(word)),
     ),
@@ -55,7 +53,7 @@ export function pairKey(first: string, second: string) {
 }
 
 /** Every store with its payments, totals and bank texts, from the rows (merges already applied). */
-export function storeInfos(rows: Row[]) {
+function storeInfos(rows: Row[]) {
   const stores = new Map<string, StoreInfo>();
   for (const row of rows) {
     const store = stores.get(row.storeKey) ?? {

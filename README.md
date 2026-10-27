@@ -181,7 +181,10 @@ few background syncs a day (often 4); syncs you start from the page do not count
   the category picked per store and per payment, the categories changed or added, the stores merged, the labels, the
   pairs of stores marked not the same and the time of the last sync.
 - `src/`: the React page. `statement.ts` reads the Revolut files, `stores.ts` and `categories.ts` name and sort the
-  payments, `report.ts` builds the totals, the chart series and the insights, `sample.ts` makes the sample data.
+  payments, `rows.ts` turns them into rows (moves between one's own accounts and refunds paired), `report.ts` builds
+  the totals, the chart series and the insights, `sample.ts` makes the sample data. `useData.ts` holds the data and
+  saves every change; `App.tsx` picks the view, the period and the dialogs. The styles are in `src/styles/`, listed in
+  order by `src/index.css`. Tests: `npm test` (Vitest).
 - Visitors' data never reaches the server: no route accepts it without the owner's cookie (or the key).
 
 ## Develop

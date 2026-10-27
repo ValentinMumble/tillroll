@@ -1,0 +1,193 @@
+/* Colors as roles, in Liquid Glass over a dusk wallpaper: frosted cards over a soft haze of lilac, pink and blue light,
+   violet for actions and for the charts of a single series (stepped for each theme); up and down use the fixed status
+   colors and always come with an arrow. Text keeps 4.5:1 on the glass and on the bare wallpaper. */
+:root {
+  color-scheme: light;
+  --page: #f5f4f8;
+  /* The wallpaper, still behind everything (body::before), and the glass over it: cards see-through with a light top
+     edge and a hairline; what floats over moving content (bars, dialogs, menus) is more opaque and blurs. The glows
+     stay off the top quarter of the screen, so the period bar and the status bar meet plain page there. */
+  --wall:
+    radial-gradient(90% 55% at 0% 55%, #ecebf1 0, transparent 60%),
+    radial-gradient(80% 55% at 100% 70%, #fae7ee 0, transparent 60%),
+    radial-gradient(90% 60% at 35% 105%, #e0ebfb 0, transparent 60%), var(--page);
+  --glass: rgba(255, 255, 255, 0.66);
+  --glass-strong: rgba(255, 255, 255, 0.88);
+  --glass-edge: rgba(255, 255, 255, 0.75);
+  --glass-line: rgba(255, 255, 255, 0.45);
+  /* Light catching the top left of a card, fading by the middle. */
+  --glass-sheen: linear-gradient(155deg, rgba(255, 255, 255, 0.25), rgba(255, 255, 255, 0) 50%);
+  --blur: blur(28px) saturate(120%);
+  /* What floats above the page (the tab bar) casts this shadow. */
+  --lift: 0 10px 30px rgba(0, 0, 0, 0.14);
+  --surface: #ffffff;
+  --surface-sunk: #ece9f8;
+  --ink: #1e1838;
+  --ink-soft: #4a4470;
+  --muted: #5a5480;
+  --line: #e6e2f6;
+  --axis: #cbc5e6;
+  --ring: rgba(30, 24, 56, 0.1);
+  --bar: #8b77ea;
+  --bar-strong: #5b3fd4;
+  --accent: #5b3fd4;
+  --on-accent: #ffffff;
+  --up: #d03b3b;
+  --down: #006300;
+  --shadow:
+    inset 0 1px 0 var(--glass-edge), inset 0 0 0 1px var(--glass-line), 0 0 0 0.5px rgba(30, 24, 56, 0.06),
+    0 10px 30px rgba(30, 24, 56, 0.1);
+  /* The calendar's single violet ramp, from a little (light) to a lot (dark); step 0 is a day with nothing spent. */
+  --heat-0: var(--surface-sunk);
+  --heat-1: #ddd5fb;
+  --heat-2: #c4b6f7;
+  --heat-3: #a08cf0;
+  --heat-4: #7f66e6;
+  --heat-5: #5b3fd4;
+  /* The categories' colours: the eight hues of the categorical palette, in their validated order, and a grey for Cash,
+     Other and what is not spending. Text never wears them: they go on dots, bars and tints. */
+  --cat-1: #2a78d6;
+  --cat-2: #eb6834;
+  --cat-3: #1baf7a;
+  --cat-4: #eda100;
+  --cat-5: #e87ba4;
+  --cat-6: #008300;
+  --cat-7: #6250d6;
+  --cat-8: #e34948;
+  --cat-grey: #8a8780;
+  /* How much of a category's colour tints its pill. */
+  --tint: 16%;
+  --font-body: 'DM Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+  --font-brand: 'Space Grotesk', var(--font-body);
+  --radius: 20px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --page: #111018;
+    --wall:
+      radial-gradient(90% 55% at 0% 55%, #1a1a22 0, transparent 60%),
+      radial-gradient(80% 55% at 100% 70%, #23161e 0, transparent 60%),
+      radial-gradient(90% 60% at 35% 105%, #0f1e33 0, transparent 60%), var(--page);
+    --glass: rgba(27, 26, 39, 0.6);
+    --glass-strong: rgba(27, 26, 39, 0.88);
+    --glass-edge: rgba(255, 255, 255, 0.12);
+    --glass-line: rgba(255, 255, 255, 0.05);
+    --lift: 0 10px 30px rgba(0, 0, 0, 0.5);
+    --glass-sheen: linear-gradient(155deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0) 50%);
+    --surface: #1b1a27;
+    --surface-sunk: #25232f;
+    --ink: #ebe8fb;
+    --ink-soft: #c4bfe0;
+    --muted: #a39dc6;
+    --line: #2a2836;
+    --axis: #3a3850;
+    --ring: rgba(255, 255, 255, 0.1);
+    --bar: #5a48b0;
+    --bar-strong: #9b85ff;
+    --accent: #a995ff;
+    --on-accent: #120f22;
+    --up: #e66767;
+    --down: #0ca30c;
+    --shadow:
+      inset 0 1px 0 var(--glass-edge), inset 0 0 0 1px var(--glass-line), 0 0 0 0.5px rgba(255, 255, 255, 0.06),
+      0 10px 30px rgba(0, 0, 0, 0.35);
+    /* On the dark surface the ramp runs the other way: a lot is the brightest. */
+    --heat-1: #2d2557;
+    --heat-2: #3f3380;
+    --heat-3: #5a48b0;
+    --heat-4: #7d68e0;
+    --heat-5: #b3a5ff;
+    --cat-1: #3987e5;
+    --cat-2: #d95926;
+    --cat-3: #199e70;
+    --cat-4: #c98500;
+    --cat-5: #d55181;
+    --cat-6: #008300;
+    --cat-7: #9085e9;
+    --cat-8: #e66767;
+    --cat-grey: #77756f;
+    --tint: 24%;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+/* The wallpaper stays put while the page scrolls over it. */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: var(--wall);
+  pointer-events: none;
+}
+
+/* Asked for less transparency: solid cards on the plain page. */
+@media (prefers-reduced-transparency: reduce) {
+  :root {
+    --wall: var(--page);
+    --glass: var(--surface);
+    --glass-strong: var(--surface);
+    --glass-sheen: none;
+  }
+}
+
+h1,
+h2,
+p {
+  margin: 0;
+}
+
+a {
+  color: var(--accent);
+}
+
+button,
+input,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.page {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 16px 48px;
+}
+
+main {
+  display: grid;
+  gap: 16px;
+}

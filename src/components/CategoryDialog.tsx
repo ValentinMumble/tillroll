@@ -2,10 +2,11 @@ import {useMemo} from 'react';
 import type {Categories} from '../categories';
 import {money} from '../format';
 import {periodLabel, shortMonth} from '../periods';
-import {type Row, spendByMonth} from '../report';
+import {type Row, spendByMonth} from '../rows';
 import type {CategoryKey} from '../types';
 import {useDialog} from '../useDialog';
 import {BarStrip} from './BarStrip';
+import {paymentCount} from '../text';
 
 interface Props {
   category: CategoryKey;
@@ -76,7 +77,7 @@ export function CategoryDialog({category, rows, categories, currency, onOpenPaym
             ✕
           </button>
           <p className="hint">
-            {facts.payments === 1 ? '1 payment' : `${facts.payments} payments`} · {money(facts.total, currency)} in all
+            {paymentCount(facts.payments)} · {money(facts.total, currency)} in all
           </p>
         </header>
         {facts.months.length > 1 ? (

@@ -1,8 +1,9 @@
 import {useMemo, useState} from 'react';
 import {money} from '../format';
-import type {Row} from '../report';
+import type {Row} from '../rows';
 import type {Merges} from '../types';
 import {useDialog} from '../useDialog';
+import {paymentCount, plain} from '../text';
 
 interface Props {
   rows: Row[];
@@ -33,10 +34,6 @@ interface Group {
   spent: number;
   parts: Part[];
 }
-
-const plain = (text: string) => text.normalize('NFKD').replace(/[̀-ͯ]/g, '').toLowerCase();
-
-const count = (payments: number) => (payments === 1 ? '1 payment' : `${payments} payments`);
 
 /**
  * Every merge in one place: each store with the stores merged into it, and the stores only renamed. A store merged in
@@ -154,7 +151,7 @@ export function MergesDialog({rows, merges, onSeparate, onOpenStore, onClose}: P
                     {group.name}
                   </button>
                   <span className="muted">
-                    {count(group.payments)}
+                    {paymentCount(group.payments)}
                     {group.spent > 0 && ` · ${money(group.spent, group.currency)}`}
                   </span>
                 </div>
@@ -162,7 +159,7 @@ export function MergesDialog({rows, merges, onSeparate, onOpenStore, onClose}: P
                   {group.parts.map(part => (
                     <li key={part.key}>
                       <span>
-                        {part.name} <span className="muted">{count(part.payments)}</span>
+                        {part.name} <span className="muted">{paymentCount(part.payments)}</span>
                       </span>
                       <button type="button" className="link-button" onClick={() => onSeparate(part.key)}>
                         Separate

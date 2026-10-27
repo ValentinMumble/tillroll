@@ -6,6 +6,7 @@ import {type CategoryView, loadCategoryView, saveCategoryView} from '../storage'
 import type {CategoryKey} from '../types';
 import {CategoryTrends} from './CategoryTrends';
 import {Delta} from './Delta';
+import {paymentCount, plain} from '../text';
 
 /** What the payment list is narrowed to: a category, a store, a label (over all time), or the payments to check. */
 export type Focus =
@@ -23,12 +24,6 @@ interface Props {
   /** The overview shows the top few only, with a link to the full view. */
   preview?: {limit: number; onSeeAll: () => void};
 }
-
-const plain = (text: string) =>
-  text
-    .normalize('NFKD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase();
 
 function share(part: number, whole: number) {
   if (whole <= 0) return '';
@@ -307,9 +302,7 @@ export function StoreBreakdown({
                     />
                   )}
                   <span className="bar-value">{money(store.total, currency)}</span>
-                  <span className="bar-change bar-visits muted">
-                    {store.visits === 1 ? '1 payment' : `${store.visits} payments`}
-                  </span>
+                  <span className="bar-change bar-visits muted">{paymentCount(store.visits)}</span>
                   <span className="bar-track">
                     <span className="bar-fill" style={{width: `${(store.total / max) * 100}%`}} />
                   </span>
@@ -328,7 +321,7 @@ export function StoreBreakdown({
 }
 
 /** The pencil beside a store: opens its name and category. */
-export function EditButton({label, onClick}: {label: string; onClick: () => void}) {
+function EditButton({label, onClick}: {label: string; onClick: () => void}) {
   return (
     <button type="button" className="row-edit" aria-label={label} title={label} onClick={onClick}>
       <svg viewBox="0 0 24 24" aria-hidden="true">

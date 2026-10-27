@@ -2,7 +2,7 @@ import {useState} from 'react';
 import {BANK_NAMES} from '../banks';
 import {money, parseAmount} from '../format';
 import {dayLabel, periodEnd, periodLabel, shiftPeriod, shortMonth, today} from '../periods';
-import type {Row} from '../report';
+import type {Row} from '../rows';
 import {
   addedAccountKey,
   balanceOn,

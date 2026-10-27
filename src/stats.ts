@@ -1,6 +1,6 @@
 import {money} from './format';
 import {addDays, dayLabel, daysBetween, WEEKDAYS, weekdayOf} from './periods';
-import type {Row} from './report';
+import type {Row} from './rows';
 
 /** One playful fact: a big value, what it is, and a line of detail. */
 export interface Fact {

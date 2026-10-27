@@ -1,6 +1,7 @@
 import {useEffect, useState} from 'react';
 import {fetchBanks} from '../api';
 import {useDialog} from '../useDialog';
+import {plain} from '../text';
 
 interface Props {
   /** Banks already connected, by name: they show as such. */
@@ -32,12 +33,6 @@ const COUNTRIES: [string, string][] = [
 
 /** Shown first when the country lists them. */
 const FAVOURITES = ['Revolut', 'Crédit Coopératif'];
-
-const plain = (text: string) =>
-  text
-    .normalize('NFKD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase();
 
 /**
  * Picks a bank to connect through Enable Banking. In its free mode the app only reads accounts its owner linked in

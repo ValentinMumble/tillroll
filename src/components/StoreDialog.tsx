@@ -2,12 +2,13 @@ import {useMemo, useState} from 'react';
 import type {Categories} from '../categories';
 import {money} from '../format';
 import {periodLabel, shortMonth} from '../periods';
-import {type Row, spendByMonth} from '../report';
+import {type Row, spendByMonth} from '../rows';
 import type {StoreInfo} from '../duplicates';
 import type {CategoryKey, Merges, Rules} from '../types';
 import {useDialog} from '../useDialog';
 import {BarStrip} from './BarStrip';
 import {WebSearch} from './WebSearch';
+import {paymentCount} from '../text';
 
 interface Props {
   store: {key: string; name: string};
@@ -96,7 +97,7 @@ export function StoreDialog({
             ✕
           </button>
           <p className="hint">
-            {facts.payments === 1 ? '1 payment' : `${facts.payments} payments`}
+            {paymentCount(facts.payments)}
             {facts.spent > 0 && ` · ${money(facts.spent, facts.currency)}`}
           </p>
           <ul className="sorter-examples" aria-label="What the bank says">
@@ -170,8 +171,7 @@ export function StoreDialog({
               {similar.slice(0, 5).map(other => (
                 <li key={other.key}>
                   <span>
-                    {other.name}{' '}
-                    <span className="muted">{other.payments === 1 ? '1 payment' : `${other.payments} payments`}</span>
+                    {other.name} <span className="muted">{paymentCount(other.payments)}</span>
                   </span>
                   <button type="button" className="link-button" onClick={() => onMergeInto(other.key, store.name)}>
                     Merge into this

@@ -1,0 +1,282 @@
+/* Labels: each one with its total, payments and dates */
+
+.label-lines {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.label-lines li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  padding: 6px 0;
+  border-top: 1px solid var(--line);
+}
+
+.label-open {
+  display: grid;
+  flex: 1;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 4px 12px;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+.label-open:hover {
+  background: var(--surface-sunk);
+}
+
+.label-name {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.label-open .muted {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.label-actions {
+  display: flex;
+  gap: 12px;
+  font-size: 13px;
+}
+
+.label-rename {
+  display: flex;
+  flex: 1;
+  gap: 8px;
+}
+
+.label-rename .text-input {
+  flex: 1;
+}
+
+@media (max-width: 560px) {
+  .label-open {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .label-open .muted {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+}
+
+/* The overview's latest payments */
+
+/* The rows share the list's columns, so days, categories and amounts line up from one row to the next. */
+.latest ul {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 180px) auto;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.latest li {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-top: 1px solid var(--line);
+}
+
+.latest li.is-muted .latest-store,
+.latest li.is-muted .payment-amount {
+  color: var(--muted);
+}
+
+/* The store's name, then its tags and labels; they wrap under a long name, and the label field opens there too. */
+.latest-store {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 0;
+  min-width: 0;
+  font-weight: 500;
+}
+
+.latest-name {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.latest-day {
+  color: var(--muted);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.latest .payment-amount {
+  width: auto;
+}
+
+.latest .category-button {
+  justify-self: start;
+}
+
+/* On a phone, two lines per payment: the store and the amount, then the day and the category. */
+@media (max-width: 560px) {
+  .latest ul {
+    display: block;
+  }
+
+  .latest li {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'store amount'
+      'day category';
+    gap: 2px 8px;
+  }
+
+  .latest-store {
+    grid-area: store;
+  }
+
+  .latest-day {
+    grid-area: day;
+    font-size: 12px;
+  }
+
+  .latest .category-button {
+    grid-area: category;
+    justify-self: end;
+  }
+
+  .latest .payment-amount {
+    grid-area: amount;
+    justify-self: end;
+  }
+
+  /* The title and the link on one line, the switches under them. */
+  .latest .card-head > .link-button {
+    order: 1;
+    margin-left: auto;
+  }
+
+  .latest .card-head > .list-switches {
+    order: 2;
+    margin-left: 0;
+  }
+}
+
+/* Fun stats: bars by weekday and hour, then a grid of facts */
+
+.stat-charts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.stat-bars {
+  margin: 0;
+}
+
+.stat-bars figcaption {
+  margin-bottom: 10px;
+  color: var(--ink-soft);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.stat-bars-plot {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  height: 160px;
+}
+
+/* Every column has the same rows, labelled or not, so the bars share one baseline. */
+.stat-bar {
+  display: grid;
+  flex: 1;
+  /* The column's own width: a label wider than it spills over, without widening its bar. */
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: 16px minmax(0, 1fr) 18px;
+  align-items: end;
+  justify-items: center;
+  min-width: 0;
+}
+
+.stat-bar-value {
+  min-height: 16px;
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.stat-bar-fill {
+  align-self: end;
+  width: min(24px, 80%);
+  min-height: 2px;
+  border-radius: 4px 4px 0 0;
+  background: var(--bar);
+}
+
+.stat-bar-fill.is-best {
+  background: var(--bar-strong);
+}
+
+.stat-bar-label {
+  padding-top: 4px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 14px;
+  white-space: nowrap;
+}
+
+.facts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.facts-grid li {
+  display: grid;
+  gap: 4px;
+  align-content: start;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: var(--surface-sunk);
+}
+
+.fact-icon {
+  font-size: 22px;
+}
+
+.fact-title {
+  color: var(--ink-soft);
+  font-size: 13px;
+}
+
+.fact-value {
+  font-size: 20px;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.fact-detail {
+  color: var(--muted);
+  font-size: 13px;
+}

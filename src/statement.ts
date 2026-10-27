@@ -1,5 +1,6 @@
 import type {Kind, Transaction} from './types';
 import {readZip} from './zip';
+import {plain} from './text';
 
 /**
  * Reads a bank statement, in the browser. A Revolut account statement (in the app: the account, ···, Statement,
@@ -36,12 +37,8 @@ const KINDS: Record<string, Kind> = {
 
 const SKIPPED_STATES = ['REVERTED', 'DECLINED', 'FAILED', 'CANCELLED', 'ANNULE', 'REFUSE'];
 
-const plain = (text: string) =>
-  text
-    .normalize('NFKD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .trim()
-    .toLowerCase();
+/** A cell or a header to compare loosely (see plain), without the spaces around it. */
+const plainCell = (text: string) => plain(text.trim());
 
 /** CSV text as rows of cells: quoted fields, doubled quotes, line breaks inside quotes. */
 function csvRows(text: string): string[][] {
@@ -195,7 +192,7 @@ function monthBefore(date: string) {
  * add up to (see withoutCoveredTotals in App.tsx).
  */
 function fromCreditCooperatif(rows: string[][], headerIndex: number): Transaction[] {
-  const header = rows[headerIndex].map(plain);
+  const header = rows[headerIndex].map(plainCell);
   const column = Object.fromEntries(
     Object.entries(CREDIT_COOPERATIF).map(([name, title]) => [name, header.indexOf(title)]),
   ) as Record<keyof typeof CREDIT_COOPERATIF, number>;
@@ -207,8 +204,8 @@ function fromCreditCooperatif(rows: string[][], headerIndex: number): Transactio
     const booked = parseDate(cell(row, 'booked'));
     const amount = Math.round((parseAmount(cell(row, 'debit')) || parseAmount(cell(row, 'credit'))) * 100) / 100;
     if (!booked || !amount) continue;
-    const type = plain(cell(row, 'type'));
-    const subcategory = plain(cell(row, 'subcategory'));
+    const type = plainCell(cell(row, 'type'));
+    const subcategory = plainCell(cell(row, 'subcategory'));
     // The operation's label words it like the bank sync ("PRLV BPCE Vie", "VIR SEPA AKENEO"): rules and merges made on
     // synced stores then hold for the statement's months too.
     const label = cell(row, 'operation') || cell(row, 'label') || 'Unknown';
@@ -271,7 +268,7 @@ const PAYPAL = {
  * conversion, move between one's own accounts. Holds and authorizations move no money ("Memo"): left out.
  */
 function fromPayPal(rows: string[][], headerIndex: number): Transaction[] {
-  const header = rows[headerIndex].map(plain);
+  const header = rows[headerIndex].map(plainCell);
   const column = Object.fromEntries(
     Object.entries(PAYPAL).map(([name, aliases]) => [name, header.findIndex(cell => aliases.includes(cell))]),
   ) as Record<keyof typeof PAYPAL, number>;
@@ -282,10 +279,11 @@ function fromPayPal(rows: string[][], headerIndex: number): Transaction[] {
     const date = parseDate(cell(row, 'date'));
     const amount = Math.round(parseAmount(cell(row, 'net') || cell(row, 'gross')) * 100) / 100;
     const currency = cell(row, 'currency').toUpperCase();
-    const status = plain(cell(row, 'status'));
-    const type = plain(cell(row, 'type'));
+    const status = plainCell(cell(row, 'status'));
+    const type = plainCell(cell(row, 'type'));
     if (!date || !amount || !/^[A-Z]{3}$/.test(currency)) continue;
-    if (/^(memo|pour memoire)$/.test(plain(cell(row, 'impact'))) || /hold|attente|authori|autoris/.test(type)) continue;
+    if (/^(memo|pour memoire)$/.test(plainCell(cell(row, 'impact'))) || /hold|attente|authori|autoris/.test(type))
+      continue;
     if (/denied|refus|cancel|annul|removed|reversed|failed|echou/.test(status)) continue;
     const kind: Kind = /conversion/.test(type)
       ? 'exchange'
@@ -318,17 +316,17 @@ function fromPayPal(rows: string[][], headerIndex: number): Transaction[] {
 }
 
 function fromRows(rows: string[][]): Transaction[] {
-  const creditCooperatif = rows.findIndex(row => row.some(cell => plain(cell) === CREDIT_COOPERATIF.label));
+  const creditCooperatif = rows.findIndex(row => row.some(cell => plainCell(cell) === CREDIT_COOPERATIF.label));
   if (creditCooperatif >= 0) return fromCreditCooperatif(rows, creditCooperatif);
-  const paypal = rows.findIndex(row => row.some(cell => PAYPAL.id.includes(plain(cell))));
+  const paypal = rows.findIndex(row => row.some(cell => PAYPAL.id.includes(plainCell(cell))));
   if (paypal >= 0) return fromPayPal(rows, paypal);
-  const headerIndex = rows.findIndex(row => row.some(cell => plain(cell) === 'description'));
+  const headerIndex = rows.findIndex(row => row.some(cell => plainCell(cell) === 'description'));
   if (headerIndex < 0) {
     throw new Error(
       'This file does not look like a Revolut, Crédit Coopératif or PayPal statement: it has no Description column',
     );
   }
-  const header = rows[headerIndex].map(plain);
+  const header = rows[headerIndex].map(plainCell);
   const column = Object.fromEntries(
     Object.entries(COLUMNS).map(([name, aliases]) => [name, header.findIndex(cell => aliases.includes(cell))]),
   ) as Record<keyof typeof COLUMNS, number>;
@@ -340,7 +338,7 @@ function fromRows(rows: string[][]): Transaction[] {
   const seen = new Map<string, number>();
   const transactions: Transaction[] = [];
   for (const row of rows.slice(headerIndex + 1)) {
-    const state = plain(cell(row, 'state')).toUpperCase();
+    const state = plainCell(cell(row, 'state')).toUpperCase();
     const date = parseDate(cell(row, 'started')) ?? parseDate(cell(row, 'completed'));
     const time = parseDate(cell(row, 'started')) ? parseTime(cell(row, 'started')) : parseTime(cell(row, 'completed'));
     if (!date || SKIPPED_STATES.includes(state)) continue;
@@ -352,7 +350,7 @@ function fromRows(rows: string[][]): Transaction[] {
       .trim()
       .toUpperCase()
       .replace(/[\s-]+/g, '_');
-    const product = plain(cell(row, 'product'));
+    const product = plainCell(cell(row, 'product'));
     let kind: Kind = KINDS[type] ?? (amount < 0 ? 'card' : 'income');
     // Money coming back from savings, a vault or a pocket only moves between the owner's own accounts.
     if (kind === 'transfer' && amount > 0) {
