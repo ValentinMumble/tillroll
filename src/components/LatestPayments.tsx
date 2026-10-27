@@ -1,7 +1,7 @@
 import {useState} from 'react';
 import {type Categories, colourStyle} from '../categories';
 import {money} from '../format';
-import {dayLabel, weekdayLabel} from '../periods';
+import {dayLabel, recentDayLabel} from '../periods';
 import {isListed, isIncoming, isUnsure, type Row, topCategories} from '../report';
 import {loadPaymentsEverything, loadPaymentsOwn} from '../storage';
 import type {CategoryKey, Labels} from '../types';
@@ -94,7 +94,7 @@ export function LatestPayments({
                   <PaymentLabels row={row} onLabels={onLabels} onFocusLabel={onFocusLabel} />
                 </span>
                 <span className="latest-day">
-                  {weekdayLabel(row.date)}
+                  {recentDayLabel(row.date)}
                   {row.time && ` ${row.time}`}
                 </span>
                 <button

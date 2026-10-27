@@ -94,6 +94,13 @@ export function dayLabel(date: string, withYear = false) {
   });
 }
 
+/** "Today", "Yesterday", or the day as weekdayLabel writes it: the payments' days. */
+export function recentDayLabel(date: string, withYear = false) {
+  if (date === today()) return 'Today';
+  if (date === addDays(today(), -1)) return 'Yesterday';
+  return weekdayLabel(date, withYear);
+}
+
 /** "Mon 12 Oct", or "Mon 12 Oct 2026" with the year: the payment list's day headings, the calendar's days. */
 export function weekdayLabel(date: string, withYear = false) {
   return new Date(timeOf(date))

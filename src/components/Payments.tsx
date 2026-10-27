@@ -2,7 +2,7 @@ import {useState} from 'react';
 import {type Categories, colourStyle} from '../categories';
 import {money} from '../format';
 import {tidyLabel, withLabel} from '../labels';
-import {dayLabel, today, weekdayLabel} from '../periods';
+import {dayLabel, recentDayLabel, today} from '../periods';
 import {isListed, isIncoming, isUnsure, type Row, topCategories} from '../report';
 import {
   loadPaymentSort,
@@ -449,7 +449,7 @@ export function Payments({
                 byDay && row.date !== page[index - 1]?.date && (
                   <tr key={`day-${row.date}`} className="day-row">
                     <th colSpan={withTimes ? 4 : 3} scope="rowgroup">
-                      {weekdayLabel(row.date, withYears)}
+                      {recentDayLabel(row.date, withYears)}
                       {dayParts.get(row.date) && (
                         <span className="day-strip" aria-hidden="true">
                           {[...(dayParts.get(row.date) ?? [])]
