@@ -1,7 +1,7 @@
 import {useMemo, useState} from 'react';
 import type {Categories} from '../categories';
 import {money} from '../format';
-import {periodLabel, shortMonth} from '../periods';
+import {dayLabel, periodLabel, shortMonth, today} from '../periods';
 import {type Row, spendByMonth} from '../rows';
 import type {StoreInfo} from '../duplicates';
 import type {CategoryKey, Merges, Rules} from '../types';
@@ -53,14 +53,18 @@ export function StoreDialog({
     const own = rows.filter(row => row.storeKey === store.key);
     const counts = new Map<CategoryKey, number>();
     for (const row of own) counts.set(row.guessed, (counts.get(row.guessed) ?? 0) + 1);
+    // Its payments' amounts, money out only, smallest first: the middle one is a usual payment.
+    const paid = own.filter(row => row.amount < 0).sort((first, second) => second.amount - first.amount);
     return {
       payments: own.length,
       spent: own.reduce((sum, row) => sum + Math.max(0, -row.amount), 0),
+      usual: paid.length ? -paid[paid.length >> 1].amount : 0,
+      biggestPayment: paid.at(-1) ?? null,
       currency: own[0]?.currency ?? 'EUR',
       guessed: [...counts].sort((first, second) => second[1] - first[1])[0]?.[0] ?? 'other',
       texts: [...new Set(own.map(row => row.description))].slice(0, 3),
-      // Month by month, the last 24 months the store was used in at most, months with nothing included.
-      months: spendByMonth(own),
+      // Month by month, the last 12 months the store was used in at most, months with nothing included.
+      months: spendByMonth(own, 12),
       // The stores merged into this one: their own names, before the merge.
       parts: [...new Map(own.filter(row => row.ownStoreKey !== store.key).map(row => [row.ownStoreKey, row.ownStore]))]
         .filter(([key]) => merges[key])
@@ -71,6 +75,11 @@ export function StoreDialog({
   const monthly = facts.months.length
     ? facts.months.reduce((sum, item) => sum + item.total, 0) / facts.months.length
     : 0;
+  // The month it cost the most, of those the chart shows.
+  const biggest = facts.months.reduce<(typeof facts.months)[number] | null>(
+    (best, item) => (!best || item.total > best.total ? item : best),
+    null,
+  );
 
   function save() {
     const newName = name.trim() || store.name;
@@ -103,7 +112,6 @@ export function StoreDialog({
           <p className="hint">
             {paymentCount(facts.payments)}
             {facts.spent > 0 && ` · ${money(facts.spent, facts.currency)}`}
-            {facts.months.length > 1 && monthly >= 0.5 && ` · ${money(monthly, facts.currency)} a month`}
           </p>
         </header>
         <div className="store-fields">
@@ -135,7 +143,7 @@ export function StoreDialog({
         {facts.months.length > 1 && (
           <section className="store-months">
             <BarStrip
-              caption="Month by month"
+              caption={facts.months.length >= 12 ? 'Last 12 months' : 'Month by month'}
               values={facts.months.map(item => Math.max(0, item.total))}
               // Every third month, counted back from the last one, so the last label never runs into another.
               labels={facts.months.map((item, index) =>
@@ -145,6 +153,42 @@ export function StoreDialog({
               currency={facts.currency}
             />
           </section>
+        )}
+        {/* Its usual level and its peaks: a month on average and the biggest one (of the chart's), a usual payment and
+            the biggest one. Two by two on a phone. */}
+        {facts.biggestPayment && (
+          <dl className="facts store-facts">
+            {facts.months.length > 1 && (
+              <div>
+                <dt>A month</dt>
+                <dd>{money(monthly, facts.currency)}</dd>
+              </div>
+            )}
+            {facts.months.length > 1 && biggest && (
+              <div>
+                <dt>Biggest month</dt>
+                <dd>
+                  {money(biggest.total, facts.currency)}{' '}
+                  <span className="muted">{periodLabel(biggest.month, 'month')}</span>
+                </dd>
+              </div>
+            )}
+            <div>
+              <dt>Usually</dt>
+              <dd>
+                {money(facts.usual, facts.currency)} <span className="muted">a payment</span>
+              </dd>
+            </div>
+            <div>
+              <dt>Biggest payment</dt>
+              <dd>
+                {money(-facts.biggestPayment.amount, facts.currency)}{' '}
+                <span className="muted">
+                  {dayLabel(facts.biggestPayment.date, facts.biggestPayment.date.slice(0, 4) !== today().slice(0, 4))}
+                </span>
+              </dd>
+            </div>
+          </dl>
         )}
         <div className="folds">
           <details className="fold">
@@ -158,12 +202,18 @@ export function StoreDialog({
           {facts.parts.length > 0 && (
             <details className="fold">
               <summary>Merged from {facts.parts.length === 1 ? '1 name' : `${facts.parts.length} names`}</summary>
-              <ul className="fold-list">
+              {/* Each name as a chip, its ✕ beside it: it becomes its own store again. */}
+              <ul className="name-chips">
                 {facts.parts.map(part => (
-                  <li key={part.key}>
+                  <li key={part.key} className="name-chip">
                     {part.name}
-                    <button type="button" className="link-button" onClick={() => onSeparate(part.key)}>
-                      Separate
+                    <button
+                      type="button"
+                      aria-label={`Separate ${part.name}`}
+                      title="Separate: its own store again"
+                      onClick={() => onSeparate(part.key)}
+                    >
+                      ✕
                     </button>
                   </li>
                 ))}
@@ -175,14 +225,17 @@ export function StoreDialog({
               <summary>
                 Looks like {similar.length === 1 ? '1 other store' : `${Math.min(similar.length, 5)} other stores`}
               </summary>
-              <ul className="fold-list">
+              <ul className="name-chips">
                 {similar.slice(0, 5).map(other => (
-                  <li key={other.key}>
-                    <span>
-                      {other.name} <span className="muted">{paymentCount(other.payments)}</span>
-                    </span>
-                    <button type="button" className="link-button" onClick={() => onMergeInto(other.key, store.name)}>
-                      Merge into this
+                  <li key={other.key} className="name-chip">
+                    {other.name} <span className="muted">{paymentCount(other.payments)}</span>
+                    <button
+                      type="button"
+                      className="name-chip-action"
+                      aria-label={`Merge ${other.name} into ${store.name}`}
+                      onClick={() => onMergeInto(other.key, store.name)}
+                    >
+                      Merge
                     </button>
                   </li>
                 ))}

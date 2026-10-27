@@ -88,6 +88,8 @@ shows, then the actions as `.link-button`s at the right end (`.card-actions` whe
 - Groups of rows are split by a 1px `--line` hairline. A sub-list (the stores merged into one) is indented with a 2px
   `--line` rule on its left.
 - Show a search field above a list once it has more than 8 items, and an `.empty` line when nothing matches.
+- In a dialog, a few short names that each take an action (merged names, look-alike stores) are chips with the
+  action inside (`.name-chip`: ✕ to separate, Merge), not rows with the action at the far end of a wide line.
 - A category always shows as its emoji and its name, with its colour as a dot or a tint.
 
 ## Overview
