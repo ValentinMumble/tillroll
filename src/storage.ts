@@ -114,7 +114,7 @@ export function loadPaymentSort(): PaymentSort {
 
 export const savePaymentSort = (sort: PaymentSort) => write(PAYMENT_SORT, sort);
 
-/** Whether the payment lists also show transfers and money in, remembered in each browser. */
+/** Whether the payment lists also show money in, remembered in each browser. */
 export const loadPaymentsEverything = () => read<boolean>(PAYMENTS_EVERYTHING) === true;
 export const savePaymentsEverything = (everything: boolean) => write(PAYMENTS_EVERYTHING, everything);
 

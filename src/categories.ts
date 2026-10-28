@@ -19,7 +19,8 @@ export const BUILT_IN: Category[] = [
   {key: 'home', label: 'Home and rent', icon: '🏠', spending: true, custom: false},
   {key: 'cash', label: 'Cash', icon: '🏧', spending: true, custom: false},
   {key: 'other', label: 'Other', icon: '📦', spending: true, custom: false},
-  {key: 'transfers', label: 'Transfers', icon: '↔️', spending: false, custom: false},
+  // Money sent to people mostly pays for something (a share of a meal, a gift): it counts. Money from them is money in.
+  {key: 'transfers', label: 'Transfers', icon: '↔️', spending: true, custom: false},
   {key: 'own', label: 'Between my accounts', icon: '🔁', spending: false, custom: false},
   {key: 'income', label: 'Money in', icon: '💶', spending: false, custom: false},
   {key: 'ignored', label: 'Ignored', icon: '🙈', spending: false, custom: false},

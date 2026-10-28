@@ -10,7 +10,7 @@ interface Props {
 }
 
 /**
- * What a payment list shows besides spending: money in and transfers, and the moves between one's own accounts.
+ * What a payment list shows besides spending: money in, and the moves between one's own accounts.
  * Both choices are remembered in each browser, for the overview and the payment list alike.
  */
 export function ListSwitches({moneyIn, own, moves, onMoneyIn, onOwn}: Props) {
@@ -20,8 +20,8 @@ export function ListSwitches({moneyIn, own, moves, onMoneyIn, onOwn}: Props) {
         type="button"
         className="chip"
         aria-pressed={moneyIn}
-        aria-label="Money in and transfers"
-        title="Money in and transfers: pay, a friend paying back, a transfer to someone"
+        aria-label="Money in"
+        title="Money in: pay, a friend paying back, a sale"
         onClick={() => {
           onMoneyIn(!moneyIn);
           savePaymentsEverything(!moneyIn);

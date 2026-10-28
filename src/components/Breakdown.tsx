@@ -66,7 +66,7 @@ export function CategoryBreakdown({
   onOpenCategory,
 }: Props & {onEdit: () => void; onOpenCategory?: (category: CategoryKey) => void}) {
   const {current, baseline, series} = report;
-  // The categories that are not spending (transfers, money in, left out), shown on request.
+  // The categories that are not spending (money in, left out), shown on request.
   const [everyCategory, setEveryCategory] = useState(false);
   // A list, or a small chart per category (the full view only).
   const [view, setView] = useState<CategoryView>(loadCategoryView);

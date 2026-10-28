@@ -35,7 +35,7 @@ export interface Totals {
   payments: number;
   categories: Map<CategoryKey, number>;
   stores: Map<string, StoreTotal>;
-  /** Money moved out without being spent (transfers, savings). */
+  /** Money moved out without being spent: to a category that is not spending. */
   movedOut: number;
   moneyIn: number;
   /** What went out and came in for each category that is not spending, the left-out ones too. */

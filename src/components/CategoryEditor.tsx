@@ -83,7 +83,7 @@ export function CategoryEditor({categories, forStore, onSave, onClose}: Props) {
         <p className="hint">
           {forStore
             ? `Add a category for ${forStore}: it will be picked for all its payments.`
-            : 'Rename them, change their icon or add your own. A category that is not spending (like transfers) is left out of the totals.'}
+            : 'Rename them, change their icon or add your own. A category that is not spending (like money in) is left out of the totals.'}
         </p>
       </header>
       <form
