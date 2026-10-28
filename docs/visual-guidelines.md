@@ -78,8 +78,9 @@ shows, then the actions as `.link-button`s at the right end (`.card-actions` whe
   Close button: the ✕ closes without saving. A dialog with nothing left to do has no footer.
 - One dialog at a time: a dialog that opens another gives it its place (`setDialog({type: ...})`), it never stacks.
 - Two short fields (a name and a category) sit side by side on a wide screen and one above the other on a phone.
-- Keep a dialog's first screen to what it is for. What is rarely needed (what the bank writes, merged names,
-  look-alike stores) folds away in `<details className="fold">`: one quiet line each with a chevron, under a hairline.
+- Keep a dialog's first screen to what it is for. What comes after it (what the bank writes, merged names,
+  look-alike stores) goes in `<details className="fold" open>`: one quiet line each with a chevron, under a hairline,
+  open at first and folded with a tap.
 
 ### Lists of stores, payments, labels
 

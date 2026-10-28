@@ -27,9 +27,9 @@ interface Props {
 }
 
 /**
- * One store, opened from its pencil or its name: what it cost, its name and its category, its month by month, and
- * folded away until asked for, what the bank writes, the names merged into it (each can be separated again) and
- * look-alike stores to merge in with one tap. The ✕ closes without saving.
+ * One store, opened from its pencil or its name: what it cost, its name and its category, its month by month, and in
+ * folds open at first, what the bank writes, the names merged into it (each can be separated again) and look-alike
+ * stores to merge in with one tap. The ✕ closes without saving.
  */
 export function StoreDialog({
   store,
@@ -191,7 +191,7 @@ export function StoreDialog({
           </dl>
         )}
         <div className="folds">
-          <details className="fold">
+          <details className="fold" open>
             <summary>What the bank writes</summary>
             <ul className="sorter-examples">
               {facts.texts.map(text => (
@@ -200,7 +200,7 @@ export function StoreDialog({
             </ul>
           </details>
           {facts.parts.length > 0 && (
-            <details className="fold">
+            <details className="fold" open>
               <summary>Merged from {facts.parts.length === 1 ? '1 name' : `${facts.parts.length} names`}</summary>
               {/* Each name as a chip, its ✕ beside it: it becomes its own store again. */}
               <ul className="name-chips">
@@ -221,7 +221,7 @@ export function StoreDialog({
             </details>
           )}
           {similar.length > 0 && (
-            <details className="fold">
+            <details className="fold" open>
               <summary>
                 Looks like {similar.length === 1 ? '1 other store' : `${Math.min(similar.length, 5)} other stores`}
               </summary>
