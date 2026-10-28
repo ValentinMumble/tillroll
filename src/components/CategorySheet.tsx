@@ -1,5 +1,6 @@
 import {type ReactNode, useState} from 'react';
 import {type Categories, colourStyle, DEFAULT_ICON, oneIcon} from '../categories';
+import {loadSheetScope, saveSheetScope} from '../storage';
 import type {CategoryKey} from '../types';
 import {useDialog} from '../useDialog';
 
@@ -32,8 +33,9 @@ interface Props {
 }
 
 /**
- * Pick a category for one payment or several: where it applies (these payments, or their stores), then which, the
- * ones used most first, each in its colour. A guess can be kept as it is, or a new category made.
+ * Pick a category for one payment or several: where it applies (these payments, or their stores, as picked last
+ * time), then which, the ones used most first, each in its colour. A guess can be kept as it is, or a new category
+ * made.
  */
 export function CategorySheet({
   title,
@@ -50,7 +52,11 @@ export function CategorySheet({
   onClose,
 }: Props) {
   const {ref: dialogRef, onKeyDown: onDialogKeyDown, close: closeDialog} = useDialog();
-  const [scope, setScope] = useState(scopes[0].key);
+  // The scope picked last time, when this sheet offers it.
+  const [scope, setScope] = useState(() => {
+    const saved = loadSheetScope();
+    return scopes.find(item => item.key === saved)?.key ?? scopes[0].key;
+  });
   const [adding, setAdding] = useState(false);
   const [name, setName] = useState('');
   const [icon, setIcon] = useState('');
@@ -98,7 +104,15 @@ export function CategorySheet({
         <div className="sheet-scope">
           <div className="scope-switch" role="group" aria-label="Apply to">
             {scopes.map(item => (
-              <button key={item.key} type="button" aria-pressed={scope === item.key} onClick={() => setScope(item.key)}>
+              <button
+                key={item.key}
+                type="button"
+                aria-pressed={scope === item.key}
+                onClick={() => {
+                  setScope(item.key);
+                  saveSheetScope(item.key);
+                }}
+              >
                 {item.label}
               </button>
             ))}

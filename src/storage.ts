@@ -27,6 +27,7 @@ const SAVINGS_VALUES = 'tillroll.savings-values';
 const BUDGETS = 'tillroll.budgets';
 const GRAIN = 'tillroll.grain';
 const PAYMENT_SORT = 'tillroll.payment-sort';
+const SHEET_SCOPE = 'tillroll.sheet-scope';
 const PAYMENTS_EVERYTHING = 'tillroll.payments-everything';
 const PAYMENTS_OWN = 'tillroll.payments-own';
 const CATEGORY_VIEW = 'tillroll.category-view';
@@ -128,6 +129,10 @@ export function loadPaymentSort(): PaymentSort {
 }
 
 export const savePaymentSort = (sort: PaymentSort) => write(PAYMENT_SORT, sort);
+
+/** Where the category sheet's choice applies ("store" or "payment"), as last picked, remembered in each browser. */
+export const loadSheetScope = () => read<string>(SHEET_SCOPE);
+export const saveSheetScope = (scope: string) => write(SHEET_SCOPE, scope);
 
 /** Whether the payment lists also show money in, remembered in each browser. */
 export const loadPaymentsEverything = () => read<boolean>(PAYMENTS_EVERYTHING) === true;
