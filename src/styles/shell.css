@@ -174,7 +174,12 @@
   min-width: 0;
 }
 
-.payments-filters > .select {
+/* The selects sit in the row like its other items, except on a phone (below). */
+.payments-selects {
+  display: contents;
+}
+
+.payments-selects > .select {
   flex: 0 1 240px;
   min-width: 0;
 }
@@ -197,13 +202,21 @@
 }
 
 @media (max-width: 560px) {
-  /* The search and the "to check" switch, the category filter under them (no tick-all box: a phone does not tick). */
+  /* The search and the "to check" switch, the category and bank filters under them, side by side (no tick-all box: a
+     phone does not tick). */
   .payments-filters > .text-input {
     flex-basis: 120px;
   }
 
-  .payments-filters > .select {
+  .payments-selects {
+    display: flex;
     flex: 1 1 100%;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .payments-selects > .select {
+    flex: 1 1 0;
   }
 }
 

@@ -3,7 +3,7 @@ import {type Categories, colourStyle} from '../categories';
 import {money} from '../format';
 import {tidyLabel, withLabel} from '../labels';
 import {dayLabel, recentDayLabel, today} from '../periods';
-import {isListed, isIncoming, isUnsure, type Row, topCategories} from '../rows';
+import {bankOf, isListed, isIncoming, isUnsure, type Row, topCategories} from '../rows';
 import {
   loadPaymentSort,
   loadPaymentsEverything,
@@ -114,6 +114,8 @@ export function Payments({
   const [limit, setLimit] = useState(PAGE);
   const [sort, setSort] = useState<PaymentSort>(loadPaymentSort);
   const [query, setQuery] = useState('');
+  // One bank's payments only; null shows every bank's.
+  const [bank, setBank] = useState<string | null>(null);
   // Ticked payments, the last one ticked (for shift-click runs), and the label typed for them.
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [lastPicked, setLastPicked] = useState<string | null>(null);
@@ -134,6 +136,7 @@ export function Payments({
     return words.every(word => text.includes(word));
   };
   const inFocus = (row: Row) => {
+    if (bank && bankOf(row) !== bank) return false;
     if (toCheck && !isUnsure(row)) return false;
     if (focus?.type === 'category' && row.category !== focus.key) return false;
     if (focus?.type === 'label' && !row.labels.some(label => label.toLowerCase() === focus.key.toLowerCase())) {
@@ -203,8 +206,12 @@ export function Payments({
     }
   }
   // Every category with payments, with their number: picking one shows them all.
+  // The filters' counts: each category's within the bank picked, each bank's in the whole period.
   const categoryCounts = new Map<CategoryKey, number>();
+  const bankCounts = new Map<string, number>();
   for (const row of rows) {
+    bankCounts.set(bankOf(row), (bankCounts.get(bankOf(row)) ?? 0) + (counted(row) ? 1 : 0));
+    if (bank && bankOf(row) !== bank) continue;
     categoryCounts.set(row.category, (categoryCounts.get(row.category) ?? 0) + (counted(row) ? 1 : 0));
   }
   const selection = visible.filter(row => picked.has(row.id));
@@ -353,27 +360,49 @@ export function Payments({
             {toCheck && <span aria-hidden="true">✕</span>}
           </button>
         )}
-        <select
-          className="select"
-          aria-label="Category"
-          value={focus?.type === 'category' ? focus.key : ''}
-          onChange={event => {
-            onFocusCategory(event.target.value || null);
-            setLimit(PAGE);
-          }}
-        >
-          <option value="">All categories</option>
-          {categories.alphabetical
-            .filter(
-              category =>
-                categoryCounts.has(category.key) || (focus?.type === 'category' && focus.key === category.key),
-            )
-            .map(category => (
-              <option key={category.key} value={category.key}>
-                {category.icon} {category.label} ({categoryCounts.get(category.key) ?? 0})
-              </option>
-            ))}
-        </select>
+        {/* The category and the bank: side by side on a phone, under the search. */}
+        <div className="payments-selects">
+          <select
+            className="select"
+            aria-label="Category"
+            value={focus?.type === 'category' ? focus.key : ''}
+            onChange={event => {
+              onFocusCategory(event.target.value || null);
+              setLimit(PAGE);
+            }}
+          >
+            <option value="">All categories</option>
+            {categories.alphabetical
+              .filter(
+                category =>
+                  categoryCounts.has(category.key) || (focus?.type === 'category' && focus.key === category.key),
+              )
+              .map(category => (
+                <option key={category.key} value={category.key}>
+                  {category.icon} {category.label} ({categoryCounts.get(category.key) ?? 0})
+                </option>
+              ))}
+          </select>
+          {(showBanks || bank) && (
+            <select
+              className="select"
+              aria-label="Bank"
+              value={bank ?? ''}
+              onChange={event => {
+                setBank(event.target.value || null);
+                setLimit(PAGE);
+              }}
+            >
+              <option value="">All banks</option>
+              {/* The bank picked stays listed in a period without its payments. */}
+              {[...new Set([...bankCounts.keys(), ...(bank ? [bank] : [])])].sort().map(name => (
+                <option key={name} value={name}>
+                  {name} ({bankCounts.get(name) ?? 0})
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
       </div>
       {(hidden.moneyIn > 0 || hidden.own > 0 || hidden.category > 0 || hidden.period > 0) && (
         <p className="search-hidden">

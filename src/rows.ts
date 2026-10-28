@@ -58,7 +58,8 @@ const REFUND_DAYS = 180;
 /** Money moved between one's own accounts at two banks leaves one and reaches the other this many days apart at most. */
 const TRANSFER_DAYS = 3;
 
-const bankOf = (row: Row) => row.bank ?? 'Revolut';
+/** The bank a row comes from: older rows have none, they are Revolut's. */
+export const bankOf = (row: Row) => row.bank ?? 'Revolut';
 
 /**
  * The day a card payment was made. A deferred debit card is booked at the start of the next month, with the day of
