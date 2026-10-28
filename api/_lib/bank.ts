@@ -240,37 +240,6 @@ export async function fetchTransactions(uid: string, since: string | null, heade
   return items;
 }
 
-/**
- * One-off check, to remove once read: whether a bank's transaction holds a time of day anywhere. Logs the field
- * names, the dates and every date-time or hh:mm found in any field, never an amount or a name.
- */
-export function logTimes(bank: string, item: BankTransaction) {
-  const times: string[] = [];
-  const walk = (value: unknown, at: string) => {
-    if (typeof value === 'string') {
-      for (const match of value.match(/\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}\S*|\b\d{1,2}[:h]\d{2}\b/g) ?? []) {
-        times.push(`${at}: ${match}`);
-      }
-    } else if (value && typeof value === 'object') {
-      for (const [key, inner] of Object.entries(value)) walk(inner, at ? `${at}.${key}` : key);
-    }
-  };
-  walk(item, '');
-  console.log(
-    'Bank times',
-    JSON.stringify({
-      bank,
-      keys: Object.keys(item),
-      status: item.status,
-      booking_date: item.booking_date,
-      value_date: item.value_date,
-      transaction_date: item.transaction_date,
-      remittance_lines: item.remittance_information?.length ?? 0,
-      times,
-    }),
-  );
-}
-
 function kindOf(item: BankTransaction, amount: number, text: string): Kind {
   const mcc = item.merchant_category_code;
   if (mcc === '6010' || mcc === '6011' || /\batm\b|cash withdrawal|retrait/i.test(text)) return 'atm';
