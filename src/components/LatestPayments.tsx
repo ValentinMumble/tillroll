@@ -30,7 +30,9 @@ interface Props {
   onOpenStore: (store: {key: string; name: string}) => void;
 }
 
+/** The overview shows whole days: at least this many payments, and at least this many days. */
 const SHOWN = 8;
+const DAYS = 3;
 
 /** The overview's last few payments of the period, each with its category to change, and the way to the full list. */
 export function LatestPayments({
@@ -50,7 +52,14 @@ export function LatestPayments({
   const [moneyIn, setMoneyIn] = useState(loadPaymentsEverything);
   const [own, setOwn] = useState(loadPaymentsOwn);
   const shown = rows.filter(row => isListed(row, {moneyIn, own}));
-  const latest = shown.slice(0, SHOWN);
+  // Newest first, a day at a time, until there are enough days and enough payments.
+  const latest: Row[] = [];
+  const days = new Set<string>();
+  for (const row of shown) {
+    if (!days.has(row.date) && days.size >= DAYS && latest.length >= SHOWN) break;
+    latest.push(row);
+    days.add(row.date);
+  }
   const moves = rows.filter(row => row.category === 'own').length;
   // What went out each day, over every listed payment of the day, not only the ones shown.
   const dayTotals = new Map<string, number>();
@@ -64,7 +73,7 @@ export function LatestPayments({
       <header className="card-head">
         <h2>Latest payments</h2>
         <ListSwitches moneyIn={moneyIn} own={own} moves={moves} onMoneyIn={setMoneyIn} onOwn={setOwn} />
-        {shown.length > SHOWN && (
+        {shown.length > latest.length && (
           <button type="button" className="link-button" onClick={onSeeAll}>
             All {shown.length} payments →
           </button>
