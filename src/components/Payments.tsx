@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import {type Categories, colourStyle} from '../categories';
 import {money} from '../format';
 import {tidyLabel, withLabel} from '../labels';
@@ -185,6 +185,21 @@ export function Payments({
   // Moves between one's own accounts are in no total: their switch counts the period's.
   const moves = rows.filter(row => row.category === 'own').length;
   const page = visible.slice(0, limit);
+  // The next payments come in as the end of the list nears (a screen ahead), so a long period stays quick to draw.
+  const moreRef = useRef<HTMLDivElement>(null);
+  const hasMore = visible.length > limit;
+  useEffect(() => {
+    const end = moreRef.current;
+    if (!end || !hasMore) return;
+    const observer = new IntersectionObserver(
+      entries => {
+        if (entries.some(entry => entry.isIntersecting)) setLimit(shown => shown + PAGE * 2);
+      },
+      {rootMargin: '800px 0px'},
+    );
+    observer.observe(end);
+    return () => observer.disconnect();
+  }, [hasMore, limit]);
   // A time column only when some payments listed have a time (statements give one, the bank sync does not).
   const withTimes = page.some(row => row.time);
   // Dates carry their year when the list covers more than one (all time, a label), or another year than this one.
@@ -547,11 +562,7 @@ export function Payments({
           </tbody>
         </table>
       )}
-      {visible.length > limit && (
-        <button type="button" className="link-button" onClick={() => setLimit(limit + PAGE * 2)}>
-          Show more ({visible.length - limit} left)
-        </button>
-      )}
+      {hasMore && <div ref={moreRef} className="payments-more" aria-hidden="true" />}
       {selection.length > 0 && (
         <div className="selection-bar" role="region" aria-label="Ticked payments">
           <strong>{selection.length} ticked</strong>

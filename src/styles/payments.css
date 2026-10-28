@@ -361,3 +361,8 @@
 .payment-amount.is-in {
   color: var(--down);
 }
+
+/* The end of the list, watched to bring in the next payments (see Payments). */
+.payments-more {
+  height: 1px;
+}
