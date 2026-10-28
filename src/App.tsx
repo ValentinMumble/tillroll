@@ -200,9 +200,9 @@ export default function App() {
     saveGrain(next);
   }
 
+  /** Another period. The filter stays (a category, a store, a label), to follow the same payments from year to year. */
   function changePeriod(next: string) {
     setChosenPeriod(next);
-    setFocus(null);
   }
 
   /** Narrows the payment list to a category or a store, and opens it. */
@@ -532,6 +532,7 @@ export default function App() {
                 setGrain('month');
                 saveGrain('month');
                 changePeriod(month);
+                setFocus(null);
                 setTab('overview');
                 window.scrollTo({top: 0});
               }}
