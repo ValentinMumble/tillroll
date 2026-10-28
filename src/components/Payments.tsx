@@ -3,7 +3,7 @@ import {type Categories, colourStyle} from '../categories';
 import {money} from '../format';
 import {tidyLabel, withLabel} from '../labels';
 import {dayLabel, recentDayLabel, today} from '../periods';
-import {bankOf, isListed, isIncoming, isUnsure, type Row, topCategories} from '../rows';
+import {bankOf, isListed, isIncoming, isUnsure, type Row, searchText, topCategories} from '../rows';
 import {
   loadPaymentSort,
   loadPaymentsEverything,
@@ -56,16 +56,6 @@ interface Props {
 }
 
 const PAGE = 60;
-
-/**
- * What the search looks in: the store, the bank's text, the labels (with or without their #), and the amount written
- * both ways ("448.80", "448,80").
- */
-function searchText(row: Row) {
-  const amount = Math.abs(row.amount).toFixed(2);
-  const labels = row.labels.map(label => `${label} #${label}`).join(' ');
-  return plain(`${row.store} ${row.description} ${labels} ${amount} ${amount.replace('.', ',')}`);
-}
 
 /** The sort buttons, with the way each one starts: newest, biggest, A to Z. */
 const SORTS: {key: PaymentSort['key']; label: string; descending: boolean}[] = [

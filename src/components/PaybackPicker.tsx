@@ -1,7 +1,7 @@
 import {useState} from 'react';
 import {money} from '../format';
 import {addDays, dayLabel, today} from '../periods';
-import {PAYBACK_ROUNDING, type Row} from '../rows';
+import {PAYBACK_ROUNDING, type Row, searchText} from '../rows';
 import {plain} from '../text';
 
 interface Props {
@@ -63,9 +63,7 @@ export function PaybackPicker({row, rows, onLink}: Props) {
         payment.date <= to &&
         -payment.amount - payment.refunded > 0 &&
         -payment.amount - payment.refunded >= row.amount - PAYBACK_ROUNDING &&
-        words.every(word =>
-          plain(`${payment.store} ${payment.description} ${(-payment.amount).toFixed(2)}`).includes(word),
-        ),
+        words.every(word => searchText(payment).includes(word)),
     )
     .sort((first, second) => second.date.localeCompare(first.date));
   return (
@@ -74,7 +72,7 @@ export function PaybackPicker({row, rows, onLink}: Props) {
         className="text-input"
         type="search"
         aria-label="Search the payment it pays back"
-        placeholder="Search a store or an amount"
+        placeholder="Search a store, a label or an amount"
         value={query}
         autoFocus
         onChange={event => setQuery(event.target.value)}

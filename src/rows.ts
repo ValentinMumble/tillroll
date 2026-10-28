@@ -1,6 +1,7 @@
 import {type Basis, type Categories, categoryOf, guessCategory, LEFT_OUT, UNSURE} from './categories';
 import {addDays, shiftPeriod} from './periods';
 import {storeKey, storeName} from './stores';
+import {plain} from './text';
 import type {CategoryKey, Labels, Merges, Paybacks, PaymentCategories, Rules, Transaction} from './types';
 
 /**
@@ -63,6 +64,16 @@ export interface Sorting {
 const REFUND_DAYS = 180;
 /** Money moved between one's own accounts at two banks leaves one and reaches the other this many days apart at most. */
 const TRANSFER_DAYS = 3;
+
+/**
+ * What a search looks in: the store, the bank's text, the labels (with or without their #), and the amount written
+ * both ways ("448.80", "448,80").
+ */
+export function searchText(row: Row) {
+  const amount = Math.abs(row.amount).toFixed(2);
+  const labels = row.labels.map(label => `${label} #${label}`).join(' ');
+  return plain(`${row.store} ${row.description} ${labels} ${amount} ${amount.replace('.', ',')}`);
+}
 
 /** The bank a row comes from: older rows have none, they are Revolut's. */
 export const bankOf = (row: Row) => row.bank ?? 'Revolut';
