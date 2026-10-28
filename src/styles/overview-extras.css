@@ -14,30 +14,47 @@
   cursor: pointer;
 }
 
-/* The period's spending split by category, under the total: each colour as long as its share. */
+/* The period's spending split by category, under the total: each colour as long as its share, with the category's
+   emoji in it when the part is wide enough. */
 .spend-strip {
   display: flex;
   gap: 2px;
-  height: 14px;
+  height: 28px;
   margin: 16px 0 4px;
 }
 
-.spend-strip span {
+.spend-strip > span {
+  display: grid;
+  place-items: center;
   flex-basis: 0;
   min-width: 3px;
+  overflow: hidden;
   background: var(--cat);
+  container-type: inline-size;
 }
 
-.spend-strip span:first-child {
-  border-radius: 4px 0 0 4px;
+.spend-strip > span:first-child {
+  border-radius: 8px 0 0 8px;
 }
 
-.spend-strip span:last-child {
-  border-radius: 0 4px 4px 0;
+.spend-strip > span:last-child {
+  border-radius: 0 8px 8px 0;
 }
 
-.spend-strip span:only-child {
-  border-radius: 4px;
+.spend-strip > span:only-child {
+  border-radius: 8px;
+}
+
+.spend-strip-icon {
+  display: none;
+  font-size: 17px;
+  line-height: 1;
+}
+
+@container (min-width: 30px) {
+  .spend-strip-icon {
+    display: block;
+  }
 }
 
 /* Fixed and flexible: one bar in two blues, the darker for what was set in advance, each part named under it. */
