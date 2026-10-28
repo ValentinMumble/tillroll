@@ -1,4 +1,5 @@
 import {useMemo} from 'react';
+import type {Categories} from '../categories';
 import {dayLabel, WEEKDAYS} from '../periods';
 import type {Row} from '../rows';
 import {funStats} from '../stats';
@@ -8,11 +9,15 @@ interface Props {
   /** The payments of one currency, all time. */
   rows: Row[];
   currency: string;
+  categories: Categories;
 }
 
-/** Playful facts about all the spending: weekdays, hours, records, streaks. */
-export function FunStats({rows, currency}: Props) {
-  const stats = useMemo(() => funStats(rows, currency), [rows, currency]);
+/** The months of the year, for the seasons chart's labels. */
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+/** Playful facts about all the spending: weekdays, hours, seasons, records, streaks, friends, hobbies, labels. */
+export function FunStats({rows, currency, categories}: Props) {
+  const stats = useMemo(() => funStats(rows, currency, categories), [rows, currency, categories]);
   if (!stats) {
     return (
       <section className="card">
@@ -35,6 +40,15 @@ export function FunStats({rows, currency}: Props) {
           labels={WEEKDAYS.map(day => day.slice(0, 3))}
           currency={currency}
         />
+        {stats.seasons && (
+          <BarStrip
+            caption="An average month, by month of the year"
+            values={stats.seasons}
+            labels={MONTHS.map(month => month.charAt(0))}
+            titles={MONTHS}
+            currency={currency}
+          />
+        )}
         {stats.hours && (
           <BarStrip
             caption="Spent by hour of the day"

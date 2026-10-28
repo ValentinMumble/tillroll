@@ -6,6 +6,7 @@ import type {Tab} from '../tabs';
 import type {Balance, Budgets, CategoryKey, Labels} from '../types';
 import {Balances} from './Balances';
 import {CategoryBreakdown, type Focus, StoreBreakdown} from './Breakdown';
+import {ChartSpan} from './ChartSpan';
 import {BudgetCard} from './Budgets';
 import {FixedSplit} from './FixedSplit';
 import {Insights} from './Insights';
@@ -143,16 +144,7 @@ export function Overview({
                 ? 'Year by year'
                 : 'Month by month'}
           </h2>
-          {/* Weeks and months can go further back: 1, 2 or 3 years of months, 16, 32 or 48 weeks. */}
-          {(report.chartGrain === 'month' || report.chartGrain === 'week') && (
-            <div className="segmented is-small chart-span" role="group" aria-label="How far back">
-              {[1, 2, 3].map(span => (
-                <button key={span} type="button" aria-pressed={chartSpan === span} onClick={() => onChartSpan(span)}>
-                  {report.chartGrain === 'week' ? `${span * 16} weeks` : span === 1 ? '1 year' : `${span} years`}
-                </button>
-              ))}
-            </div>
-          )}
+          <ChartSpan grain={report.chartGrain} span={chartSpan} onChange={onChartSpan} />
         </header>
         <PeriodChart
           series={report.series}
@@ -185,7 +177,7 @@ export function Overview({
         currency={currency}
         onEdit={() => onShow('categories')}
       />
-      <MoneyFlow report={report} grain={grain} currency={currency} />
+      <MoneyFlow report={report} grain={grain} currency={currency} span={chartSpan} onSpan={onChartSpan} />
       <FixedSplit report={report} grain={grain} currency={currency} />
       <RegularPayments subscriptions={report.subscriptions} currency={currency} onOpenStore={onOpenStore} />
       <Insights insights={report.insights} />

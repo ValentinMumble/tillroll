@@ -550,7 +550,7 @@ export default function App() {
               }}
             />
           )}
-          {tab === 'stats' && <FunStats rows={currencyRows} currency={currency} />}
+          {tab === 'stats' && <FunStats rows={currencyRows} currency={currency} categories={categories} />}
           {tab === 'savings' && (
             <Savings
               rows={currencyRows}

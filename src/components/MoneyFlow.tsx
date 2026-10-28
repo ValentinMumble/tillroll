@@ -1,12 +1,17 @@
+import {useState} from 'react';
 import {money} from '../format';
 import {compactPeriodLabel, type Grain, periodLabel} from '../periods';
 import {type Report, rollingAverage, trendOf} from '../report';
+import {ChartSpan} from './ChartSpan';
 import {TrendLine} from './TrendLine';
 
 interface Props {
   report: Report;
   grain: Grain;
   currency: string;
+  /** How far back its columns go, shared with the month chart (see ChartSpan). */
+  span: number;
+  onSpan: (span: number) => void;
 }
 
 /**
@@ -14,7 +19,9 @@ interface Props {
  * spent, and what was kept, with its share of what came in. Under it, what each of the chart's periods kept: a bar up,
  * or down when the period spent more than came in; then the pay in each of them, with its trend.
  */
-export function MoneyFlow({report, grain, currency}: Props) {
+export function MoneyFlow({report, grain, currency, span, onSpan}: Props) {
+  // The pay column under the pointer (or tapped), with a tooltip like the month chart's.
+  const [hoveredPay, setHoveredPay] = useState<number | null>(null);
   const {moneyIn, total: spent, movedOut} = report.current;
   const columns = report.series.map(item => ({...item, kept: item.moneyIn - item.total}));
   if (grain === 'week' || columns.every(item => item.moneyIn < 0.5)) return null;
@@ -60,6 +67,7 @@ export function MoneyFlow({report, grain, currency}: Props) {
                 ? `kept ${words}, ${Math.round((kept / moneyIn) * 100)}% of what came in`
                 : `spent beyond what came in ${words}`}
         </span>
+        <ChartSpan grain={report.chartGrain} span={span} onChange={onSpan} />
       </header>
       <dl className="facts">
         <div>
@@ -101,25 +109,54 @@ export function MoneyFlow({report, grain, currency}: Props) {
       {lastPaid && (
         <div className="pay-trend">
           <p className="pay-trend-head">
-            <strong>Pay</strong> {money(lastPaid.pay, currency)} in {periodLabel(lastPaid.period, report.chartGrain)}
-            {payWords && <span className="muted"> · trend {payWords}</span>}
+            <span className="pay-trend-name">Pay</span>
+            <strong className="pay-trend-value">{money(lastPaid.pay, currency)}</strong>
+            <span>
+              in {periodLabel(lastPaid.period, report.chartGrain)}
+              {payWords && ` · trend ${payWords}`}
+            </span>
           </p>
           <div
             className="pay-chart"
             role="img"
             aria-label={`Pay per ${payUnit}${payWords ? `, trend ${payWords}` : ''}`}
+            onPointerLeave={() => setHoveredPay(null)}
           >
-            {columns.map(item => (
+            {columns.map((item, index) => (
               <span
                 key={item.period}
                 className={`pay-column${item.partial ? ' is-partial' : ''}`}
-                title={`${periodLabel(item.period, report.chartGrain)}: ${money(item.pay, currency)} of pay`}
+                onPointerEnter={event => {
+                  if (event.pointerType === 'mouse') setHoveredPay(index);
+                }}
+                // A tap shows it on a phone, and hides it again.
+                onClick={() => setHoveredPay(shown => (shown === index ? null : index))}
               >
                 <span className="pay-bar" style={{height: `${(item.pay / payTop) * 100}%`}} />
+                {hoveredPay === index && (
+                  <span
+                    className={`chart-tip${index < 2 ? ' is-start' : index > columns.length - 3 ? ' is-end' : ''}`}
+                    role="tooltip"
+                    style={{bottom: `calc(${(item.pay / payTop) * 100}% + 8px)`}}
+                  >
+                    <strong>{periodLabel(item.period, report.chartGrain)}</strong>
+                    <span>
+                      {money(item.pay, currency)} of pay{item.partial === 'ongoing' ? ' so far' : ''}
+                    </span>
+                  </span>
+                )}
               </span>
             ))}
             {/* The month chart's trend line. */}
             {payTrend && <TrendLine values={rollingAverage(paid)} top={payTop} />}
+          </div>
+          {/* The same labels as the columns above: every third, counted back from the last one. */}
+          <div className="pay-axis" aria-hidden="true">
+            {columns.map((item, index) => (
+              <span key={item.period}>
+                {(columns.length - 1 - index) % 3 === 0 ? compactPeriodLabel(item.period, report.chartGrain) : ''}
+              </span>
+            ))}
           </div>
         </div>
       )}

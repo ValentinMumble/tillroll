@@ -258,7 +258,7 @@ function daySpread(days: number[]) {
  * around the same day of the month, in at least 3 of the 4 months up to `month`. Each month counts the charge closest
  * to the middle, so an extra one does not spoil it; a store charged more than twice in a month is a shop.
  */
-function findSubscriptions(rows: Row[], month: string, categories: Categories): Subscription[] {
+export function findSubscriptions(rows: Row[], month: string, categories: Categories): Subscription[] {
   const months = [0, 1, 2, 3].map(step => shiftPeriod(month, 'month', -step));
   const start = periodStart(months[3], 'month');
   type Charge = {date: string; amount: number};
