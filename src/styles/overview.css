@@ -70,9 +70,73 @@
   mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) 50% / calc(2 * var(--tooth)) 100%;
 }
 
+/* The total, its comparison and the rings on the left, the balances on the right, the strip and the facts under both;
+   on a phone one under the other, the balances last. */
 .summary {
   display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    'main side'
+    'strip strip'
+    'facts facts';
+  row-gap: 6px;
+}
+
+.summary-main {
+  grid-area: main;
+  display: grid;
+  align-content: start;
   gap: 6px;
+  min-width: 0;
+}
+
+.summary .spend-strip {
+  grid-area: strip;
+}
+
+.summary .facts {
+  grid-area: facts;
+}
+
+.receipt-balances {
+  grid-area: side;
+  display: grid;
+  align-content: start;
+  width: 300px;
+  padding-left: 28px;
+  border-left: 1px solid var(--line);
+}
+
+.balances-total {
+  margin-top: 6px;
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+.balances-savings {
+  justify-self: start;
+  margin-top: 12px;
+}
+
+@media (max-width: 720px) {
+  .summary {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      'main'
+      'strip'
+      'facts'
+      'side';
+  }
+
+  .receipt-balances {
+    width: auto;
+    margin-top: 16px;
+    padding: 16px 0 0;
+    border-top: 1px solid var(--line);
+    border-left: 0;
+  }
 }
 
 .hero {

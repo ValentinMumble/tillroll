@@ -85,9 +85,15 @@ export function Overview({
   return (
     <>
       <section className="receipt">
-        <Summary report={report} period={period} grain={grain} currency={currency} categories={categories} />
+        <Summary
+          report={report}
+          period={period}
+          grain={grain}
+          currency={currency}
+          categories={categories}
+          balances={<Balances balances={balances} currency={currency} onSavings={() => onShow('savings')} />}
+        />
       </section>
-      <Balances balances={balances} currency={currency} onSavings={() => onShow('savings')} />
       {toSort > 0 && (
         <button type="button" className="sort-banner" onClick={onSort}>
           <span aria-hidden="true">🗂️</span>

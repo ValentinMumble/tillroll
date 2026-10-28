@@ -13,8 +13,8 @@ interface Props {
 }
 
 /**
- * What is in the bank right now: each bank's balance side by side on one row (its accounts together, in whole euros,
- * the cents on hover), and all of them in the header.
+ * What is in the bank right now, in the receipt beside its total (at its end on a phone): all of it, then each bank's
+ * balance (its accounts together, in whole euros, the cents on hover), and the way to the savings.
  */
 export function Balances({balances, currency, onSavings}: Props) {
   const banks = [...bankBalances(balances, currency).values()].sort((first, second) => second.amount - first.amount);
@@ -22,15 +22,11 @@ export function Balances({balances, currency, onSavings}: Props) {
   const total = banks.reduce((sum, balance) => sum + balance.amount, 0);
   const oldest = banks.map(balance => balance.date).sort()[0];
   return (
-    <section className="card balances">
-      <header className="card-head">
-        <h2>Balances</h2>
-        <span className="view-total">{money(total, currency, true)}</span>
-        <span className="hint">{oldest >= today() ? 'today' : `on ${dayLabel(oldest)}`}</span>
-        <button type="button" className="link-button" onClick={onSavings}>
-          Savings →
-        </button>
-      </header>
+    <section className="receipt-balances" aria-labelledby="balances-title">
+      <p className="eyebrow" id="balances-title">
+        Balances · {oldest >= today() ? 'today' : `on ${dayLabel(oldest)}`}
+      </p>
+      <p className="balances-total">{money(total, currency, true)}</p>
       <ul className="balance-lines">
         {banks.map(balance => (
           <li key={balance.bank} title={`${balance.bank}: ${money(balance.amount, currency, true)}`}>
@@ -44,6 +40,9 @@ export function Balances({balances, currency, onSavings}: Props) {
           </li>
         ))}
       </ul>
+      <button type="button" className="link-button balances-savings" onClick={onSavings}>
+        Savings →
+      </button>
     </section>
   );
 }
