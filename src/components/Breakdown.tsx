@@ -10,7 +10,7 @@ import {paymentCount, plain} from '../text';
 
 /** What the payment list is narrowed to: a category, a store, a label (over all time), or the payments to check. */
 export type Focus =
-  | {type: 'category'; key: CategoryKey}
+  | {type: 'category'; keys: CategoryKey[]}
   | {type: 'store'; key: string; name: string}
   | {type: 'label'; key: string}
   | {type: 'check'};
@@ -132,14 +132,14 @@ export function CategoryBreakdown({
         <ul className="bars">
           {shown.map(([key, value]) => {
             const category = categories.byKey[key];
-            const active = focus?.type === 'category' && focus.key === key;
+            const active = focus?.type === 'category' && focus.keys.includes(key);
             return (
               <li key={key} style={colourStyle(categories.colours[key])}>
                 <button
                   type="button"
                   className={`bar-row${active ? ' is-active' : ''}${preview ? '' : ' has-trend'}`}
                   aria-pressed={active}
-                  onClick={() => onFocus(active ? null : {type: 'category', key})}
+                  onClick={() => onFocus(active ? null : {type: 'category', keys: [key]})}
                 >
                   <span className="bar-label">
                     <span className="bar-icon" aria-hidden="true">
@@ -171,14 +171,14 @@ export function CategoryBreakdown({
           <ul className="bars">
             {others.map(([key, value]) => {
               const category = categories.byKey[key];
-              const active = focus?.type === 'category' && focus.key === key;
+              const active = focus?.type === 'category' && focus.keys.includes(key);
               return (
                 <li key={key} style={colourStyle(categories.colours[key])}>
                   <button
                     type="button"
                     className={`bar-row is-other${active ? ' is-active' : ''}`}
                     aria-pressed={active}
-                    onClick={() => onFocus(active ? null : {type: 'category', key})}
+                    onClick={() => onFocus(active ? null : {type: 'category', keys: [key]})}
                   >
                     <span className="bar-label">
                       <span className="bar-icon" aria-hidden="true">

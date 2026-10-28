@@ -16,6 +16,7 @@ import {
 import type {CategoryKey, Labels} from '../types';
 import {BankBadge} from './BankBadge';
 import type {Focus} from './Breakdown';
+import {CategoryFilter} from './CategoryFilter';
 import {CategorySheet, type Scope} from './CategorySheet';
 import {ListSwitches} from './ListSwitches';
 import {LabelOptions, PaymentLabels} from './PaymentLabels';
@@ -46,8 +47,8 @@ interface Props {
   /** Each changed payment's full list of labels. */
   onLabels: (changes: Labels) => void;
   onFocusLabel: (label: string) => void;
-  /** The category filter above the list; null shows every category. */
-  onFocusCategory: (category: CategoryKey | null) => void;
+  /** The category filter above the list, several at once; none shows every category. */
+  onFocusCategories: (keys: CategoryKey[]) => void;
   /** Shows the payments to check only. */
   onFocusCheck: () => void;
   /** Money in linked to the payment it pays back; null takes the link off. */
@@ -99,7 +100,7 @@ export function Payments({
   labelNames,
   onLabels,
   onFocusLabel,
-  onFocusCategory,
+  onFocusCategories,
   onFocusCheck,
   onPayback,
   showBanks,
@@ -133,7 +134,7 @@ export function Payments({
   const inFocus = (row: Row) => {
     if (bank && bankOf(row) !== bank) return false;
     if (toCheck && !isUnsure(row)) return false;
-    if (focus?.type === 'category' && row.category !== focus.key) return false;
+    if (focus?.type === 'category' && !focus.keys.includes(row.category)) return false;
     if (focus?.type === 'label' && !row.labels.some(label => label.toLowerCase() === focus.key.toLowerCase())) {
       return false;
     }
@@ -152,7 +153,7 @@ export function Payments({
     own: hiddenBySwitch.filter(row => row.category === 'own').length,
     category:
       focus?.type === 'category'
-        ? found.filter(row => row.category !== focus.key && isListed(row, {moneyIn, own})).length
+        ? found.filter(row => !focus.keys.includes(row.category) && isListed(row, {moneyIn, own})).length
         : 0,
     period: 0,
   };
@@ -359,27 +360,15 @@ export function Payments({
         )}
         {/* The category and the bank: side by side on a phone, under the search. */}
         <div className="payments-selects">
-          <select
-            className="select"
-            aria-label="Category"
-            value={focus?.type === 'category' ? focus.key : ''}
-            onChange={event => {
-              onFocusCategory(event.target.value || null);
+          <CategoryFilter
+            categories={categories}
+            counts={categoryCounts}
+            picked={focus?.type === 'category' ? focus.keys : []}
+            onChange={keys => {
+              onFocusCategories(keys);
               setLimit(PAGE);
             }}
-          >
-            <option value="">All categories</option>
-            {categories.alphabetical
-              .filter(
-                category =>
-                  categoryCounts.has(category.key) || (focus?.type === 'category' && focus.key === category.key),
-              )
-              .map(category => (
-                <option key={category.key} value={category.key}>
-                  {category.icon} {category.label} ({categoryCounts.get(category.key) ?? 0})
-                </option>
-              ))}
-          </select>
+          />
           {(showBanks || bank) && (
             <select
               className="select"
@@ -432,7 +421,7 @@ export function Payments({
               </button>
             ),
             hidden.category > 0 && (
-              <button key="category" type="button" className="link-button" onClick={() => onFocusCategory(null)}>
+              <button key="category" type="button" className="link-button" onClick={() => onFocusCategories([])}>
                 {hidden.category} in other categories
               </button>
             ),

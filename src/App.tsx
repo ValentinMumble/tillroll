@@ -31,7 +31,7 @@ import {timeAgo} from './format';
 import {type Grain, periodEnd, periodOf, shiftPeriod, today} from './periods';
 import {buildReport} from './report';
 import {isUnsure, rowsBetween, type StoreToSort, storesToSort} from './rows';
-import {loadGrain, saveGrain, savePaymentSort} from './storage';
+import {loadChartSpan, loadGrain, saveChartSpan, saveGrain, savePaymentSort} from './storage';
 import {MENU_ONLY, type Tab, TABS} from './tabs';
 import type {CategoryKey} from './types';
 import {useData} from './useData';
@@ -65,6 +65,11 @@ interface Place {
  */
 function placeFromHistory(): Place {
   const saved = window.history.state as Place | null;
+  // A category filter saved before it held several: its one category.
+  const focus = saved?.focus as (Focus & {key?: string}) | null | undefined;
+  if (saved?.tab && focus?.type === 'category' && !Array.isArray(focus.keys)) {
+    return {...saved, focus: focus.key ? {type: 'category', keys: [focus.key]} : null};
+  }
   if (saved?.tab) return saved;
   const name = window.location.hash.slice(1);
   return {tab: TABS.some(item => item.key === name) ? (name as Tab) : 'overview', focus: null};
@@ -77,6 +82,8 @@ function placeFromHistory(): Place {
 export default function App() {
   const [homeScreenApp] = useState(isHomeScreenApp);
   const [grain, setGrain] = useState<Grain>(loadGrain);
+  // How far back the period chart goes: 1, 2 or 3 times its usual length.
+  const [chartSpan, setChartSpan] = useState(loadChartSpan);
   const [chosenPeriod, setChosenPeriod] = useState<string | null>(null);
   const [chosenCurrency, setChosenCurrency] = useState<string | null>(null);
   const [focus, setFocus] = useState<Focus | null>(() => placeFromHistory().focus);
@@ -186,8 +193,8 @@ export default function App() {
     chosenPeriod && chosenPeriod >= firstPeriod && chosenPeriod <= latestPeriod ? chosenPeriod : latestPeriod;
 
   const report = useMemo(
-    () => buildReport(currencyRows, period, grain, today(), categories),
-    [currencyRows, period, grain, categories],
+    () => buildReport(currencyRows, period, grain, today(), categories, chartSpan),
+    [currencyRows, period, grain, categories, chartSpan],
   );
   const periodRows = useMemo(() => rowsBetween(currencyRows, report.from, report.to), [currencyRows, report]);
   const toCheck = useMemo(() => periodRows.filter(isUnsure).length, [periodRows]);
@@ -513,6 +520,11 @@ export default function App() {
               onCreateCategory={(targets, label, icon, scope) => void createCategoryFor(targets, label, icon, scope)}
               onLabels={changes => void setLabels(changes)}
               onPayback={(row, paymentId) => void setPayback(row, paymentId)}
+              chartSpan={chartSpan}
+              onChartSpan={span => {
+                setChartSpan(span);
+                saveChartSpan(span);
+              }}
             />
           )}
           {tab === 'calendar' && (
@@ -600,7 +612,7 @@ export default function App() {
               labelNames={labelNames}
               onLabels={changes => void setLabels(changes)}
               onFocusLabel={label => focusOn({type: 'label', key: label})}
-              onFocusCategory={category => setFocus(category ? {type: 'category', key: category} : null)}
+              onFocusCategories={keys => setFocus(keys.length ? {type: 'category', keys} : null)}
               onFocusCheck={() => setFocus({type: 'check'})}
               onPayback={(row, paymentId) => void setPayback(row, paymentId)}
               showBanks={showBanks}
@@ -672,7 +684,7 @@ export default function App() {
           rows={currencyRows}
           categories={categories}
           currency={currency}
-          onOpenPayments={() => focusOn({type: 'category', key: dialog.category})}
+          onOpenPayments={() => focusOn({type: 'category', keys: [dialog.category]})}
           // The store dialog takes this one's place.
           onOpenStore={store => setDialog({type: 'store', store})}
           onClose={() => setDialog(null)}

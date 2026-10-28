@@ -87,18 +87,22 @@ function totalsOf(rows: Row[]): Totals {
 /** Money in that is not a refund or a move between one's own accounts. */
 const isMoneyIn = (row: Row) => !row.leftOut && !row.counts && row.amount > 0;
 
-/**
- * The rows with pay dated for the month it is for: pay that comes at the end of a month (from the 20th) is the next
- * month's, so it counts on that month's first day. Pay is money in, in Money in, from a payer who paid 300 or more in
- * at least three months. Only money in moves this way; the payment list keeps the real day.
- */
-function withPayDated(rows: Row[]) {
+/** Who pays a salary: money in, in Money in, of 300 or more, from the same payer in at least three months. */
+function payersOf(rows: Row[]) {
   const paidMonths = new Map<string, Set<string>>();
   for (const row of rows) {
     if (!isMoneyIn(row) || row.category !== 'income' || row.amount < 300) continue;
     paidMonths.set(row.storeKey, (paidMonths.get(row.storeKey) ?? new Set<string>()).add(row.date.slice(0, 7)));
   }
-  const payers = new Set([...paidMonths].filter(([, months]) => months.size >= 3).map(([key]) => key));
+  return new Set([...paidMonths].filter(([, months]) => months.size >= 3).map(([key]) => key));
+}
+
+/**
+ * The rows with pay dated for the month it is for: pay that comes at the end of a month (from the 20th) is the next
+ * month's, so it counts on that month's first day. Pay is money in from a payer (see payersOf). Only money in moves
+ * this way; the payment list keeps the real day.
+ */
+function withPayDated(rows: Row[], payers: Set<string>) {
   return rows.map(row =>
     isMoneyIn(row) && payers.has(row.storeKey) && Number(row.date.slice(8, 10)) >= 20
       ? {...row, date: `${shiftPeriod(row.date.slice(0, 7), 'month', 1)}-01`}
@@ -108,6 +112,36 @@ function withPayDated(rows: Row[]) {
 
 const moneyInBetween = (rows: Row[], from: string, to: string) =>
   rows.filter(row => isMoneyIn(row) && row.date >= from && row.date <= to).reduce((sum, row) => sum + row.amount, 0);
+
+/**
+ * Each value with its neighbours' (the one before and the one after, when they have one), averaged: a line that bends
+ * with the ups and downs without following every spike. Null values stay null and are no one's neighbour.
+ */
+export function rollingAverage(values: (number | null)[]) {
+  return values.map((value, index) => {
+    if (value === null) return null;
+    const near = [values[index - 1], value, values[index + 1]].filter(
+      (item): item is number => item !== null && item !== undefined,
+    );
+    return near.reduce((sum, item) => sum + item, 0) / near.length;
+  });
+}
+
+/**
+ * The straight line closest to values in a row (null ones are left out: a period still going, or only partly in the
+ * data), at the first place and the last, and how much it rises or falls from one to the next. None with fewer than
+ * three values.
+ */
+export function trendOf(values: (number | null)[]) {
+  const points = values.flatMap((y, x) => (y === null ? [] : [{x, y}]));
+  if (points.length < 3) return null;
+  const meanX = points.reduce((sum, point) => sum + point.x, 0) / points.length;
+  const meanY = points.reduce((sum, point) => sum + point.y, 0) / points.length;
+  const spread = points.reduce((sum, point) => sum + (point.x - meanX) ** 2, 0);
+  const step = points.reduce((sum, point) => sum + (point.x - meanX) * (point.y - meanY), 0) / spread;
+  const at = (x: number) => meanY + step * (x - meanX);
+  return {step, mean: meanY, first: at(0), last: at(values.length - 1)};
+}
 
 export interface Insight {
   icon: string;
@@ -150,11 +184,19 @@ export interface Report {
     total: number;
     /** Money in that is not a refund or a transfer between one's own accounts (pay, money from others). */
     moneyIn: number;
+    /** The pay in it (see payersOf), dated for the month it is for. */
+    pay: number;
     payments: number;
     categories: Map<CategoryKey, number>;
     stores: Map<string, StoreTotal>;
     /** Still going (holds today), or only partly covered by the data (the first one): not a full period yet. */
     partial: 'ongoing' | 'first' | null;
+    /** Its spending decided in advance (see fixedBetween); the rest is flexible. */
+    fixed: number;
+    /** The same period a year before (weeks and months only), when the data covers it. */
+    lastYear: number | null;
+    /** For the period still going: where it should end, if the days left go like a usual period's. */
+    projected: number | null;
   }[];
   /** The chart's periods: years for all time, else the chosen grain. */
   chartGrain: Grain;
@@ -343,12 +385,12 @@ function paceOf(rows: Row[], grain: Grain, from: string, to: string, now: string
  * Spending decided in advance: Bills and subscriptions, and the regular payments (rent, a loan, a gym) as found in
  * each month, so a payment counts as fixed once it has come back for three months. The rest is flexible.
  */
-function fixedBetween(rows: Row[], from: string, to: string, categories: Categories) {
+function fixedBetween(rows: Row[], from: string, to: string, regularOf: (month: string) => Set<string>) {
   let total = 0;
   for (let month = periodOf(from, 'month'); periodStart(month, 'month') <= to; month = shiftPeriod(month, 'month', 1)) {
     const start = periodStart(month, 'month') < from ? from : periodStart(month, 'month');
     const end = periodEnd(month, 'month') > to ? to : periodEnd(month, 'month');
-    const regular = new Set(findSubscriptions(rows, month, categories).map(item => item.key));
+    const regular = regularOf(month);
     for (const row of rowsBetween(rows, start, end)) {
       // The same payments as the period's total.
       if (!row.counts || row.leftOut || row.spend === 0) continue;
@@ -358,16 +400,33 @@ function fixedBetween(rows: Row[], from: string, to: string, categories: Categor
   return total;
 }
 
-export function buildReport(rows: Row[], period: string, grain: Grain, now: string, categories: Categories): Report {
+/** `chartSpan` makes the chart that many times longer than usual (24 or 36 months instead of 12). */
+export function buildReport(
+  rows: Row[],
+  period: string,
+  grain: Grain,
+  now: string,
+  categories: Categories,
+  chartSpan = 1,
+): Report {
   const firstDay = rows.at(-1)?.date ?? now;
   const lastDay = rows[0]?.date ?? now;
+  // Each month's regular payments, found once for the period and the chart's columns.
+  const regularByMonth = new Map<string, Set<string>>();
+  const regularOf = (month: string) => {
+    const found =
+      regularByMonth.get(month) ?? new Set(findSubscriptions(rows, month, categories).map(item => item.key));
+    regularByMonth.set(month, found);
+    return found;
+  };
   // All time runs from the first payment to the last one.
   const from = grain === 'all' ? firstDay : periodStart(period, grain);
   const to = grain === 'all' ? lastDay : periodEnd(period, grain);
   const ongoing = grain !== 'all' && now >= from && now <= to;
   const current = totalsOf(rowsBetween(rows, from, to));
   // Money in counts pay in the month it is for.
-  const payDated = withPayDated(rows);
+  const payers = payersOf(rows);
+  const payDated = withPayDated(rows, payers);
   current.moneyIn = moneyInBetween(payDated, from, to);
   const {word, scope, spending: spendingWords} = WORDING[grain];
   // A period the data only partly covers (the first one) would make a poor comparison.
@@ -404,7 +463,7 @@ export function buildReport(rows: Row[], period: string, grain: Grain, now: stri
 
   // The chart ends with the latest period unless the chosen one is older. All time shows the years.
   const chartGrain: Grain = grain === 'all' ? 'year' : grain;
-  const count = CHART_LENGTH[grain];
+  const count = CHART_LENGTH[grain] * chartSpan;
   const anchor = grain === 'all' ? periodOf(lastDay, chartGrain) : period;
   let last = periodOf(lastDay, chartGrain);
   if (anchor > last) last = anchor;
@@ -416,14 +475,39 @@ export function buildReport(rows: Row[], period: string, grain: Grain, now: stri
     const itemStart = periodStart(item, chartGrain);
     const itemEnd = periodEnd(item, chartGrain);
     const totals = totalsOf(rowsBetween(rows, itemStart, itemEnd));
+    const partial = now >= itemStart && now <= itemEnd ? 'ongoing' : itemStart < firstDay ? 'first' : null;
+    const yearBefore =
+      chartGrain === 'month'
+        ? shiftPeriod(item, 'month', -12)
+        : chartGrain === 'week'
+          ? shiftPeriod(item, 'week', -52)
+          : null;
+    let projected: number | null = null;
+    if (partial === 'ongoing') {
+      // The days left go like the usual period's (the mean of up to six full ones before) from the same day on.
+      const before = [1, 2, 3, 4, 5, 6]
+        .map(step => shiftPeriod(item, chartGrain, -step))
+        .filter(other => periodStart(other, chartGrain) >= firstDay);
+      const {byNow, whole} = paceAmounts(paceOf(rows, chartGrain, itemStart, itemEnd, now, before), true);
+      if (byNow !== null && whole !== null) projected = totals.total + Math.max(0, whole - byNow);
+    }
     series.push({
       period: item,
       total: totals.total,
       moneyIn: moneyInBetween(payDated, itemStart, itemEnd),
+      pay: payDated
+        .filter(row => isMoneyIn(row) && payers.has(row.storeKey) && row.date >= itemStart && row.date <= itemEnd)
+        .reduce((sum, row) => sum + row.amount, 0),
       payments: totals.payments,
       categories: totals.categories,
       stores: totals.stores,
-      partial: now >= itemStart && now <= itemEnd ? 'ongoing' : itemStart < firstDay ? 'first' : null,
+      partial,
+      fixed: fixedBetween(rows, itemStart, itemEnd, regularOf),
+      lastYear:
+        yearBefore && periodStart(yearBefore, chartGrain) >= firstDay
+          ? totalsOf(rowsBetween(rows, periodStart(yearBefore, chartGrain), periodEnd(yearBefore, chartGrain))).total
+          : null,
+      projected,
     });
   }
 
@@ -498,7 +582,7 @@ export function buildReport(rows: Row[], period: string, grain: Grain, now: stri
     insights.push({icon: '🔁', text: `${item.name} went up by ${money(item.change, currency, true)} last time.`});
   }
 
-  const fixed = grain === 'week' ? null : fixedBetween(rows, from, to, categories);
+  const fixed = grain === 'week' ? null : fixedBetween(rows, from, to, regularOf);
   const pace = grain === 'all' ? null : paceOf(rows, grain, from, to, now, earlierPeriods);
   return {
     period,

@@ -1,6 +1,7 @@
 import {money} from '../format';
 import {compactPeriodLabel, type Grain, periodLabel} from '../periods';
-import type {Report} from '../report';
+import {type Report, rollingAverage, trendOf} from '../report';
+import {TrendLine} from './TrendLine';
 
 interface Props {
   report: Report;
@@ -11,7 +12,7 @@ interface Props {
 /**
  * Money in and out: what came in (pay, money from others; not refunds or moves between one's own accounts), what was
  * spent, and what was kept, with its share of what came in. Under it, what each of the chart's periods kept: a bar up,
- * or down when the period spent more than came in.
+ * or down when the period spent more than came in; then the pay in each of them, with its trend.
  */
 export function MoneyFlow({report, grain, currency}: Props) {
   const {moneyIn, total: spent, movedOut} = report.current;
@@ -29,6 +30,19 @@ export function MoneyFlow({report, grain, currency}: Props) {
   const usualIn = full.length > 0 ? full[full.length >> 1] : 0;
   const waiting = report.ongoing && usualIn >= 1 && moneyIn < usualIn / 2;
   const words = grain === 'year' ? 'this year' : grain === 'all' ? 'over all time' : 'this month';
+  // Pay in each period, under the same columns: its trend over the full periods from the first one paid.
+  const firstPaid = columns.findIndex(item => item.pay >= 0.5);
+  const paid = columns.map((item, index) => (firstPaid < 0 || index < firstPaid || item.partial ? null : item.pay));
+  const payTrend = trendOf(paid);
+  const payTop = Math.max(1, ...columns.map(item => item.pay));
+  const lastPaid = [...columns].reverse().find(item => !item.partial && item.pay >= 0.5);
+  const payUnit = report.chartGrain === 'year' ? 'year' : 'month';
+  // Steady when it moves by less than half a percent of the usual pay each time.
+  const payWords =
+    payTrend &&
+    (Math.abs(payTrend.step) < payTrend.mean * 0.005
+      ? 'steady'
+      : `${payTrend.step > 0 ? 'up' : 'down'} about ${money(Math.abs(payTrend.step), currency)} a ${payUnit}`);
   return (
     <section className="card flow">
       <header className="card-head">
@@ -84,6 +98,31 @@ export function MoneyFlow({report, grain, currency}: Props) {
           </span>
         ))}
       </div>
+      {lastPaid && (
+        <div className="pay-trend">
+          <p className="pay-trend-head">
+            <strong>Pay</strong> {money(lastPaid.pay, currency)} in {periodLabel(lastPaid.period, report.chartGrain)}
+            {payWords && <span className="muted"> · trend {payWords}</span>}
+          </p>
+          <div
+            className="pay-chart"
+            role="img"
+            aria-label={`Pay per ${payUnit}${payWords ? `, trend ${payWords}` : ''}`}
+          >
+            {columns.map(item => (
+              <span
+                key={item.period}
+                className={`pay-column${item.partial ? ' is-partial' : ''}`}
+                title={`${periodLabel(item.period, report.chartGrain)}: ${money(item.pay, currency)} of pay`}
+              >
+                <span className="pay-bar" style={{height: `${(item.pay / payTop) * 100}%`}} />
+              </span>
+            ))}
+            {/* The month chart's trend line. */}
+            {payTrend && <TrendLine values={rollingAverage(paid)} top={payTop} />}
+          </div>
+        </div>
+      )}
     </section>
   );
 }

@@ -16,7 +16,7 @@ live in `src/styles/`, one file per area, imported in order by `src/index.css` (
 - Never let colour carry meaning alone: a category's colour always comes with its emoji or its name, and up or down
   (`--up` red for more spending, `--down` green for less) always comes with an arrow.
 - The theme is **Liquid Glass over a dusk wallpaper**: a soft haze of lilac, pink and blue on a near-neutral page
-  (`--wall`, still behind the page), violet (`--accent`) for actions only. Charts of a single series use the one violet (`--bar`, `--bar-strong` for the marked period). The
+  (`--wall`, still behind the page), violet (`--accent`) for actions only. Charts of a single series use the one violet (`--bar`, `--bar-strong` for the fixed part of a column). The
   calendar uses the violet ramp `--heat-0` to `--heat-5`.
 - Glass: a card is `--glass` under `--glass-sheen` (see-through, light catching its top left, no blur: nothing moves
   behind it). What floats over moving content (the tab bar, dialogs, menus, the selection bar) is `--glass-strong`
@@ -56,8 +56,14 @@ shows, then the actions as `.link-button`s at the right end (`.card-actions` whe
 ### Charts
 
 - A reference line says its amount ("usual €4,312"), never just its name.
-- A trend is a dashed line over the columns, fitted to the full periods only; the key under the chart says it in
-  words ("Trend: up about €95 a month", or "flat").
+- A trend is a dashed curve over the columns (`TrendLine`) through each full period's average with its neighbours,
+  so it bends with the real ups and downs; the key under the chart says its overall direction in words ("Trend
+  (3-month average): up about €95 a month", or "flat").
+- The month chart's columns: the fixed part (`--bar-strong`) at the bottom, flexible above (`--bar`); a short `--ink`
+  tick at what the same period cost a year before; for the period still going, a dashed outline up to where it
+  should land. The chosen period has a shaded band behind its column, not a different colour.
+- The tooltip says everything a column shows, plus its top three categories. The keys sit in one wrapping row under
+  the chart.
 
 ### Tags
 
@@ -100,6 +106,9 @@ shows, then the actions as `.link-button`s at the right end (`.card-actions` whe
 - Groups of rows are split by a 1px `--line` hairline. A sub-list (the stores merged into one) is indented with a 2px
   `--line` rule on its left.
 - Show a search field above a list once it has more than 8 items, and an `.empty` line when nothing matches.
+- Every dropdown has the `.select` look closed: same height, border, radius and caret. One choice is a plain
+  `<select>` (a phone opens its own picker); several choices are a button opening a menu with a tick for each
+  (`CategoryFilter`), reading "All categories", one choice, or the first and "+ 2".
 - In a dialog, a few short names that each take an action (merged names, look-alike stores) are chips with the
   action inside (`.name-chip`: ✕ to separate, Merge), not rows with the action at the far end of a wide line.
 - A category always shows as its emoji and its name, with its colour as a dot or a tint.

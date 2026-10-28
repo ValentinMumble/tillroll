@@ -94,13 +94,27 @@
   cursor: pointer;
 }
 
+/* Every dropdown looks the same closed: the browser's own select for one choice (a phone opens its own picker), the
+   category filter's button for several (see CategoryFilter), with one small caret in the theme's colours on the right,
+   drawn by two gradients so it follows the theme. */
 .select {
   min-height: 38px;
   max-width: 100%;
-  padding: 0 10px;
+  padding: 0 30px 0 10px;
   border: 1px solid var(--line);
   border-radius: 10px;
-  background: var(--surface);
+  background-color: var(--surface);
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--ink-soft) 50%),
+    linear-gradient(135deg, var(--ink-soft) 50%, transparent 50%);
+  background-position:
+    calc(100% - 17px) 55%,
+    calc(100% - 12px) 55%;
+  background-size: 5px 5px;
+  background-repeat: no-repeat;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
 }
 
 .notice {

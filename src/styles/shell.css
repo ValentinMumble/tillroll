@@ -179,9 +179,77 @@
   display: contents;
 }
 
-.payments-selects > .select {
+.payments-selects > .select,
+.payments-selects > .category-filter {
   flex: 0 1 240px;
   min-width: 0;
+}
+
+/* The category filter: a button like the bank's select (its caret is the .select one), and under it a menu like the
+   ⋯ menu's, a tick for each category. */
+.category-filter {
+  position: relative;
+}
+
+.category-filter > summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  list-style: none;
+  cursor: pointer;
+}
+
+.category-filter > summary::-webkit-details-marker {
+  display: none;
+}
+
+.category-filter-label,
+.category-filter-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.category-filter-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 20;
+  display: grid;
+  width: max(100%, 280px);
+  max-width: calc(100vw - 32px);
+  max-height: min(440px, 60vh);
+  padding: 6px;
+  overflow: auto;
+  border-radius: 14px;
+  background: var(--glass-strong);
+  -webkit-backdrop-filter: var(--blur);
+  backdrop-filter: var(--blur);
+  box-shadow:
+    inset 0 1px 0 var(--glass-edge),
+    0 12px 40px rgba(0, 0, 0, 0.22);
+}
+
+.category-filter-menu > .link-button {
+  justify-self: start;
+  padding: 6px 8px;
+}
+
+.category-filter-option {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 0 8px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.category-filter-option:hover {
+  background: var(--surface-sunk);
 }
 
 .payments-filters > .pick-all,
@@ -215,7 +283,8 @@
     min-width: 0;
   }
 
-  .payments-selects > .select {
+  .payments-selects > .select,
+  .payments-selects > .category-filter {
     flex: 1 1 0;
   }
 }
@@ -485,6 +554,10 @@
   }
 
   .chart.is-crowded .chart-axis span:not(:nth-child(4n + 1)) {
+    visibility: hidden;
+  }
+
+  .chart.is-long .chart-axis span:not(:nth-child(6n + 1)) {
     visibility: hidden;
   }
 

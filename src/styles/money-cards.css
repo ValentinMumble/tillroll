@@ -125,6 +125,46 @@
   height: 140px;
 }
 
+/* The pay in each period, under the same columns, in money in's green, with the month chart's dashed trend. */
+.pay-trend {
+  display: grid;
+  gap: 8px;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.pay-trend-head {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 13px;
+}
+
+.pay-chart {
+  position: relative;
+  display: grid;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  gap: 4px;
+  height: 56px;
+}
+
+.pay-column {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.pay-bar {
+  width: min(18px, 62%);
+  border-radius: 3px 3px 0 0;
+  background: color-mix(in srgb, var(--down) 75%, transparent);
+}
+
+.pay-column.is-partial .pay-bar {
+  opacity: 0.45;
+}
+
 .flow-column {
   display: grid;
   grid-template-rows: 1fr 1fr auto;

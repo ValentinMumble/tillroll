@@ -26,6 +26,7 @@ const DISTINCT = 'tillroll.distinct';
 const SAVINGS_VALUES = 'tillroll.savings-values';
 const BUDGETS = 'tillroll.budgets';
 const GRAIN = 'tillroll.grain';
+const CHART_SPAN = 'tillroll.chart-span';
 const PAYMENT_SORT = 'tillroll.payment-sort';
 const SHEET_SCOPE = 'tillroll.sheet-scope';
 const PAYMENTS_EVERYTHING = 'tillroll.payments-everything';
@@ -110,6 +111,13 @@ export function saveLocalSorting(
   if (sorting.categories) write(CATEGORIES, sorting.categories);
   if (sorting.merges) write(MERGES, sorting.merges);
 }
+
+/** How far back the period chart goes, as a number of its usual lengths (1, 2 or 3), remembered in each browser. */
+export const loadChartSpan = () => {
+  const saved = read<number>(CHART_SPAN);
+  return saved === 2 || saved === 3 ? saved : 1;
+};
+export const saveChartSpan = (span: number) => write(CHART_SPAN, span);
 
 export const loadGrain = (): Grain => {
   const saved = read<string>(GRAIN);

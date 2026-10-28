@@ -369,8 +369,48 @@
   background: var(--bar);
 }
 
-.chart-column.is-selected .chart-bar {
+/* The chosen period: a band behind its column, as on hover, so its two tones stay readable. */
+.chart-column.is-selected {
+  background: linear-gradient(var(--surface-sunk), var(--surface-sunk)) bottom / 100% 100% no-repeat;
+  border-radius: 6px 6px 0 0;
+}
+
+/* Its fixed part (decided in advance) darker at the bottom, the flexible rest above in the usual violet. */
+.chart-bar {
+  position: relative;
+  overflow: hidden;
+}
+
+.chart-bar-fixed {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
   background: var(--bar-strong);
+}
+
+/* The period still going: a dashed outline up to where it should land. */
+.chart-landing {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: min(24px, 62%);
+  border: 1.5px dashed var(--bar-strong);
+  border-bottom: 0;
+  border-radius: 4px 4px 0 0;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+/* What the same period cost a year before: a short tick across the column. */
+.chart-year-before {
+  position: absolute;
+  left: 50%;
+  width: calc(min(24px, 62%) + 10px);
+  border-top: 2px solid var(--ink);
+  opacity: 0.8;
+  transform: translateX(-50%);
+  pointer-events: none;
 }
 
 /* Not a full period yet: striped, so it does not read as a drop. */
@@ -383,19 +423,19 @@
   );
 }
 
-.chart-column.is-selected .chart-bar.is-partial {
-  background: repeating-linear-gradient(
-    135deg,
-    var(--bar-strong) 0 3px,
-    color-mix(in srgb, var(--bar-strong) 40%, transparent) 3px 6px
-  );
+/* The keys under the chart, one after the other, wrapping on a narrow screen. */
+.chart-keys {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+  margin-top: 8px;
 }
 
 .chart-key {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin: 8px 0 0;
+  margin: 0;
   color: var(--muted);
   font-size: 12px;
 }
@@ -404,6 +444,38 @@
   width: 10px;
   height: 10px;
   border-radius: 2px;
+}
+
+.chart-key-swatch.is-fixed {
+  background: var(--bar-strong);
+}
+
+.chart-key-swatch.is-flexible {
+  margin-left: 4px;
+  background: var(--bar);
+}
+
+.chart-key-tick {
+  width: 14px;
+  border-top: 2px solid var(--ink);
+  opacity: 0.8;
+}
+
+.chart-key-landing {
+  width: 10px;
+  height: 10px;
+  border: 1.5px dashed var(--bar-strong);
+  border-bottom: 0;
+  border-radius: 2px 2px 0 0;
+}
+
+/* Two or three years of months: one label in three, so they never run into each other. */
+.chart.is-long .chart-axis span:not(:nth-child(3n + 1)) {
+  visibility: hidden;
+}
+
+.card-head > .chart-span {
+  margin-left: auto;
 }
 
 /* The trend: a dashed line over the columns, under their tooltips, and the same dash in the key. */
@@ -417,7 +489,8 @@
   pointer-events: none;
 }
 
-.chart-trend line {
+.chart-trend path {
+  fill: none;
   stroke: var(--ink);
   stroke-width: 2;
   stroke-dasharray: 6 4;
@@ -427,11 +500,6 @@
 .chart-key-line {
   width: 14px;
   border-top: 2px dashed var(--ink);
-}
-
-/* The keys follow each other closely. */
-.chart-key + .chart-key {
-  margin-top: 4px;
 }
 
 .chart-tip {

@@ -46,6 +46,9 @@ interface Props {
   onCreateCategory: (rows: Row[], label: string, icon: string, scope: string) => void;
   onLabels: (changes: Labels) => void;
   onPayback: (row: Row, paymentId: string | null) => void;
+  /** How far back the period chart goes: 1, 2 or 3 times its usual length. */
+  chartSpan: number;
+  onChartSpan: (span: number) => void;
 }
 
 /**
@@ -80,6 +83,8 @@ export function Overview({
   onCreateCategory,
   onLabels,
   onPayback,
+  chartSpan,
+  onChartSpan,
 }: Props) {
   const breakdown = {report, categories, currency, focus, onFocus};
   return (
@@ -138,6 +143,16 @@ export function Overview({
                 ? 'Year by year'
                 : 'Month by month'}
           </h2>
+          {/* Weeks and months can go further back: 1, 2 or 3 years of months, 16, 32 or 48 weeks. */}
+          {(report.chartGrain === 'month' || report.chartGrain === 'week') && (
+            <div className="segmented is-small chart-span" role="group" aria-label="How far back">
+              {[1, 2, 3].map(span => (
+                <button key={span} type="button" aria-pressed={chartSpan === span} onClick={() => onChartSpan(span)}>
+                  {report.chartGrain === 'week' ? `${span * 16} weeks` : span === 1 ? '1 year' : `${span} years`}
+                </button>
+              ))}
+            </div>
+          )}
         </header>
         <PeriodChart
           series={report.series}
@@ -145,6 +160,7 @@ export function Overview({
           grain={report.chartGrain}
           currency={currency}
           usual={report.usual}
+          categories={categories}
           onSelect={onSelectPeriod}
         />
       </section>
