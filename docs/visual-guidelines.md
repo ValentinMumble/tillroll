@@ -53,6 +53,17 @@ live in `src/styles/`, one file per area, imported in order by `src/index.css` (
 A view is a stack of `.card`s. The `.card-head` holds the `h2`, then a `.hint` with the key number or what the card
 shows, then the actions as `.link-button`s at the right end (`.card-actions` when there are several).
 
+### Charts
+
+- A reference line says its amount ("usual €4,312"), never just its name.
+- A trend is a dashed line over the columns, fitted to the full periods only; the key under the chart says it in
+  words ("Trend: up about €95 a month", or "flat").
+
+### Tags
+
+- Refund and payback tags (`RefundTags`) look the same wherever a payment shows: the payment list and the overview's
+  latest payments.
+
 ### Buttons
 
 - `.button.is-primary`: the one main action of a dialog (Save), at the right end of the footer.

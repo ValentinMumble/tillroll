@@ -75,6 +75,10 @@ export function searchText(row: Row) {
   return plain(`${row.store} ${row.description} ${labels} ${amount} ${amount.replace('.', ',')}`);
 }
 
+/** The payments some money in was linked to by hand (see linkPaybacks): theirs is paid back, not refunded. */
+export const paidBackIds = (rows: Row[]) =>
+  new Set(rows.flatMap(row => (row.refundOf?.byHand ? [row.refundOf.id] : [])));
+
 /** The bank a row comes from: older rows have none, they are Revolut's. */
 export const bankOf = (row: Row) => row.bank ?? 'Revolut';
 

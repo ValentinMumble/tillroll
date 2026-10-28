@@ -3,7 +3,7 @@ import {type Categories, colourStyle} from '../categories';
 import {money} from '../format';
 import {tidyLabel, withLabel} from '../labels';
 import {dayLabel, recentDayLabel, today} from '../periods';
-import {bankOf, isListed, isIncoming, isUnsure, type Row, searchText, topCategories} from '../rows';
+import {bankOf, isListed, isIncoming, isUnsure, paidBackIds, type Row, searchText, topCategories} from '../rows';
 import {
   loadPaymentSort,
   loadPaymentsEverything,
@@ -20,6 +20,7 @@ import {CategorySheet, type Scope} from './CategorySheet';
 import {ListSwitches} from './ListSwitches';
 import {LabelOptions, PaymentLabels} from './PaymentLabels';
 import {PaybackPicker} from './PaybackPicker';
+import {RefundTags} from './RefundTags';
 import {WebSearch} from './WebSearch';
 import {paymentCount, plain} from '../text';
 import {opensCategory} from '../device';
@@ -179,7 +180,7 @@ export function Payments({
     0,
   );
   // The payments some money in was linked to by hand: theirs is paid back, not refunded.
-  const paidBack = new Set(allRows.filter(row => row.refundOf?.byHand).map(row => row.refundOf?.id));
+  const paidBack = paidBackIds(allRows);
   // Moves between one's own accounts are in no total: their switch counts the period's.
   const moves = rows.filter(row => row.category === 'own').length;
   const page = visible.slice(0, limit);
@@ -522,29 +523,7 @@ export function Payments({
                     <WebSearch name={row.store} />
                     {row.pending && <span className="tag">pending</span>}
                     {isUnsure(row) && <span className="tag is-check">to check</span>}
-                    {row.refundOf && (
-                      <span className="tag is-refund" title="This payment costs that much less instead">
-                        {row.refundOf.byHand
-                          ? `pays back ${row.refundOf.store}, ${dayLabel(row.refundOf.date, withYears)}`
-                          : `refund of ${dayLabel(row.refundOf.date, withYears)}`}
-                      </span>
-                    )}
-                    {row.refund && !row.refundOf && (
-                      <span
-                        className="tag is-refund"
-                        title="No payment found for it: it lowers the spending of its own week and month"
-                      >
-                        refund
-                      </span>
-                    )}
-                    {row.refunded > 0 && (
-                      <span className="tag is-refund">
-                        {/* Money given back by hand (a friend's share) is paid back, a store's is refunded. */}
-                        {`${row.spend === 0 ? '' : `${money(row.refunded, row.currency, true)} `}${
-                          paidBack.has(row.id) ? 'paid back' : 'refunded'
-                        }`}
-                      </span>
-                    )}
+                    <RefundTags row={row} paidBack={paidBack} />
                     <PaymentLabels row={row} onLabels={onLabels} onFocusLabel={onFocusLabel} />
                   </td>
                   <td className="payment-category">

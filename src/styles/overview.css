@@ -342,6 +342,34 @@
   border-radius: 2px;
 }
 
+/* The trend: a dashed line over the columns, under their tooltips, and the same dash in the key. */
+.chart-trend {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.chart-trend line {
+  stroke: var(--ink);
+  stroke-width: 2;
+  stroke-dasharray: 6 4;
+  stroke-linecap: round;
+}
+
+.chart-key-line {
+  width: 14px;
+  border-top: 2px dashed var(--ink);
+}
+
+/* The keys follow each other closely. */
+.chart-key + .chart-key {
+  margin-top: 4px;
+}
+
 .chart-tip {
   position: absolute;
   left: 50%;
