@@ -1,7 +1,7 @@
 import {useState} from 'react';
 import {money} from '../format';
 import {addDays, dayLabel, today} from '../periods';
-import type {Row} from '../rows';
+import {PAYBACK_ROUNDING, type Row} from '../rows';
 import {plain} from '../text';
 
 interface Props {
@@ -52,7 +52,7 @@ export function PaybackPicker({row, rows, onLink}: Props) {
     .split(/\s+/)
     .map(word => word.replace(/^[-+−]|€/g, ''))
     .filter(Boolean);
-  // Spending it can pay back: what is left of it after refunds is at least this much.
+  // Spending it can pay back: what is left of it after refunds is at least this much, give or take rounding up.
   const options = rows
     .filter(
       payment =>
@@ -61,7 +61,8 @@ export function PaybackPicker({row, rows, onLink}: Props) {
         !payment.pending &&
         payment.date >= from &&
         payment.date <= to &&
-        -payment.amount - payment.refunded >= row.amount - 0.005 &&
+        -payment.amount - payment.refunded > 0 &&
+        -payment.amount - payment.refunded >= row.amount - PAYBACK_ROUNDING &&
         words.every(word =>
           plain(`${payment.store} ${payment.description} ${(-payment.amount).toFixed(2)}`).includes(word),
         ),

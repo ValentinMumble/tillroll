@@ -252,10 +252,13 @@ function linkPayPal(rows: Row[]) {
  * matched with the payment it gives back: the latest one at that store and bank in the 180 days before, with that
  * much not given back yet, the same amount first. That payment then costs what is left, in its own week and month.
  */
+/** Money in may round up the payment it pays back by this much at most (€18 for €17.99): that payment costs nothing. */
+export const PAYBACK_ROUNDING = 1;
+
 /**
  * Money in linked by hand to the payment it pays back (a friend's share of a flat paid with one's card): that payment
  * then costs what is left, in its own week and month, as with a refund, and the money in takes its category. A link
- * to a payment that is gone, or that would pay back more than the payment cost, is left aside.
+ * to a payment that is gone, or that would pay back more than the payment cost (beyond rounding it up), is left aside.
  */
 function linkPaybacks(rows: Row[], paybacks: Paybacks) {
   const byId = new Map(rows.map(row => [row.id, row]));
@@ -263,8 +266,10 @@ function linkPaybacks(rows: Row[], paybacks: Paybacks) {
     const credit = byId.get(id);
     const payment = byId.get(paymentId);
     if (!credit || !payment || credit.amount <= 0 || payment.amount >= 0) continue;
-    if (-payment.amount - payment.refunded < credit.amount - 0.005) continue;
-    payment.refunded += credit.amount;
+    const left = -payment.amount - payment.refunded;
+    if (left <= 0 || left < credit.amount - PAYBACK_ROUNDING) continue;
+    // Rounded up, it pays back what is left of the payment, no more.
+    payment.refunded += Math.min(credit.amount, left);
     credit.refund = true;
     credit.refundOf = {id: payment.id, date: payment.date, store: payment.store, byHand: true};
     if (!credit.ownCategory) {

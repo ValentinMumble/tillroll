@@ -89,6 +89,14 @@ describe('paybacks', () => {
     expect(row(share).refundOf).toMatchObject({id: flat.id, store: 'Airbnb', byHand: true});
   });
 
+  it('lets a payback round a payment up, which then costs nothing', () => {
+    const stay = payment({description: 'AIRBNB * HMA8WY', amount: -17.99, date: '2026-10-20'});
+    const share = payment({description: 'MR Dubost Axel', kind: 'income', amount: 18, date: '2026-10-26'});
+    const rows = toRows([stay, share], sorting({[share.id]: stay.id}));
+    expect(rows.find(item => item.id === stay.id)?.spend).toBe(0);
+    expect(rows.find(item => item.id === share.id)?.spend).toBe(0);
+  });
+
   it('leaves aside a link that would pay back more than the payment cost', () => {
     const coffee = payment({description: 'Cafe Pop', amount: -4.5, date: '2026-09-22'});
     const share = payment({description: 'Alexandre Mazure', kind: 'income', amount: 286, date: '2026-10-03'});
