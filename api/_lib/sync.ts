@@ -1,5 +1,5 @@
 import type {Balance, Connection, Transaction} from '../../src/types';
-import {BankError, fetchBalance, fetchTransactions, psuHeaders, toTransaction, type Session} from './bank.js';
+import {BankError, fetchBalance, fetchTransactions, logTimes, psuHeaders, toTransaction, type Session} from './bank.js';
 import {HttpError} from './http.js';
 import {
   BALANCES,
@@ -131,7 +131,9 @@ async function syncSession(session: Session, request: Request | null) {
   const pending: Transaction[] = [];
   try {
     for (const account of session.accounts) {
-      for (const item of await fetchTransactions(account.uid, since, headers)) {
+      const items = await fetchTransactions(account.uid, since, headers);
+      for (const item of items.slice(0, 8)) logTimes(session.bank.name, item);
+      for (const item of items) {
         const transaction = toTransaction(item, account.hash, session.bank.name);
         if (transaction) (transaction.pending ? pending : booked).push(transaction);
       }
