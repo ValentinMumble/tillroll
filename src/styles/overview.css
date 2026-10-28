@@ -90,7 +90,7 @@
   min-width: 0;
 }
 
-.summary .spend-strip {
+.summary .spend-strip-wrap {
   grid-area: strip;
 }
 

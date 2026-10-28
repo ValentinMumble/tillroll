@@ -16,11 +16,20 @@
 
 /* The period's spending split by category, under the total: each colour as long as its share, with the category's
    emoji in it when the part is wide enough. */
+.spend-strip-wrap {
+  position: relative;
+  margin: 16px 0 4px;
+}
+
 .spend-strip {
   display: flex;
   gap: 2px;
   height: 28px;
-  margin: 16px 0 4px;
+}
+
+/* The part's tooltip, the month chart's, above the strip. */
+.spend-tip {
+  bottom: calc(100% + 8px);
 }
 
 .spend-strip > span {

@@ -1,4 +1,4 @@
-import type {ReactNode} from 'react';
+import {type ReactNode, useState} from 'react';
 import {type Categories, colourStyle} from '../categories';
 import {money} from '../format';
 import {daysBetween, type Grain, periodLabel, today} from '../periods';
@@ -27,6 +27,17 @@ export function Summary({report, period, grain, currency, categories, balances}:
     .filter(([, value]) => value >= 0.5)
     .sort((first, second) => second[1] - first[1]);
   const labelOf = (key: string) => categories.byKey[key]?.label ?? key;
+  // The part under the pointer (or tapped), with a tooltip like the month chart's above its middle.
+  const [hovered, setHovered] = useState<string | null>(null);
+  const stripTotal = parts.reduce((sum, [, value]) => sum + value, 0);
+  const middles = new Map<string, number>();
+  parts.reduce((before, [key, value]) => {
+    middles.set(key, ((before + value / 2) / stripTotal) * 100);
+    return before + value;
+  }, 0);
+  const tipValue = hovered ? (current.categories.get(hovered) ?? 0) : 0;
+  const tipMiddle = hovered ? (middles.get(hovered) ?? 50) : 50;
+  const tipEdge = tipMiddle < 12 ? ' is-start' : tipMiddle > 88 ? ' is-end' : '';
   const days = daysBetween(report.from, ongoing ? today() : report.to);
   const pace = report.pace;
   const left = pace ? pace.days - pace.spent.length : 0;
@@ -59,23 +70,44 @@ export function Summary({report, period, grain, currency, categories, balances}:
       </div>
       {balances}
       {parts.length > 0 && (
-        <div
-          className="spend-strip"
-          role="img"
-          aria-label={`Spending by category, biggest first: ${parts.map(([key]) => labelOf(key)).join(', ')}`}
-        >
-          {parts.map(([key, value]) => (
+        <div className="spend-strip-wrap">
+          <div
+            className="spend-strip"
+            role="img"
+            aria-label={`Spending by category, biggest first: ${parts.map(([key]) => labelOf(key)).join(', ')}`}
+            onPointerLeave={() => setHovered(null)}
+          >
+            {parts.map(([key, value]) => (
+              <span
+                key={key}
+                style={{...colourStyle(categories.colours[key]), flexGrow: value}}
+                onPointerEnter={event => {
+                  if (event.pointerType === 'mouse') setHovered(key);
+                }}
+                // A tap shows it on a phone, and hides it again.
+                onClick={() => setHovered(shown => (shown === key ? null : key))}
+              >
+                {/* Shown only when the part is wide enough for it (see .spend-strip-icon). */}
+                <span className="spend-strip-icon" aria-hidden="true">
+                  {categories.byKey[key]?.icon}
+                </span>
+              </span>
+            ))}
+          </div>
+          {hovered && (
             <span
-              key={key}
-              title={`${labelOf(key)}: ${money(value, currency)}`}
-              style={{...colourStyle(categories.colours[key]), flexGrow: value}}
+              className={`chart-tip spend-tip${tipEdge}`}
+              role="tooltip"
+              style={tipEdge ? undefined : {left: `${tipMiddle}%`}}
             >
-              {/* Shown only when the part is wide enough for it (see .spend-strip-icon). */}
-              <span className="spend-strip-icon" aria-hidden="true">
-                {categories.byKey[key]?.icon}
+              <strong>
+                {categories.byKey[hovered]?.icon} {labelOf(hovered)}
+              </strong>
+              <span>
+                {money(tipValue, currency)} · {Math.round((tipValue / stripTotal) * 100)}% of the spending
               </span>
             </span>
-          ))}
+          )}
         </div>
       )}
       <dl className="facts">
