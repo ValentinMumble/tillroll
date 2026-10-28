@@ -42,14 +42,14 @@ type Dialog =
   | {type: 'stores'; store: string | null}
   /** Every merged and renamed store. */
   | {type: 'merges'}
-  /** One store, opened with a double-click. */
-  | {type: 'store'; store: {key: string; name: string}}
+  /** One store, opened with a double-click; `back` is the dialog it was opened from, that comes back when it closes. */
+  | {type: 'store'; store: {key: string; name: string}; back?: Dialog}
   /** One category's month by month, opened from its trend. */
   | {type: 'category'; category: CategoryKey}
   /** The bank picker, to connect another bank. */
   | {type: 'banks'}
-  /** The duplicates deck keeps the pairs it opened with. */
-  | {type: 'duplicates'; pairs: Pair[]}
+  /** The duplicates deck keeps the pairs it opened with, and starts at `position` when it comes back to one. */
+  | {type: 'duplicates'; pairs: Pair[]; position?: number}
   /** The sorting deck keeps the list of stores it opened with. */
   | {type: 'sort'; queues: {unsure: StoreToSort[]; automatic: StoreToSort[]}};
 
@@ -674,8 +674,8 @@ export default function App() {
             .map(pair => (pair.first.key === dialog.store.key ? pair.second : pair.first))}
           onSeparate={storeKey => void separateStore(storeKey)}
           onMergeInto={(storeKey, into) => void mergeStores([storeKey], into)}
-          onOpenStore={store => setDialog({type: 'store', store})}
-          onClose={() => setDialog(null)}
+          onOpenStore={store => setDialog({type: 'store', store, back: dialog.back})}
+          onClose={() => setDialog(dialog.back ?? null)}
         />
       )}
       {dialog?.type === 'category' && (
@@ -699,6 +699,10 @@ export default function App() {
           onDistinct={pair => void markDistinct(pair)}
           onCategory={(storeKey, category) => void changeCategory(storeKey, category)}
           onRename={(storeKey, name, newName) => void renameStore(storeKey, name, newName)}
+          start={dialog.position}
+          onOpenStore={(store, position) =>
+            setDialog({type: 'store', store, back: {type: 'duplicates', pairs: dialog.pairs, position}})
+          }
           onClose={() => setDialog(null)}
         />
       )}

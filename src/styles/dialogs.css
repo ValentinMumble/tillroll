@@ -301,6 +301,21 @@
   gap: 4px 12px;
 }
 
+/* A store's name opens its dialog: it reads as the title, underlined on hover. */
+.twin-open {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.twin-open:hover {
+  text-decoration: underline;
+}
+
 .twin h3 {
   margin: 0;
   font-size: 17px;

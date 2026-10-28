@@ -19,6 +19,10 @@ interface Props {
   /** The category of a store, picked by hand; null goes back to the guess. */
   onCategory: (storeKey: string, category: CategoryKey | null) => void;
   onRename: (storeKey: string, name: string, newName: string) => void;
+  /** The pair to start at: the one left to see a store's payments. */
+  start?: number;
+  /** A store's dialog, with its payments, in the deck's place; the deck comes back at this pair when it closes. */
+  onOpenStore: (store: {key: string; name: string}, position: number) => void;
   onClose: () => void;
 }
 
@@ -30,6 +34,7 @@ function StoreCard({
   category,
   onCategory,
   onRename,
+  onOpen,
 }: {
   store: StoreInfo;
   name: string;
@@ -39,6 +44,8 @@ function StoreCard({
   category: CategoryKey | null;
   onCategory: (category: CategoryKey | null) => void;
   onRename: (newName: string) => void;
+  /** Its store dialog, with its payments. */
+  onOpen: () => void;
 }) {
   const guess = categories.byKey[store.category];
   // The name being typed, while renaming.
@@ -77,7 +84,10 @@ function StoreCard({
       ) : (
         <div className="twin-name">
           <h3>
-            {name} <WebSearch name={name} />
+            <button type="button" className="twin-open" title={`See the payments of ${name}`} onClick={onOpen}>
+              {name}
+            </button>{' '}
+            <WebSearch name={name} />
           </h3>
           <button type="button" className="link-button" onClick={() => setRenaming(name)}>
             Rename
@@ -115,10 +125,23 @@ function StoreCard({
   );
 }
 
-/** Pairs of stores that may be the same place, most payments first: merge them, or say they are not the same. */
-export function DuplicatesDeck({pairs, categories, onMerge, onDistinct, onCategory, onRename, onClose}: Props) {
+/**
+ * Pairs of stores that may be the same place, most payments first: merge them, or say they are not the same. A store's
+ * name opens its dialog, to see its payments first.
+ */
+export function DuplicatesDeck({
+  pairs,
+  categories,
+  onMerge,
+  onDistinct,
+  onCategory,
+  onRename,
+  start = 0,
+  onOpenStore,
+  onClose,
+}: Props) {
   const {ref: dialogRef, onKeyDown: onDialogKeyDown, close: closeDialog} = useDialog();
-  const [position, setPosition] = useState(0);
+  const [position, setPosition] = useState(start);
   // Each new pair starts at the top, both names in view.
   const bodyRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -152,6 +175,7 @@ export function DuplicatesDeck({pairs, categories, onMerge, onDistinct, onCatego
         onRename(keyOf(store), nameOf(store), newName);
         setRenamed({...renamed, [store.key]: newName});
       }}
+      onOpen={() => onOpenStore({key: keyOf(store), name: nameOf(store)}, position)}
     />
   );
 
