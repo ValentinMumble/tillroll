@@ -19,8 +19,9 @@ const DAYS_AFTER = 30;
 const SHOWN = 6;
 
 /**
- * Money in that pays back a payment (a friend's share of a flat paid with one's card): the payment it pays back, picked
- * among the spending of the months before, newest first, with a search. That payment then costs that much less.
+ * Money in that pays back a payment (a friend's share of a flat paid with one's card, or something sold on years
+ * later): the payment it pays back, picked among the spending of the months before, newest first, or found by a search
+ * at any date. That payment then costs that much less.
  */
 export function PaybackPicker({row, rows, onLink}: Props) {
   const [open, setOpen] = useState(false);
@@ -52,15 +53,15 @@ export function PaybackPicker({row, rows, onLink}: Props) {
     .split(/\s+/)
     .map(word => word.replace(/^[-+−]|€/g, ''))
     .filter(Boolean);
-  // Spending it can pay back: what is left of it after refunds is at least this much, give or take rounding up.
+  // Spending it can pay back: what is left of it after refunds is at least this much, give or take rounding up. Without
+  // a search, the months around it; a search looks at any date.
   const options = rows
     .filter(
       payment =>
         payment.amount < 0 &&
         payment.counts &&
         !payment.pending &&
-        payment.date >= from &&
-        payment.date <= to &&
+        (words.length > 0 || (payment.date >= from && payment.date <= to)) &&
         -payment.amount - payment.refunded > 0 &&
         -payment.amount - payment.refunded >= row.amount - PAYBACK_ROUNDING &&
         words.every(word => searchText(payment).includes(word)),
@@ -72,13 +73,17 @@ export function PaybackPicker({row, rows, onLink}: Props) {
         className="text-input"
         type="search"
         aria-label="Search the payment it pays back"
-        placeholder="Search a store, a label or an amount"
+        placeholder="Search a store, a label or an amount, any date"
         value={query}
         autoFocus
         onChange={event => setQuery(event.target.value)}
       />
       {options.length === 0 ? (
-        <p className="hint">No payment of {money(row.amount, row.currency)} or more in the months before.</p>
+        <p className="hint">
+          {words.length > 0
+            ? `No payment of ${money(row.amount, row.currency)} or more matches, at any date.`
+            : `No payment of ${money(row.amount, row.currency)} or more in the months before: search to look further back.`}
+        </p>
       ) : (
         <ul className="payback-options">
           {options.slice(0, SHOWN).map(payment => (
