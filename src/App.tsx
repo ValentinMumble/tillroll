@@ -643,6 +643,8 @@ export default function App() {
       )}
       {dialog?.type === 'store' && (
         <StoreDialog
+          // A look-alike opened from the dialog starts afresh, with its own name and category.
+          key={dialog.store.key}
           store={dialog.store}
           rows={rows}
           rules={data?.rules ?? {}}
@@ -655,6 +657,7 @@ export default function App() {
             .map(pair => (pair.first.key === dialog.store.key ? pair.second : pair.first))}
           onSeparate={storeKey => void separateStore(storeKey)}
           onMergeInto={(storeKey, into) => void mergeStores([storeKey], into)}
+          onOpenStore={store => setDialog({type: 'store', store})}
           onClose={() => setDialog(null)}
         />
       )}

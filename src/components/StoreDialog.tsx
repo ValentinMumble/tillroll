@@ -6,6 +6,7 @@ import {type Row, spendByMonth} from '../rows';
 import type {StoreInfo} from '../duplicates';
 import type {CategoryKey, Merges, Rules} from '../types';
 import {useDialog} from '../useDialog';
+import {BankBadge} from './BankBadge';
 import {BarStrip} from './BarStrip';
 import {WebSearch} from './WebSearch';
 import {paymentCount} from '../text';
@@ -23,13 +24,18 @@ interface Props {
   similar: StoreInfo[];
   onSeparate: (storeKey: string) => void;
   onMergeInto: (storeKey: string, into: string) => void;
+  /** Another store's dialog in this one's place: a look-alike's, to compare their payments before merging. */
+  onOpenStore: (store: {key: string; name: string}) => void;
   onClose: () => void;
 }
 
+/** The payments listed at first; the rest are a tap away. */
+const PAYMENTS_SHOWN = 10;
+
 /**
  * One store, opened from its pencil or its name: what it cost, its name and its category, its month by month, and in
- * folds open at first, what the bank writes, the names merged into it (each can be separated again) and look-alike
- * stores to merge in with one tap. The ✕ closes without saving.
+ * folds open at first, its payments, what the bank writes, the names merged into it (each can be separated again) and
+ * look-alike stores to merge in with one tap (or to open, to see their payments first). The ✕ closes without saving.
  */
 export function StoreDialog({
   store,
@@ -42,12 +48,14 @@ export function StoreDialog({
   similar,
   onSeparate,
   onMergeInto,
+  onOpenStore,
   onClose,
 }: Props) {
   const {ref: dialogRef, onKeyDown: onDialogKeyDown, close: closeDialog} = useDialog();
   const picked = rules[store.key] && categories.byKey[rules[store.key]] ? rules[store.key] : '';
   const [name, setName] = useState(store.name);
   const [category, setCategory] = useState<CategoryKey>(picked);
+  const [allPayments, setAllPayments] = useState(false);
 
   const facts = useMemo(() => {
     const own = rows.filter(row => row.storeKey === store.key);
@@ -57,6 +65,8 @@ export function StoreDialog({
     const paid = own.filter(row => row.amount < 0).sort((first, second) => second.amount - first.amount);
     return {
       payments: own.length,
+      // Newest first, money in and out alike.
+      list: [...own].sort((first, second) => second.date.localeCompare(first.date)),
       spent: own.reduce((sum, row) => sum + Math.max(0, -row.amount), 0),
       usual: paid.length ? -paid[paid.length >> 1].amount : 0,
       biggestPayment: paid.at(-1) ?? null,
@@ -66,12 +76,14 @@ export function StoreDialog({
       // Month by month, the last 12 months the store was used in at most, months with nothing included.
       months: spendByMonth(own, 12),
       // The stores merged into this one: their own names, before the merge.
-      parts: [...new Map(own.filter(row => row.ownStoreKey !== store.key).map(row => [row.ownStoreKey, row.ownStore]))]
+      parts: [...new Map(own.filter(row => row.partKey !== store.key).map(row => [row.partKey, row.partName]))]
         .filter(([key]) => merges[key])
         .map(([key, name]) => ({key, name})),
     };
   }, [rows, store.key, merges]);
   const auto = categories.byKey[facts.guessed];
+  // A day of another year says its year.
+  const thisYear = today().slice(0, 4);
   const monthly = facts.months.length
     ? facts.months.reduce((sum, item) => sum + item.total, 0) / facts.months.length
     : 0;
@@ -184,13 +196,36 @@ export function StoreDialog({
               <dd>
                 {money(-facts.biggestPayment.amount, facts.currency)}{' '}
                 <span className="muted">
-                  {dayLabel(facts.biggestPayment.date, facts.biggestPayment.date.slice(0, 4) !== today().slice(0, 4))}
+                  {dayLabel(facts.biggestPayment.date, facts.biggestPayment.date.slice(0, 4) !== thisYear)}
                 </span>
               </dd>
             </div>
           </dl>
         )}
         <div className="folds">
+          <details className="fold" open>
+            <summary>Payments</summary>
+            {/* Each payment: its day, its bank and what the bank writes, its amount. */}
+            <ul className="store-payments">
+              {(allPayments ? facts.list : facts.list.slice(0, PAYMENTS_SHOWN)).map(row => (
+                <li key={row.id}>
+                  <span className="store-payment-day">{dayLabel(row.date, row.date.slice(0, 4) !== thisYear)}</span>
+                  <span className="store-payment-text">
+                    <BankBadge bank={row.bank} />
+                    <span className="store-payment-words">{row.description}</span>
+                  </span>
+                  <span className={`payment-amount${row.amount > 0 ? ' is-in' : ''}`}>
+                    {money(row.amount, row.currency, true)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            {!allPayments && facts.list.length > PAYMENTS_SHOWN && (
+              <button type="button" className="link-button" onClick={() => setAllPayments(true)}>
+                Show all {facts.list.length}
+              </button>
+            )}
+          </details>
           <details className="fold" open>
             <summary>What the bank writes</summary>
             <ul className="sorter-examples">
@@ -228,7 +263,15 @@ export function StoreDialog({
               <ul className="name-chips">
                 {similar.slice(0, 5).map(other => (
                   <li key={other.key} className="name-chip">
-                    {other.name} <span className="muted">{paymentCount(other.payments)}</span>
+                    <button
+                      type="button"
+                      className="name-chip-name"
+                      title={`See the payments of ${other.name}`}
+                      onClick={() => onOpenStore({key: other.key, name: other.name})}
+                    >
+                      {other.name}
+                    </button>{' '}
+                    <span className="muted">{paymentCount(other.payments)}</span>
                     <button
                       type="button"
                       className="name-chip-action"

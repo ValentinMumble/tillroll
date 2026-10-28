@@ -1,6 +1,6 @@
 import {describe, expect, it} from 'vitest';
 import {categoriesFrom} from './categories';
-import {type Row, toRows} from './rows';
+import {bankMergeKey, type Row, toRows} from './rows';
 import type {Transaction} from './types';
 
 let lastId = 0;
@@ -65,6 +65,33 @@ describe('refunds', () => {
     const row = rowsOf([refund, later]);
     expect(row(refund).refundOf).toBeNull();
     expect(row(later).spend).toBe(40);
+  });
+});
+
+describe('merges', () => {
+  it('merges one bank’s payments only, before the store’s own merge', () => {
+    const coop = payment({
+      bank: 'Crédit Coopératif',
+      description: 'VIREMENT VERS VALENTIN DIJKSTRA',
+      amount: -1000,
+      date: '2026-05-11',
+    });
+    const revolut = payment({description: 'To Valentin Dijkstra', kind: 'transfer', amount: -50, date: '2022-09-27'});
+    const rows = toRows([coop, revolut], {
+      rules: {},
+      categories: categoriesFrom([]),
+      merges: {
+        [bankMergeKey('valentin dijkstra', 'Crédit Coopératif')]: 'To Revolut',
+        'valentin dijkstra': 'Other account',
+      },
+      labels: {},
+      paymentCategories: {},
+    });
+    const row = (transaction: Transaction) => rows.find(item => item.id === transaction.id) as Row;
+    expect(row(coop).store).toBe('To Revolut');
+    expect(row(coop).partName).toBe('Valentin Dijkstra (Crédit Coopératif)');
+    expect(row(revolut).store).toBe('Other account');
+    expect(row(revolut).partKey).toBe('valentin dijkstra');
   });
 });
 

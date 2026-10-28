@@ -31,7 +31,7 @@
   white-space: nowrap;
 }
 
-/* What the dialog folds away until asked for (what the bank writes, merged names, look-alikes): one quiet line each
+/* What the dialog can fold away (its payments, what the bank writes, merged names, look-alikes): one quiet line each
    with a chevron that turns when it opens, a hairline above them. */
 .folds {
   display: grid;
@@ -123,6 +123,68 @@
   padding: 0 10px;
   color: var(--accent);
   font-weight: 600;
+}
+
+/* A look-alike's name opens its dialog: it reads as a name, underlined on hover. */
+.name-chip .name-chip-name {
+  display: inline;
+  min-width: 0;
+  height: auto;
+  color: var(--ink);
+  font-size: inherit;
+}
+
+.name-chip .name-chip-name:hover {
+  background: none;
+  color: var(--ink);
+  text-decoration: underline;
+}
+
+/* A store's payments, newest first: the day, the bank and its text, the amount, in columns that line up. */
+.store-payments {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  margin: 0;
+  padding: 0;
+  font-size: 14px;
+  list-style: none;
+}
+
+.store-payments li {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 0;
+  border-top: 1px solid var(--line);
+}
+
+.store-payments li:first-child {
+  border-top: 0;
+}
+
+.store-payment-day {
+  color: var(--muted);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.store-payment-text {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.store-payment-words {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.store-payments .payment-amount {
+  width: auto;
 }
 
 @media (prefers-reduced-motion: reduce) {

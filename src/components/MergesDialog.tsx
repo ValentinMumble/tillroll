@@ -46,9 +46,10 @@ export function MergesDialog({rows, merges, onSeparate, onOpenStore, onClose}: P
   const {groups, renames} = useMemo(() => {
     const parts = new Map<string, Part>();
     for (const row of rows) {
-      const part = parts.get(row.ownStoreKey) ?? {
-        key: row.ownStoreKey,
-        name: row.ownStore,
+      // A store merged for one bank's payments only is a part of its own (see bankMergeKey).
+      const part = parts.get(row.partKey) ?? {
+        key: row.partKey,
+        name: row.partName,
         currency: row.currency,
         payments: 0,
         spent: 0,
@@ -57,7 +58,7 @@ export function MergesDialog({rows, merges, onSeparate, onOpenStore, onClose}: P
       };
       part.payments += 1;
       if (row.amount < 0) part.spent -= row.amount;
-      parts.set(row.ownStoreKey, part);
+      parts.set(row.partKey, part);
     }
     const byKey = new Map<string, Group>();
     const renamed: {part: Part; into: string}[] = [];

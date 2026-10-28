@@ -16,6 +16,10 @@ export interface Row extends Transaction {
   /** The store's own key, before any merge. */
   ownStoreKey: string;
   ownStore: string;
+  /** The key its merge is saved under: its own store's, or with its bank for a merge of that bank's payments only. */
+  partKey: string;
+  /** Its own store's name, with its bank for a merge of that bank's payments only. */
+  partName: string;
   category: CategoryKey;
   /** The category Tillroll guesses, shown as the "Automatic" choice. */
   guessed: CategoryKey;
@@ -60,6 +64,13 @@ const TRANSFER_DAYS = 3;
 
 /** The bank a row comes from: older rows have none, they are Revolut's. */
 export const bankOf = (row: Row) => row.bank ?? 'Revolut';
+
+/**
+ * A merge of one bank's payments only is saved under the store's key and the bank ("valentin dijkstra@Crédit
+ * Coopératif"). One's own name is another account at each bank: Crédit Coopératif's "VIREMENT VERS VALENTIN DIJKSTRA"
+ * goes to Revolut, Revolut's "To Valentin Dijkstra" to another bank.
+ */
+export const bankMergeKey = (storeKey: string, bank: string) => `${storeKey}@${bank}`;
 
 /**
  * The day a card payment was made. A deferred debit card is booked at the start of the next month, with the day of
@@ -289,14 +300,18 @@ export function toRows(
   const rows: Row[] = transactions.map(transaction => {
     const ownStore = storeName(transaction.description);
     const ownStoreKey = storeKey(ownStore);
+    const bank = transaction.bank ?? 'Revolut';
+    // A merge of this bank's payments only comes before the store's own.
+    const bankOnly = bankMergeKey(ownStoreKey, bank);
+    const partKey = merges[bankOnly] ? bankOnly : ownStoreKey;
     let store = ownStore;
     let key = ownStoreKey;
     // A merged store takes the name of the one it is part of (a few steps at most: A into B into C). A store
     // renamed keeps its key when only the capitals change ("Edf" to "EDF"). Stores merged into each other in a loop
     // all end in the same one, the first by key.
     const path = [{key, name: ownStore}];
-    for (let step = 0; step < 10 && merges[key]; step += 1) {
-      const name = merges[key];
+    for (let step = 0; step < 10 && merges[step === 0 ? partKey : key]; step += 1) {
+      const name = merges[step === 0 ? partKey : key];
       const next = storeKey(name);
       if (next === key) {
         store = name;
@@ -326,6 +341,8 @@ export function toRows(
       storeKey: key,
       ownStore,
       ownStoreKey,
+      partKey,
+      partName: partKey === ownStoreKey ? ownStore : `${ownStore} (${bank})`,
       category,
       basis,
       guessed: guessCategory(transaction, me),
