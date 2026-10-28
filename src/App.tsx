@@ -111,6 +111,7 @@ export default function App() {
     setBudget,
     markDistinct,
     categorize,
+    setPayback,
     createCategoryFor,
     renameLabel,
     deleteLabel,
@@ -485,6 +486,7 @@ export default function App() {
               currency={currency}
               categories={categories}
               rows={periodRows}
+              allRows={currencyRows}
               balances={data?.balances ?? []}
               budgets={data?.budgets ?? {}}
               toSort={toSort.length}
@@ -510,6 +512,7 @@ export default function App() {
               onCategorize={(targets, category, scope) => void categorize(targets, category, scope)}
               onCreateCategory={(targets, label, icon, scope) => void createCategoryFor(targets, label, icon, scope)}
               onLabels={changes => void setLabels(changes)}
+              onPayback={(row, paymentId) => void setPayback(row, paymentId)}
             />
           )}
           {tab === 'calendar' && (
@@ -598,6 +601,7 @@ export default function App() {
               onFocusLabel={label => focusOn({type: 'label', key: label})}
               onFocusCategory={category => setFocus(category ? {type: 'category', key: category} : null)}
               onFocusCheck={() => setFocus({type: 'check'})}
+              onPayback={(row, paymentId) => void setPayback(row, paymentId)}
               showBanks={showBanks}
             />
           )}

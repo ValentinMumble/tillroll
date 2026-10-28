@@ -6,6 +6,7 @@ import type {
   Connection,
   Labels,
   Merges,
+  Paybacks,
   PaymentCategories,
   Rules,
   SavingsRecord,
@@ -51,6 +52,7 @@ export interface OwnerData {
   merges: Merges;
   labels: Labels;
   paymentCategories: PaymentCategories;
+  paybacks: Paybacks;
   /** Pairs of stores marked "not the same". */
   distinct: string[];
   savingsValues: SavingsValues;
@@ -105,6 +107,11 @@ export function savePaymentCategories(categories: Record<string, CategoryKey | n
     method: 'PUT',
     body: JSON.stringify({categories}),
   });
+}
+
+/** Money in linked to the payment it pays back (null takes the link off). */
+export function savePaybacks(paybacks: Record<string, string | null>) {
+  return request<{ok: true}>('/api/sorting?part=paybacks', {method: 'PUT', body: JSON.stringify({paybacks})});
 }
 
 /** Pairs of stores marked "not the same" in the duplicates deck. */

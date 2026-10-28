@@ -4,6 +4,7 @@ import {HttpError} from './http.js';
 import {
   BALANCES,
   LABELS,
+  PAYBACKS,
   PAYMENT_CATEGORIES,
   PENDING,
   redis,
@@ -32,7 +33,8 @@ const BOOKING_DAYS = 10;
 
 /**
  * A pending payment gets a new id once the bank books it (or when its text changes). The labels and the category
- * picked for it move to the payment that took its place: same account, amount and currency, a few days apart at most.
+ * picked for it, and its payback links (as the money in or as the payment paid back), move to the payment that took
+ * its place: same account, amount and currency, a few days apart at most.
  */
 async function carryOver(before: Transaction[], pending: Transaction[], booked: Transaction[]) {
   const pendingIds = new Set(pending.map(item => item.id));
@@ -40,10 +42,12 @@ async function carryOver(before: Transaction[], pending: Transaction[], booked: 
   if (gone.length === 0) return;
   const store = redis();
   const ids = gone.map(item => item.id);
-  const [labels, categories] = await Promise.all([
+  const [labels, categories, paybacks] = await Promise.all([
     store.hmget<Record<string, string[] | null>>(LABELS, ...ids),
     store.hmget<Record<string, string | null>>(PAYMENT_CATEGORIES, ...ids),
+    store.hgetall<Record<string, string>>(PAYBACKS),
   ]);
+  const paidBack = new Set(Object.values(paybacks ?? {}));
   const beforeIds = new Set(before.map(item => item.id));
   const candidates = [...booked, ...pending.filter(item => !beforeIds.has(item.id))];
   const account = (id: string) => id.split(':').slice(0, 2).join(':');
@@ -51,10 +55,12 @@ async function carryOver(before: Transaction[], pending: Transaction[], booked: 
   const movedLabels: Record<string, string[]> = {};
   const movedCategories: Record<string, string> = {};
   const dropped: string[] = [];
+  const moved = new Map<string, string>();
   for (const old of gone) {
     const label = labels?.[old.id];
     const category = categories?.[old.id];
-    if (!label?.length && !category) continue;
+    const linked = Boolean(paybacks?.[old.id]) || paidBack.has(old.id);
+    if (!label?.length && !category && !linked) continue;
     const next = candidates
       .filter(
         item =>
@@ -68,8 +74,19 @@ async function carryOver(before: Transaction[], pending: Transaction[], booked: 
     candidates.splice(candidates.indexOf(next), 1);
     if (label?.length) movedLabels[next.id] = label;
     if (category) movedCategories[next.id] = category;
+    moved.set(old.id, next.id);
     dropped.push(old.id);
   }
+  // Each payback link with its money in and its payment under their new ids.
+  const movedPaybacks: Record<string, string> = {};
+  const unlinked: string[] = [];
+  for (const [id, paymentId] of Object.entries(paybacks ?? {})) {
+    if (!moved.has(id) && !moved.has(paymentId)) continue;
+    movedPaybacks[moved.get(id) ?? id] = moved.get(paymentId) ?? paymentId;
+    if (moved.has(id)) unlinked.push(id);
+  }
+  if (Object.keys(movedPaybacks).length) await store.hset(PAYBACKS, movedPaybacks);
+  if (unlinked.length) await store.hdel(PAYBACKS, ...unlinked);
   if (Object.keys(movedLabels).length) await store.hset(LABELS, movedLabels);
   if (Object.keys(movedCategories).length) await store.hset(PAYMENT_CATEGORIES, movedCategories);
   if (dropped.length) {

@@ -69,6 +69,9 @@ export type PaymentCategories = Record<string, CategoryKey>;
 /** Labels put on payments by hand (a trip, a gift, a shared bill), by transaction id. */
 export type Labels = Record<string, string[]>;
 
+/** Money in linked by hand to the payment it pays back (a friend's share of a flat), by id: the payment's id. */
+export type Paybacks = Record<string, string>;
+
 /** A savings account's value on a day, typed by hand (an assurance vie's statement, a livret's balance). */
 export interface SavingsValue {
   date: string;

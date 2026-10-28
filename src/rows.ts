@@ -1,7 +1,7 @@
 import {type Basis, type Categories, categoryOf, guessCategory, LEFT_OUT, UNSURE} from './categories';
 import {addDays, shiftPeriod} from './periods';
 import {storeKey, storeName} from './stores';
-import type {CategoryKey, Labels, Merges, PaymentCategories, Rules, Transaction} from './types';
+import type {CategoryKey, Labels, Merges, Paybacks, PaymentCategories, Rules, Transaction} from './types';
 
 /**
  * The payments as Tillroll reads them: each transaction with its store (merges followed) and category, paired with the
@@ -36,8 +36,8 @@ export interface Row extends Transaction {
   leftOut: boolean;
   /** Money back from a store, matched with a payment or not. */
   refund: boolean;
-  /** For a matched refund: the payment it gives back. */
-  refundOf: {id: string; date: string} | null;
+  /** For a matched refund, or money in linked by hand to the payment it pays back: that payment. */
+  refundOf: {id: string; date: string; store: string; byHand: boolean} | null;
   /** For a payment: how much of it came back in refunds. */
   refunded: number;
   /** Labels put on it by hand. */
@@ -53,6 +53,8 @@ export interface Sorting {
   merges: Merges;
   labels: Labels;
   paymentCategories: PaymentCategories;
+  /** Money in linked by hand to the payment it pays back. */
+  paybacks?: Paybacks;
   /** The account holder's names (the bank accounts' names), for transfers to and from oneself. */
   me?: string[];
 }
@@ -250,6 +252,28 @@ function linkPayPal(rows: Row[]) {
  * matched with the payment it gives back: the latest one at that store and bank in the 180 days before, with that
  * much not given back yet, the same amount first. That payment then costs what is left, in its own week and month.
  */
+/**
+ * Money in linked by hand to the payment it pays back (a friend's share of a flat paid with one's card): that payment
+ * then costs what is left, in its own week and month, as with a refund, and the money in takes its category. A link
+ * to a payment that is gone, or that would pay back more than the payment cost, is left aside.
+ */
+function linkPaybacks(rows: Row[], paybacks: Paybacks) {
+  const byId = new Map(rows.map(row => [row.id, row]));
+  for (const [id, paymentId] of Object.entries(paybacks)) {
+    const credit = byId.get(id);
+    const payment = byId.get(paymentId);
+    if (!credit || !payment || credit.amount <= 0 || payment.amount >= 0) continue;
+    if (-payment.amount - payment.refunded < credit.amount - 0.005) continue;
+    payment.refunded += credit.amount;
+    credit.refund = true;
+    credit.refundOf = {id: payment.id, date: payment.date, store: payment.store, byHand: true};
+    if (!credit.ownCategory) {
+      credit.category = payment.category;
+      credit.basis = 'picked';
+    }
+  }
+}
+
 function matchRefunds(rows: Row[], categories: Categories) {
   const spends = (row: Row) => Boolean(categories.byKey[row.category]?.spending) && !LEFT_OUT.includes(row.category);
   const payments = new Map<string, Row[]>();
@@ -265,6 +289,8 @@ function matchRefunds(rows: Row[], categories: Categories) {
     .filter(row => row.amount > 0 && !LEFT_OUT.includes(row.category))
     .sort((first, second) => (first.date < second.date ? -1 : 1));
   for (const credit of credits) {
+    // Linked by hand already (see linkPaybacks).
+    if (credit.refundOf) continue;
     const sure = credit.kind === 'refund' || spends(credit);
     if (!sure && credit.kind !== 'income') continue;
     const since = addDays(credit.date, -REFUND_DAYS);
@@ -285,7 +311,7 @@ function matchRefunds(rows: Row[], categories: Categories) {
     }
     payment.refunded += credit.amount;
     credit.refund = true;
-    credit.refundOf = {id: payment.id, date: payment.date};
+    credit.refundOf = {id: payment.id, date: payment.date, store: payment.store, byHand: false};
     if (!credit.ownCategory) {
       credit.category = payment.category;
       credit.basis = payment.basis === 'picked' ? 'picked' : 'kind';
@@ -295,7 +321,7 @@ function matchRefunds(rows: Row[], categories: Categories) {
 
 export function toRows(
   transactions: Transaction[],
-  {rules, categories, merges, labels, paymentCategories, me = []}: Sorting,
+  {rules, categories, merges, labels, paymentCategories, paybacks = {}, me = []}: Sorting,
 ): Row[] {
   const rows: Row[] = transactions.map(transaction => {
     const ownStore = storeName(transaction.description);
@@ -362,6 +388,7 @@ export function toRows(
   followPicks(rows);
   linkOwnTransfers(rows);
   linkPayPal(rows);
+  linkPaybacks(rows, paybacks);
   matchRefunds(rows, categories);
   for (const row of rows) {
     row.leftOut = LEFT_OUT.includes(row.category);

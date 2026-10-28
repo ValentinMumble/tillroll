@@ -4,6 +4,7 @@ import type {
   CategoryEdit,
   Labels,
   Merges,
+  Paybacks,
   PaymentCategories,
   Rules,
   SavingsValues,
@@ -20,6 +21,7 @@ const CATEGORIES = 'tillroll.categories';
 const MERGES = 'tillroll.merges';
 const LABELS = 'tillroll.labels';
 const PAYMENT_CATEGORIES = 'tillroll.payment-categories';
+const PAYBACKS = 'tillroll.paybacks';
 const DISTINCT = 'tillroll.distinct';
 const SAVINGS_VALUES = 'tillroll.savings-values';
 const BUDGETS = 'tillroll.budgets';
@@ -62,6 +64,7 @@ export function loadLocalSorting() {
     merges: read<Merges>(MERGES) ?? {},
     labels: read<Labels>(LABELS) ?? {},
     paymentCategories: read<PaymentCategories>(PAYMENT_CATEGORIES) ?? {},
+    paybacks: read<Paybacks>(PAYBACKS) ?? {},
     distinct: read<string[]>(DISTINCT) ?? [],
     savingsValues: read<SavingsValues>(SAVINGS_VALUES) ?? {},
     budgets: read<Budgets>(BUDGETS) ?? {},
@@ -75,13 +78,24 @@ export function saveLocalSorting(
     merges?: Merges;
     labels?: Labels;
     paymentCategories?: PaymentCategories;
+    paybacks?: Paybacks;
     distinct?: string[];
     savingsValues?: SavingsValues;
     budgets?: Budgets;
   } | null,
 ) {
   if (sorting === null) {
-    for (const key of [RULES, CATEGORIES, MERGES, LABELS, PAYMENT_CATEGORIES, DISTINCT, SAVINGS_VALUES, BUDGETS])
+    for (const key of [
+      RULES,
+      CATEGORIES,
+      MERGES,
+      LABELS,
+      PAYMENT_CATEGORIES,
+      PAYBACKS,
+      DISTINCT,
+      SAVINGS_VALUES,
+      BUDGETS,
+    ])
       write(key, null);
     return;
   }
@@ -89,6 +103,7 @@ export function saveLocalSorting(
   if (sorting.budgets) write(BUDGETS, sorting.budgets);
   if (sorting.distinct) write(DISTINCT, sorting.distinct);
   if (sorting.paymentCategories) write(PAYMENT_CATEGORIES, sorting.paymentCategories);
+  if (sorting.paybacks) write(PAYBACKS, sorting.paybacks);
   if (sorting.labels) write(LABELS, sorting.labels);
   if (sorting.rules) write(RULES, sorting.rules);
   if (sorting.categories) write(CATEGORIES, sorting.categories);

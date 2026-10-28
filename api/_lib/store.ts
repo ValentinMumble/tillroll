@@ -29,6 +29,8 @@ export const BALANCES = 'tillroll:balances';
 export const PAYMENT_CATEGORIES = 'tillroll:payment-categories';
 /** Labels put on payments by hand, by transaction id. */
 export const LABELS = 'tillroll:labels';
+/** Money in linked by hand to the payment it pays back, by transaction id: the payment's id. */
+export const PAYBACKS = 'tillroll:paybacks';
 /** Stores merged into another, by store key: the name of the store they are part of. */
 export const MERGES = 'tillroll:merges';
 /** When the last sync ran, before each session kept its own (see Session.syncedAt). */

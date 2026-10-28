@@ -261,6 +261,72 @@
   text-transform: uppercase;
 }
 
+/* Money in that pays back a payment: the link, or the payments it can pay back, each a row to tap. */
+.payback-linked {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+  margin: 0;
+}
+
+.payback-picker {
+  display: grid;
+  gap: 8px;
+}
+
+.payback-picker .hint {
+  margin: 0;
+}
+
+.payback-options {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.payback-options button {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 40px;
+  padding: 0 8px;
+  border: 0;
+  border-top: 1px solid var(--line);
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.payback-options li:first-child button {
+  border-top: 0;
+}
+
+.payback-options button:hover {
+  background: var(--surface-sunk);
+}
+
+.payback-store {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.payback-day {
+  color: var(--muted);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.payback-options .payment-amount {
+  width: auto;
+}
+
 /* The categories used most: big pills in their colour. */
 .sheet-often {
   display: flex;

@@ -10,6 +10,7 @@ import {
   saveDistinct,
   saveLabels,
   saveMerge,
+  savePaybacks,
   savePaymentCategories,
   saveRule,
   saveSavingsValues,
@@ -38,6 +39,7 @@ import type {
   Connection,
   Labels,
   Merges,
+  Paybacks,
   PaymentCategories,
   Rules,
   SavingsRecord,
@@ -53,6 +55,7 @@ export interface Data {
   merges: Merges;
   labels: Labels;
   paymentCategories: PaymentCategories;
+  paybacks: Paybacks;
   /** Pairs of stores marked "not the same" in the duplicates deck. */
   distinct: string[];
   /** Savings accounts' values typed by hand. */
@@ -81,6 +84,7 @@ function fromOwner(owner: OwnerData): Data {
     merges: owner.merges ?? {},
     labels: owner.labels ?? {},
     paymentCategories: owner.paymentCategories ?? {},
+    paybacks: owner.paybacks ?? {},
     distinct: owner.distinct ?? [],
     savingsValues: owner.savingsValues ?? {},
     budgets: owner.budgets ?? {},
@@ -228,6 +232,7 @@ export function useData({focus, setFocus, resetView}: View) {
       merges: data.merges,
       labels: data.labels,
       paymentCategories: data.paymentCategories,
+      paybacks: data.paybacks,
       // A bank account is named after its holder: transfers naming them are between their own accounts.
       me: data.connections.flatMap(connection => connection.accounts.map(account => account.name)),
     });
@@ -367,6 +372,15 @@ export function useData({focus, setFocus, resetView}: View) {
     });
   }
 
+  /** Money in linked to the payment it pays back, which then costs that much less; null takes the link off. */
+  async function setPayback(row: Row, paymentId: string | null) {
+    if (!data) return;
+    const paybacks = {...data.paybacks};
+    if (paymentId) paybacks[row.id] = paymentId;
+    else delete paybacks[row.id];
+    await change({paybacks}, () => savePaybacks({[row.id]: paymentId}));
+  }
+
   /** A category made from the category sheet, used at once for the payments it was opened for. */
   async function createCategoryFor(targets: Row[], label: string, icon: string, scope: string) {
     if (!data) return;
@@ -486,6 +500,7 @@ export function useData({focus, setFocus, resetView}: View) {
               merges: data.merges,
               labels: data.labels,
               paymentCategories: data.paymentCategories,
+              paybacks: data.paybacks,
               distinct: data.distinct,
               savingsValues: data.savingsValues,
               budgets: data.budgets,
@@ -585,6 +600,7 @@ export function useData({focus, setFocus, resetView}: View) {
     setBudget,
     markDistinct,
     categorize,
+    setPayback,
     createCategoryFor,
     renameLabel,
     deleteLabel,

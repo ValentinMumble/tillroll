@@ -68,6 +68,36 @@ describe('refunds', () => {
   });
 });
 
+describe('paybacks', () => {
+  const sorting = (paybacks: Record<string, string>) => ({
+    rules: {},
+    categories: categoriesFrom([]),
+    merges: {},
+    labels: {},
+    paymentCategories: {},
+    paybacks,
+  });
+
+  it('takes a friend’s share off the payment it pays back, in that payment’s month', () => {
+    const flat = payment({description: 'Airbnb', amount: -865.82, date: '2026-09-22', mcc: '7011'});
+    const share = payment({description: 'Alexandre Mazure', kind: 'income', amount: 286, date: '2026-10-03'});
+    const rows = toRows([flat, share], sorting({[share.id]: flat.id}));
+    const row = (transaction: Transaction) => rows.find(item => item.id === transaction.id) as Row;
+    expect(row(flat).spend).toBeCloseTo(579.82);
+    expect(row(share).spend).toBe(0);
+    expect(row(share).category).toBe(row(flat).category);
+    expect(row(share).refundOf).toMatchObject({id: flat.id, store: 'Airbnb', byHand: true});
+  });
+
+  it('leaves aside a link that would pay back more than the payment cost', () => {
+    const coffee = payment({description: 'Cafe Pop', amount: -4.5, date: '2026-09-22'});
+    const share = payment({description: 'Alexandre Mazure', kind: 'income', amount: 286, date: '2026-10-03'});
+    const rows = toRows([coffee, share], sorting({[share.id]: coffee.id}));
+    expect(rows.find(item => item.id === coffee.id)?.spend).toBe(4.5);
+    expect(rows.find(item => item.id === share.id)?.refundOf).toBeNull();
+  });
+});
+
 describe('merges', () => {
   it('merges one bank’s payments only, before the store’s own merge', () => {
     const coop = payment({

@@ -9,6 +9,7 @@ import {BankBadge} from './BankBadge';
 import {CategorySheet} from './CategorySheet';
 import {ListSwitches} from './ListSwitches';
 import {LabelOptions, PaymentLabels} from './PaymentLabels';
+import {PaybackPicker} from './PaybackPicker';
 import {opensCategory} from '../device';
 
 interface Props {
@@ -28,6 +29,10 @@ interface Props {
   onFocusLabel: (label: string) => void;
   /** The store's dialog, from its name. */
   onOpenStore: (store: {key: string; name: string}) => void;
+  /** Every payment in this currency, from every period: money in may pay back a payment of an earlier month. */
+  allRows: Row[];
+  /** Money in linked to the payment it pays back; null takes the link off. */
+  onPayback: (row: Row, paymentId: string | null) => void;
 }
 
 /** The overview shows whole days: at least this many payments, and at least this many days. */
@@ -46,6 +51,8 @@ export function LatestPayments({
   onLabels,
   onFocusLabel,
   onOpenStore,
+  allRows,
+  onPayback,
 }: Props) {
   const [sheet, setSheet] = useState<Row | null>(null);
   // The same choices as the payment list's, remembered in each browser.
@@ -164,6 +171,18 @@ export function LatestPayments({
           current={sheet.category}
           guess={sheet.basis !== 'picked'}
           frequent={topCategories(rows, 4)}
+          payback={
+            sheet.amount > 0 && (
+              <PaybackPicker
+                row={rows.find(row => row.id === sheet.id) ?? sheet}
+                rows={allRows}
+                onLink={paymentId => {
+                  onPayback(sheet, paymentId);
+                  setSheet(null);
+                }}
+              />
+            )
+          }
           labels={
             <PaymentLabels
               // The payment as it is now: labels added in the sheet show at once.

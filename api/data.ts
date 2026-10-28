@@ -4,6 +4,7 @@ import type {
   CategoryEdit,
   Labels,
   Merges,
+  Paybacks,
   PaymentCategories,
   Rules,
   SavingsValues,
@@ -18,6 +19,7 @@ import {
   DISTINCT,
   LABELS,
   MERGES,
+  PAYBACKS,
   PAYMENT_CATEGORIES,
   redis,
   RULES,
@@ -28,8 +30,8 @@ import {connections, pendingByBank} from './_lib/sync.js';
 
 /**
  * GET /api/data: the owner's transactions (bank sync and imported statements), how they are sorted (categories per
- * store, categories changed, stores merged), the savings values typed by hand, the budgets, and the bank connections
- * with their accounts' balances.
+ * store, categories changed, stores merged, money in linked to what it pays back), the savings values typed by hand,
+ * the budgets, and the bank connections with their accounts' balances.
  */
 export function GET(request: Request) {
   return handle(async () => {
@@ -43,6 +45,7 @@ export function GET(request: Request) {
       merges,
       labels,
       paymentCategories,
+      paybacks,
       distinct,
       savingsValues,
       budgets,
@@ -56,6 +59,7 @@ export function GET(request: Request) {
       store.hgetall<Merges>(MERGES),
       store.hgetall<Labels>(LABELS),
       store.hgetall<PaymentCategories>(PAYMENT_CATEGORIES),
+      store.hgetall<Paybacks>(PAYBACKS),
       store.smembers(DISTINCT),
       store.hgetall<SavingsValues>(SAVINGS_VALUES),
       store.hgetall<Budgets>(BUDGETS),
@@ -69,6 +73,7 @@ export function GET(request: Request) {
       merges: merges ?? {},
       labels: labels ?? {},
       paymentCategories: paymentCategories ?? {},
+      paybacks: paybacks ?? {},
       distinct: distinct ?? [],
       savingsValues: savingsValues ?? {},
       budgets: budgets ?? {},

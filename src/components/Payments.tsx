@@ -19,6 +19,7 @@ import type {Focus} from './Breakdown';
 import {CategorySheet, type Scope} from './CategorySheet';
 import {ListSwitches} from './ListSwitches';
 import {LabelOptions, PaymentLabels} from './PaymentLabels';
+import {PaybackPicker} from './PaybackPicker';
 import {WebSearch} from './WebSearch';
 import {paymentCount, plain} from '../text';
 import {opensCategory} from '../device';
@@ -48,6 +49,8 @@ interface Props {
   onFocusCategory: (category: CategoryKey | null) => void;
   /** Shows the payments to check only. */
   onFocusCheck: () => void;
+  /** Money in linked to the payment it pays back; null takes the link off. */
+  onPayback: (row: Row, paymentId: string | null) => void;
   /** The payments come from more than one bank: each shows its bank's letter. */
   showBanks: boolean;
 }
@@ -107,6 +110,7 @@ export function Payments({
   onFocusLabel,
   onFocusCategory,
   onFocusCheck,
+  onPayback,
   showBanks,
 }: Props) {
   const [moneyIn, setMoneyIn] = useState(loadPaymentsEverything);
@@ -184,6 +188,8 @@ export function Payments({
     (sum, row) => sum + (!row.counts && !row.leftOut && row.amount > 0 ? row.amount : 0),
     0,
   );
+  // The payments some money in was linked to by hand: theirs is paid back, not refunded.
+  const paidBack = new Set(allRows.filter(row => row.refundOf?.byHand).map(row => row.refundOf?.id));
   // Moves between one's own accounts are in no total: their switch counts the period's.
   const moves = rows.filter(row => row.category === 'own').length;
   const page = visible.slice(0, limit);
@@ -528,7 +534,9 @@ export function Payments({
                     {isUnsure(row) && <span className="tag is-check">to check</span>}
                     {row.refundOf && (
                       <span className="tag is-refund" title="This payment costs that much less instead">
-                        refund of {dayLabel(row.refundOf.date, withYears)}
+                        {row.refundOf.byHand
+                          ? `pays back ${row.refundOf.store}, ${dayLabel(row.refundOf.date, withYears)}`
+                          : `refund of ${dayLabel(row.refundOf.date, withYears)}`}
                       </span>
                     )}
                     {row.refund && !row.refundOf && (
@@ -541,7 +549,10 @@ export function Payments({
                     )}
                     {row.refunded > 0 && (
                       <span className="tag is-refund">
-                        {row.spend === 0 ? 'refunded' : `${money(row.refunded, row.currency, true)} refunded`}
+                        {/* Money given back by hand (a friend's share) is paid back, a store's is refunded. */}
+                        {`${row.spend === 0 ? '' : `${money(row.refunded, row.currency, true)} `}${
+                          paidBack.has(row.id) ? 'paid back' : 'refunded'
+                        }`}
                       </span>
                     )}
                     <PaymentLabels row={row} onLabels={onLabels} onFocusLabel={onFocusLabel} />
@@ -647,6 +658,19 @@ export function Payments({
           current={sheetCategories.size === 1 ? [...sheetCategories][0] : null}
           guess={sheet.every(row => row.basis !== 'picked')}
           frequent={topCategories(rows, 4)}
+          payback={
+            sheet.length === 1 &&
+            sheet[0].amount > 0 && (
+              <PaybackPicker
+                row={rows.find(row => row.id === sheet[0].id) ?? sheet[0]}
+                rows={allRows}
+                onLink={paymentId => {
+                  onPayback(sheet[0], paymentId);
+                  setSheet(null);
+                }}
+              />
+            )
+          }
           labels={
             sheet.length === 1 && (
               <PaymentLabels

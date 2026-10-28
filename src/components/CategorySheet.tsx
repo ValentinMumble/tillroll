@@ -24,6 +24,8 @@ interface Props {
   frequent: CategoryKey[];
   /** One payment's labels, to add or take off here (a phone has no label button on each row). */
   labels?: ReactNode;
+  /** For money in: the payment it pays back, to pick or unlink (see PaybackPicker). */
+  payback?: ReactNode;
   onPick: (category: CategoryKey | null, scope: string) => void;
   onCreate: (label: string, icon: string, scope: string) => void;
   onClose: () => void;
@@ -42,6 +44,7 @@ export function CategorySheet({
   guess,
   frequent,
   labels,
+  payback,
   onPick,
   onCreate,
   onClose,
@@ -106,6 +109,12 @@ export function CategorySheet({
           <section className="sheet-group" aria-labelledby="sheet-labels">
             <h3 id="sheet-labels">Labels</h3>
             <div className="sheet-labels">{labels}</div>
+          </section>
+        )}
+        {payback && (
+          <section className="sheet-group" aria-labelledby="sheet-payback">
+            <h3 id="sheet-payback">Pays back</h3>
+            {payback}
           </section>
         )}
         {often.length > 0 && (

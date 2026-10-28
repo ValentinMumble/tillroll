@@ -23,6 +23,8 @@ interface Props {
   categories: Categories;
   /** The period's payments, newest first. */
   rows: Row[];
+  /** Every payment in this currency, from every period. */
+  allRows: Row[];
   balances: Balance[];
   budgets: Budgets;
   /** Stores waiting to be sorted, and payments whose category is a guess to check. */
@@ -43,6 +45,7 @@ interface Props {
   onCategorize: (rows: Row[], category: CategoryKey | null, scope: string) => void;
   onCreateCategory: (rows: Row[], label: string, icon: string, scope: string) => void;
   onLabels: (changes: Labels) => void;
+  onPayback: (row: Row, paymentId: string | null) => void;
 }
 
 /**
@@ -57,6 +60,7 @@ export function Overview({
   currency,
   categories,
   rows,
+  allRows,
   balances,
   budgets,
   toSort,
@@ -75,6 +79,7 @@ export function Overview({
   onCategorize,
   onCreateCategory,
   onLabels,
+  onPayback,
 }: Props) {
   const breakdown = {report, categories, currency, focus, onFocus};
   return (
@@ -115,6 +120,8 @@ export function Overview({
         onFocusLabel={label => onFocus({type: 'label', key: label})}
         onOpenStore={onOpenStore}
         onSeeAll={onSeeAllPayments}
+        allRows={allRows}
+        onPayback={onPayback}
       />
       <section className="card period-card">
         <header className="card-head">

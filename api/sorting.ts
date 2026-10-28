@@ -7,6 +7,7 @@ import {
   DISTINCT,
   LABELS,
   MERGES,
+  PAYBACKS,
   PAYMENT_CATEGORIES,
   redis,
   RULES,
@@ -102,6 +103,17 @@ const PARTS: Record<string, (body: Record<string, unknown>) => Promise<unknown>>
       item => item === null || isCategoryKey(item),
       item => item === null,
       'Expected categories by payment',
+    );
+  },
+
+  /** { paybacks: { <transaction id>: <payment id> | null } }: money in linked to the payment it pays back. */
+  async paybacks({paybacks}) {
+    return savePerPayment(
+      PAYBACKS,
+      paybacks,
+      item => item === null || (typeof item === 'string' && item.length > 0 && item.length <= 200),
+      item => item === null,
+      'Expected payments by payment',
     );
   },
 
