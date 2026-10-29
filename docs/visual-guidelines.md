@@ -116,6 +116,9 @@ shows, then the actions as `.link-button`s at the right end (`.card-actions` whe
 - Groups of rows are split by a 1px `--line` hairline. A sub-list (the stores merged into one) is indented with a 2px
   `--line` rule on its left.
 - Show a search field above a list once it has more than 8 items, and an `.empty` line when nothing matches.
+- A filtered or searched payment list offers "See in context" on each day heading (on each date when sorted by amount
+  or store). It shows every payment, all periods and categories, newest first around that day, with the filter's
+  matches marked by an accent bar on the left, and a "← Back to the search" button that brings the filter back.
 - Every dropdown has the `.select` look closed: same height, border, radius and caret. One choice is a plain
   `<select>` (a phone opens its own picker); several choices are a button opening a menu where a tick adds a choice
   and the name picks it alone (`CategoryFilter`), reading "All categories", one choice, or the first and "+ 2".

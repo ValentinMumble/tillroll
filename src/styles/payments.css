@@ -120,6 +120,54 @@
   background: var(--cat);
 }
 
+/* "See in context" on a filtered list's day headings (and on its dates when sorted by amount or store). */
+.day-context {
+  margin-left: 10px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.payment-day-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.payment-day-link:hover {
+  color: var(--accent);
+}
+
+/* The list in context: every payment around a day, what to go back to above it, the filter's matches marked by an
+   accent bar on their left edge. */
+.payments-context {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-bottom: 12px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.payments-context strong {
+  color: var(--ink);
+}
+
+.payments-newer {
+  display: block;
+  margin: 0 auto 8px;
+  font-size: 13px;
+}
+
+.payments tr.is-match td:first-child {
+  box-shadow: inset 3px 0 var(--accent);
+}
+
 .tag.is-check {
   background: color-mix(in srgb, var(--accent) 12%, var(--surface));
   color: var(--accent);

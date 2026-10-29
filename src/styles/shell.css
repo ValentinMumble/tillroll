@@ -671,6 +671,12 @@
     border-top: 1px solid var(--line);
   }
 
+  /* No tick column on a phone: the match's bar goes on the row itself. */
+  .payments tr.is-match {
+    padding-left: 10px;
+    box-shadow: inset 3px 0 var(--accent);
+  }
+
   .payments .payment-pick,
   .payments .pick-all,
   .payments .web-search,

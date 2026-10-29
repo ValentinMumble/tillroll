@@ -78,6 +78,9 @@ const SORTS: {key: PaymentSort['key']; label: string; descending: boolean}[] = [
   {key: 'store', label: 'Store', descending: false},
 ];
 
+/** How the list in context reads, whatever the sort: by day, newest first. */
+const NEWEST: PaymentSort = {key: 'date', descending: true};
+
 function compare(first: Row, second: Row, {key, descending}: PaymentSort) {
   // The day, then the time when both have one (statements give it, the bank sync does not).
   const firstMoment = `${first.date} ${first.time ?? ''}`;
@@ -131,6 +134,19 @@ export function Payments({
   const [pickedLabel, setPickedLabel] = useState('');
   // The payments the category sheet is open for.
   const [sheet, setSheet] = useState<Row[] | null>(null);
+  // "See in context": every payment around a day of the filtered list, the filter's matches marked. It keeps what to
+  // go back to (the filter it came from, which a new filter closes it for, and how far that list was drawn), and how
+  // many newer payments show above the day.
+  const [context, setContext] = useState<{
+    date: string;
+    matches: Set<string>;
+    focus: Focus | null;
+    back: number;
+    newer: number;
+  } | null>(null);
+  const around = context && context.focus === focus ? context : null;
+  // The day heading to bring into view once the list is drawn, on opening or closing the context.
+  const jumpTo = useRef<string | null>(null);
   // Only the payments to check; one fixed leaves the list.
   const toCheck = focus?.type === 'check';
   const unsure = rows.filter(isUnsure).length;
@@ -155,11 +171,17 @@ export function Payments({
   };
   // A category picked in the filter shows its payments, even the ones that are not spending.
   const switchedOn = (row: Row) => isListed(row, {moneyIn, own}) || focus?.type === 'category' || toCheck;
-  const visible = rows
-    .filter(row => inFocus(row) && switchedOn(row) && matches(row))
-    .sort((first, second) => compare(first, second, sort));
+  // In context, every period and every category, newest first; the switches still apply, but never to the matches.
+  const visible = around
+    ? allRows
+        .filter(row => isListed(row, {moneyIn, own}) || around.matches.has(row.id))
+        .sort((first, second) => compare(first, second, NEWEST))
+    : rows
+        .filter(row => inFocus(row) && switchedOn(row) && matches(row))
+        .sort((first, second) => compare(first, second, sort));
+  const filtered = !around && (words.length > 0 || focus !== null || bank !== null);
   // A search also counts the matches the switches, the category filter and the period leave out.
-  const found = words.length ? rows.filter(matches) : [];
+  const found = words.length && !around ? rows.filter(matches) : [];
   const hiddenBySwitch = found.filter(row => inFocus(row) && !switchedOn(row));
   const hidden = {
     moneyIn: hiddenBySwitch.filter(row => row.category !== 'own').length,
@@ -170,14 +192,14 @@ export function Payments({
         : 0,
     period: 0,
   };
-  if (words.length) {
+  if (words.length && !around) {
     const here = new Set(rows.map(row => row.id));
     hidden.period = allRows.filter(
       row => !here.has(row.id) && inFocus(row) && isListed(row, {moneyIn, own}) && matches(row),
     ).length;
   }
   // By date, the list reads like a bank statement: a heading per day, with what went out that day.
-  const byDay = sort.key === 'date';
+  const byDay = around !== null || sort.key === 'date';
   // The totals of what is listed: they follow the filters and the search.
   const currency = rows[0]?.currency ?? 'EUR';
   const spent = visible.reduce((sum, row) => sum + row.spend, 0);
@@ -199,10 +221,23 @@ export function Payments({
   const given = givenBack(allRows);
   // Moves between one's own accounts are in no total: their switch counts the period's.
   const moves = rows.filter(row => row.category === 'own').length;
-  const page = visible.slice(0, limit);
+  // In context, the list starts a few newer payments above the day, so the day sits near the top.
+  const anchor = around
+    ? Math.max(
+        0,
+        visible.findIndex(row => row.date <= around.date),
+      )
+    : 0;
+  const start = Math.max(0, anchor - (around?.newer ?? 0));
+  const page = visible.slice(start, anchor + limit);
   // The next payments come in as the end of the list nears (a screen ahead), so a long period stays quick to draw.
   const moreRef = useRef<HTMLDivElement>(null);
-  const hasMore = visible.length > limit;
+  const hasMore = visible.length > anchor + limit;
+  useEffect(() => {
+    if (!jumpTo.current) return;
+    document.getElementById(`payments-day-${jumpTo.current}`)?.scrollIntoView({block: 'center'});
+    jumpTo.current = null;
+  }, [context]);
   useEffect(() => {
     const end = moreRef.current;
     if (!end || !hasMore) return;
@@ -272,6 +307,20 @@ export function Payments({
     setLastPicked(row.id);
   }
 
+  /** Shows every payment around this day, with the filter's matches marked; going back brings the filter back. */
+  function openContext(date: string) {
+    jumpTo.current = date;
+    setContext({date, matches: new Set(visible.map(row => row.id)), focus, back: limit, newer: 8});
+    setLimit(PAGE);
+  }
+
+  function closeContext() {
+    if (!around) return;
+    jumpTo.current = around.date;
+    setLimit(around.back);
+    setContext(null);
+  }
+
   function labelPicked() {
     const label = tidyLabel(pickedLabel);
     if (!label || selection.length === 0) return;
@@ -311,114 +360,132 @@ export function Payments({
     <section className="card payments">
       <header className="card-head">
         <h2>Payments</h2>
-        <span className="view-total">{money(spent, currency)}</span>
-        <span className="hint">
-          {paymentCount(paid)}
-          {moneyIn && movedOut > 0 && ` · ${money(movedOut, currency)} moved out`}
-          {Math.abs(toSavings) >= 0.5 &&
-            ` · ${money(Math.abs(toSavings), currency)} ${toSavings > 0 ? 'to savings' : 'taken from savings'}`}
-          {moneyIn && cameIn > 0 && ` · ${money(cameIn, currency)} in`}
-          {focus?.type === 'label' && ' · all time'}
-        </span>
-        {focusLabel && (
+        {/* In context the list covers every period: no totals, no filter, no sort. */}
+        {!around && <span className="view-total">{money(spent, currency)}</span>}
+        {!around && (
+          <span className="hint">
+            {paymentCount(paid)}
+            {moneyIn && movedOut > 0 && ` · ${money(movedOut, currency)} moved out`}
+            {Math.abs(toSavings) >= 0.5 &&
+              ` · ${money(Math.abs(toSavings), currency)} ${toSavings > 0 ? 'to savings' : 'taken from savings'}`}
+            {moneyIn && cameIn > 0 && ` · ${money(cameIn, currency)} in`}
+            {focus?.type === 'label' && ' · all time'}
+          </span>
+        )}
+        {focusLabel && !around && (
           <button type="button" className="chip" aria-label={`Remove the filter ${focusLabel}`} onClick={onClearFocus}>
             {focusLabel} <span aria-hidden="true">✕</span>
           </button>
         )}
-        {focus?.type === 'store' && (
+        {focus?.type === 'store' && !around && (
           <button type="button" className="link-button" onClick={() => onEditStore(focus.key)}>
             Rename or merge
           </button>
         )}
-        <div className="segmented is-small" role="group" aria-label="Sort payments by">
-          {SORTS.map(item => {
-            const active = sort.key === item.key;
-            const way =
-              item.key === 'store' ? (sort.descending ? 'Z to A' : 'A to Z') : sort.descending ? 'down' : 'up';
-            return (
-              <button
-                key={item.key}
-                type="button"
-                aria-pressed={active}
-                aria-label={active ? `${item.label}, ${way}` : item.label}
-                onClick={() => sortBy(item.key)}
-              >
-                {item.label}
-                {active && <span aria-hidden="true">{sort.descending ? ' ↓' : ' ↑'}</span>}
-              </button>
-            );
-          })}
-        </div>
+        {!around && (
+          <div className="segmented is-small" role="group" aria-label="Sort payments by">
+            {SORTS.map(item => {
+              const active = sort.key === item.key;
+              const way =
+                item.key === 'store' ? (sort.descending ? 'Z to A' : 'A to Z') : sort.descending ? 'down' : 'up';
+              return (
+                <button
+                  key={item.key}
+                  type="button"
+                  aria-pressed={active}
+                  aria-label={active ? `${item.label}, ${way}` : item.label}
+                  onClick={() => sortBy(item.key)}
+                >
+                  {item.label}
+                  {active && <span aria-hidden="true">{sort.descending ? ' ↓' : ' ↑'}</span>}
+                </button>
+              );
+            })}
+          </div>
+        )}
         <ListSwitches moneyIn={moneyIn} own={own} moves={moves} onMoneyIn={setMoneyIn} onOwn={setOwn} />
       </header>
-      <div className="payments-filters">
-        <label className="pick-all" title={allPicked ? 'Untick all' : `Tick all ${visible.length}`}>
-          <input
-            type="checkbox"
-            aria-label={allPicked ? 'Untick all payments' : `Tick all ${visible.length} payments`}
-            checked={allPicked}
-            onChange={() => setPicked(allPicked ? new Set() : new Set(visible.map(row => row.id)))}
-          />
-        </label>
-        <input
-          className="text-input"
-          type="search"
-          aria-label="Search payments"
-          placeholder="Search a store, the bank's text, a label or an amount"
-          value={query}
-          onChange={event => {
-            setQuery(event.target.value);
-            setLimit(PAGE);
-          }}
-        />
-        {(unsure > 0 || toCheck) && (
-          <button
-            type="button"
-            className={`chip to-check${toCheck ? ' is-on' : ''}`}
-            aria-pressed={toCheck}
-            title="The payments whose category Tillroll guessed with little to go on"
-            onClick={() => {
-              if (toCheck) onClearFocus();
-              else onFocusCheck();
-              setLimit(PAGE);
-            }}
-          >
-            {unsure} to check
-            {toCheck && <span aria-hidden="true">✕</span>}
+      {around && (
+        <div className="payments-context">
+          <span>
+            Every payment around <strong>{dayLabel(around.date, true)}</strong>, the ones{' '}
+            {words.length ? 'your search' : 'your filter'} found marked
+          </span>
+          <button type="button" className="button is-quiet" onClick={closeContext}>
+            ← Back to the {words.length ? 'search' : 'filtered list'}
           </button>
-        )}
-        {/* The category and the bank: side by side on a phone, under the search. */}
-        <div className="payments-selects">
-          <CategoryFilter
-            categories={categories}
-            counts={categoryCounts}
-            picked={focus?.type === 'category' ? focus.keys : []}
-            onChange={keys => {
-              onFocusCategories(keys);
+        </div>
+      )}
+      {!around && (
+        <div className="payments-filters">
+          <label className="pick-all" title={allPicked ? 'Untick all' : `Tick all ${visible.length}`}>
+            <input
+              type="checkbox"
+              aria-label={allPicked ? 'Untick all payments' : `Tick all ${visible.length} payments`}
+              checked={allPicked}
+              onChange={() => setPicked(allPicked ? new Set() : new Set(visible.map(row => row.id)))}
+            />
+          </label>
+          <input
+            className="text-input"
+            type="search"
+            aria-label="Search payments"
+            placeholder="Search a store, the bank's text, a label or an amount"
+            value={query}
+            onChange={event => {
+              setQuery(event.target.value);
               setLimit(PAGE);
             }}
           />
-          {(showBanks || bank) && (
-            <select
-              className="select"
-              aria-label="Bank"
-              value={bank ?? ''}
-              onChange={event => {
-                setBank(event.target.value || null);
+          {(unsure > 0 || toCheck) && (
+            <button
+              type="button"
+              className={`chip to-check${toCheck ? ' is-on' : ''}`}
+              aria-pressed={toCheck}
+              title="The payments whose category Tillroll guessed with little to go on"
+              onClick={() => {
+                if (toCheck) onClearFocus();
+                else onFocusCheck();
                 setLimit(PAGE);
               }}
             >
-              <option value="">All banks</option>
-              {/* The bank picked stays listed in a period without its payments. */}
-              {[...new Set([...bankCounts.keys(), ...(bank ? [bank] : [])])].sort().map(name => (
-                <option key={name} value={name}>
-                  {name} ({bankCounts.get(name) ?? 0})
-                </option>
-              ))}
-            </select>
+              {unsure} to check
+              {toCheck && <span aria-hidden="true">✕</span>}
+            </button>
           )}
+          {/* The category and the bank: side by side on a phone, under the search. */}
+          <div className="payments-selects">
+            <CategoryFilter
+              categories={categories}
+              counts={categoryCounts}
+              picked={focus?.type === 'category' ? focus.keys : []}
+              onChange={keys => {
+                onFocusCategories(keys);
+                setLimit(PAGE);
+              }}
+            />
+            {(showBanks || bank) && (
+              <select
+                className="select"
+                aria-label="Bank"
+                value={bank ?? ''}
+                onChange={event => {
+                  setBank(event.target.value || null);
+                  setLimit(PAGE);
+                }}
+              >
+                <option value="">All banks</option>
+                {/* The bank picked stays listed in a period without its payments. */}
+                {[...new Set([...bankCounts.keys(), ...(bank ? [bank] : [])])].sort().map(name => (
+                  <option key={name} value={name}>
+                    {name} ({bankCounts.get(name) ?? 0})
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
         </div>
-      </div>
+      )}
       {(hidden.moneyIn > 0 || hidden.own > 0 || hidden.category > 0 || hidden.period > 0) && (
         <p className="search-hidden">
           More matches:{' '}
@@ -469,128 +536,161 @@ export function Payments({
           {toCheck ? 'Nothing left to check here.' : words.length ? 'No payment matches.' : 'No payments here.'}
         </p>
       ) : (
-        <table>
-          {/* Fixed column widths, so the payments coming in as the list scrolls never move the columns. */}
-          <colgroup>
-            <col className="col-pick" />
-            {(!byDay || withTimes) && <col className={`col-day${!byDay && withYears ? ' with-year' : ''}`} />}
-            <col />
-            <col className="col-category" />
-            <col className="col-amount" />
-          </colgroup>
-          <thead className="visually-hidden">
-            <tr>
-              <th>Pick</th>
-              {(!byDay || withTimes) && <th>{byDay ? 'Time' : 'Day'}</th>}
-              <th>Store</th>
-              <th>Category</th>
-              <th>Amount</th>
-            </tr>
-          </thead>
-          <tbody>
-            {page.map((row, index) => {
-              const category = categories.byKey[row.category];
-              return [
-                byDay && row.date !== page[index - 1]?.date && (
-                  <tr key={`day-${row.date}`} className="day-row">
-                    <th colSpan={withTimes ? 4 : 3} scope="rowgroup">
-                      {recentDayLabel(row.date, withYears)}
-                      {dayParts.get(row.date) && (
-                        <span className="day-strip" aria-hidden="true">
-                          {[...(dayParts.get(row.date) ?? [])]
-                            .sort((first, second) => second[1] - first[1])
-                            .map(([key, value]) => (
-                              <span key={key} style={{...colourStyle(categories.colours[key]), flexGrow: value}} />
-                            ))}
-                        </span>
-                      )}
-                    </th>
-                    <td className="payment-amount">
-                      {/* A day with one payment already shows its amount on the row. */}
-                      {(dayCounts.get(row.date) ?? 0) > 1 && dayTotals.get(row.date)
-                        ? money(-(dayTotals.get(row.date) ?? 0), row.currency, true)
-                        : ''}
+        <>
+          {around && start > 0 && (
+            <button
+              type="button"
+              className="link-button payments-newer"
+              onClick={() => setContext({...around, newer: around.newer + PAGE})}
+            >
+              Show newer payments
+            </button>
+          )}
+          <table>
+            {/* Fixed column widths, so the payments coming in as the list scrolls never move the columns. */}
+            <colgroup>
+              <col className="col-pick" />
+              {(!byDay || withTimes) && <col className={`col-day${!byDay && withYears ? ' with-year' : ''}`} />}
+              <col />
+              <col className="col-category" />
+              <col className="col-amount" />
+            </colgroup>
+            <thead className="visually-hidden">
+              <tr>
+                <th>Pick</th>
+                {(!byDay || withTimes) && <th>{byDay ? 'Time' : 'Day'}</th>}
+                <th>Store</th>
+                <th>Category</th>
+                <th>Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              {page.map((row, index) => {
+                const category = categories.byKey[row.category];
+                return [
+                  byDay && row.date !== page[index - 1]?.date && (
+                    <tr key={`day-${row.date}`} id={`payments-day-${row.date}`} className="day-row">
+                      <th colSpan={withTimes ? 4 : 3} scope="rowgroup">
+                        {recentDayLabel(row.date, withYears)}
+                        {dayParts.get(row.date) && (
+                          <span className="day-strip" aria-hidden="true">
+                            {[...(dayParts.get(row.date) ?? [])]
+                              .sort((first, second) => second[1] - first[1])
+                              .map(([key, value]) => (
+                                <span key={key} style={{...colourStyle(categories.colours[key]), flexGrow: value}} />
+                              ))}
+                          </span>
+                        )}
+                        {filtered && (
+                          <button
+                            type="button"
+                            className="link-button day-context"
+                            aria-label={`See every payment around ${dayLabel(row.date, true)}`}
+                            onClick={() => openContext(row.date)}
+                          >
+                            See in context
+                          </button>
+                        )}
+                      </th>
+                      <td className="payment-amount">
+                        {/* A day with one payment already shows its amount on the row. */}
+                        {(dayCounts.get(row.date) ?? 0) > 1 && dayTotals.get(row.date)
+                          ? money(-(dayTotals.get(row.date) ?? 0), row.currency, true)
+                          : ''}
+                      </td>
+                    </tr>
+                  ),
+                  <tr
+                    key={row.id}
+                    className={`${(row.counts && row.spend !== 0) || isIncoming(row) ? '' : 'is-muted'}${picked.has(row.id) ? ' is-picked' : ''}${around?.matches.has(row.id) ? ' is-match' : ''}`}
+                    onClick={event => {
+                      if (opensCategory(event)) setSheet([row]);
+                    }}
+                  >
+                    <td className="payment-pick">
+                      <input
+                        type="checkbox"
+                        aria-label={`Tick ${row.store}, ${dayLabel(row.date)}`}
+                        checked={picked.has(row.id)}
+                        readOnly
+                        onClick={event => pick(row, event.shiftKey)}
+                      />
                     </td>
-                  </tr>
-                ),
-                <tr
-                  key={row.id}
-                  className={`${(row.counts && row.spend !== 0) || isIncoming(row) ? '' : 'is-muted'}${picked.has(row.id) ? ' is-picked' : ''}`}
-                  onClick={event => {
-                    if (opensCategory(event)) setSheet([row]);
-                  }}
-                >
-                  <td className="payment-pick">
-                    <input
-                      type="checkbox"
-                      aria-label={`Tick ${row.store}, ${dayLabel(row.date)}`}
-                      checked={picked.has(row.id)}
-                      readOnly
-                      onClick={event => pick(row, event.shiftKey)}
-                    />
-                  </td>
-                  {!byDay && (
-                    <td className={`payment-day${withYears ? ' with-year' : ''}`}>
-                      {dayLabel(row.date, withYears)}
-                      {row.time && <span className="payment-time"> {row.time}</span>}
-                    </td>
-                  )}
-                  {byDay && withTimes && <td className="payment-day">{row.time ?? ''}</td>}
-                  <td className="payment-store">
-                    {showBanks && <BankBadge bank={row.bank} />}
-                    <button
-                      type="button"
-                      className="payment-store-name"
-                      title={`${row.description}\nRename ${row.store} or change its category`}
-                      onClick={() => onOpenStore({key: row.storeKey, name: row.store})}
-                    >
-                      {row.store}
-                    </button>
-                    <WebSearch name={row.store} />
-                    {row.pending && <span className="tag">pending</span>}
-                    {row.viaPayPal && (
-                      <span
-                        className="tag"
-                        title="It paid a PayPal purchase, which counts at its shop: a move between your accounts"
-                      >
-                        via PayPal
-                      </span>
+                    {!byDay && (
+                      <td className={`payment-day${withYears ? ' with-year' : ''}`}>
+                        {/* Sorted by amount or store, there are no day headings: the date opens the context. */}
+                        {filtered ? (
+                          <button
+                            type="button"
+                            className="payment-day-link"
+                            title="See every payment around this day"
+                            onClick={() => openContext(row.date)}
+                          >
+                            {dayLabel(row.date, withYears)}
+                          </button>
+                        ) : (
+                          dayLabel(row.date, withYears)
+                        )}
+                        {row.time && <span className="payment-time"> {row.time}</span>}
+                      </td>
                     )}
-                    {isUnsure(row) && <span className="tag is-check">to check</span>}
-                    <RefundTags row={row} givenBack={given} onOpen={() => setSheet([row])} />
-                    <PaymentLabels row={row} onLabels={onLabels} onFocusLabel={onFocusLabel} />
-                  </td>
-                  <td className="payment-category">
-                    <button
-                      type="button"
-                      className={`category-button${row.basis === 'picked' ? '' : ' is-auto'}${
-                        isUnsure(row) ? ' is-unsure' : ''
-                      }`}
-                      aria-label={`Category of this payment at ${row.store}: ${category?.label}${
-                        row.basis === 'picked' ? '' : isUnsure(row) ? ' (a guess, to check)' : ' (automatic)'
-                      }. Change it`}
-                      style={colourStyle(categories.colours[row.category])}
-                      onClick={() => setSheet([row])}
-                    >
-                      <span className="category-button-icon" aria-hidden="true">
-                        {category?.icon}
-                      </span>
-                      <span className="category-button-label">{category?.label}</span>
-                      {row.ownCategory && (
-                        <span className="own-mark" title="Picked for this payment only">
-                          •
+                    {byDay && withTimes && <td className="payment-day">{row.time ?? ''}</td>}
+                    <td className="payment-store">
+                      {showBanks && <BankBadge bank={row.bank} />}
+                      <button
+                        type="button"
+                        className="payment-store-name"
+                        title={`${row.description}\nRename ${row.store} or change its category`}
+                        onClick={() => onOpenStore({key: row.storeKey, name: row.store})}
+                      >
+                        {row.store}
+                      </button>
+                      <WebSearch name={row.store} />
+                      {row.pending && <span className="tag">pending</span>}
+                      {row.viaPayPal && (
+                        <span
+                          className="tag"
+                          title="It paid a PayPal purchase, which counts at its shop: a move between your accounts"
+                        >
+                          via PayPal
                         </span>
                       )}
-                    </button>
-                  </td>
-                  <td className={`payment-amount${row.amount > 0 ? ' is-in' : ''}`}>
-                    {money(row.amount, row.currency, true)}
-                  </td>
-                </tr>,
-              ];
-            })}
-          </tbody>
-        </table>
+                      {isUnsure(row) && <span className="tag is-check">to check</span>}
+                      <RefundTags row={row} givenBack={given} onOpen={() => setSheet([row])} />
+                      <PaymentLabels row={row} onLabels={onLabels} onFocusLabel={onFocusLabel} />
+                    </td>
+                    <td className="payment-category">
+                      <button
+                        type="button"
+                        className={`category-button${row.basis === 'picked' ? '' : ' is-auto'}${
+                          isUnsure(row) ? ' is-unsure' : ''
+                        }`}
+                        aria-label={`Category of this payment at ${row.store}: ${category?.label}${
+                          row.basis === 'picked' ? '' : isUnsure(row) ? ' (a guess, to check)' : ' (automatic)'
+                        }. Change it`}
+                        style={colourStyle(categories.colours[row.category])}
+                        onClick={() => setSheet([row])}
+                      >
+                        <span className="category-button-icon" aria-hidden="true">
+                          {category?.icon}
+                        </span>
+                        <span className="category-button-label">{category?.label}</span>
+                        {row.ownCategory && (
+                          <span className="own-mark" title="Picked for this payment only">
+                            •
+                          </span>
+                        )}
+                      </button>
+                    </td>
+                    <td className={`payment-amount${row.amount > 0 ? ' is-in' : ''}`}>
+                      {money(row.amount, row.currency, true)}
+                    </td>
+                  </tr>,
+                ];
+              })}
+            </tbody>
+          </table>
+        </>
       )}
       {hasMore && <div ref={moreRef} className="payments-more" aria-hidden="true" />}
       {selection.length > 0 && (
