@@ -165,6 +165,7 @@ describe('sales', () => {
     const row = (transaction: Transaction) => rows.find(item => item.id === transaction.id) as Row;
     expect(row(sale).refundOf).toBeNull();
     expect(row(sale).spend).toBe(-35);
+    expect(row(sale).refund).toBe(false);
     expect(row(racket).spend).toBe(74.2);
   });
 

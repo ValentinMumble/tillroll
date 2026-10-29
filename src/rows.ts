@@ -287,9 +287,10 @@ function linkPayPal(rows: Row[]) {
  * it; money in of exactly what a card payment at the same store cost counts too. Money in by transfer filed under a
  * spending category (a refund sent by transfer, or something sold on) gives back only a payment of that category,
  * and with labels on both, one they share: pedals sold are no refund of a racket bought at the same marketplace.
- * Otherwise it lowers that category's spending in its own week and month. Oldest first, each refund is
- * matched with the payment it gives back: the latest one at that store and bank in the 180 days before, with that
- * much not given back yet, the same amount first. That payment then costs what is left, in its own week and month.
+ * Otherwise it lowers that category's spending in its own week and month, and is no refund when filed by hand for
+ * that payment (a sale). Oldest first, each refund is matched with the payment it gives back: the latest one at that
+ * store and bank in the 180 days before, with that much not given back yet, the same amount first. That payment then
+ * costs what is left, in its own week and month.
  */
 /**
  * Money in linked by hand to the payment it pays back (a friend's share of a flat paid with one's card, something
@@ -407,7 +408,9 @@ function matchRefunds(rows: Row[], categories: Categories) {
     const exact = open.filter(row => Math.abs(left(row) - credit.amount) < 0.005).at(-1);
     const payment = exact ?? (sure ? open.at(-1) : undefined);
     if (!payment) {
-      credit.refund = sure;
+      // Money in by transfer filed by hand that gives back no payment is something sold, or someone paying: no
+      // refund. A health refund, known by its words, stays one.
+      credit.refund = sure && !(credit.kind === 'income' && credit.ownCategory);
       continue;
     }
     payment.refunded += credit.amount;
