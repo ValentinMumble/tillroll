@@ -303,3 +303,17 @@ describe('days and picks', () => {
     expect(row(third).basis).toBe('picked');
   });
 });
+
+describe('new stores', () => {
+  it("marks a store's first payment ever, not the next ones, nor the first month of the bank's history", () => {
+    const start = payment({description: 'Boulangerie Eugénie', amount: -2, date: '2026-01-02'});
+    const first = payment({description: 'Cafe Pop', amount: -4, date: '2026-03-10'});
+    const again = payment({description: 'Cafe Pop', amount: -4, date: '2026-03-12'});
+    const later = payment({description: 'Boulangerie Eugénie', amount: -2, date: '2026-03-11'});
+    const row = rowsOf([start, first, again, later]);
+    expect(row(first).firstVisit).toBe(true);
+    expect(row(again).firstVisit).toBe(false);
+    expect(row(start).firstVisit).toBe(false);
+    expect(row(later).firstVisit).toBe(false);
+  });
+});

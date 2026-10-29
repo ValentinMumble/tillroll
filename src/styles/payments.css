@@ -173,6 +173,13 @@
   color: var(--accent);
 }
 
+/* A store's first payment ever, and the stores whose first payment is in the period: green like money in. */
+.tag.is-new {
+  flex: none;
+  background: color-mix(in srgb, var(--down) 12%, var(--surface));
+  color: var(--down);
+}
+
 .category-button:hover {
   border-color: var(--cat, var(--line));
 }

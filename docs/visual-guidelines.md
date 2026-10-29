@@ -77,6 +77,9 @@ shows, then the actions as `.link-button`s at the right end (`.card-actions` whe
 - Refund and payback tags (`RefundTags`) look the same wherever a payment shows: the payment list and the overview's
   latest payments. A payment's "paid back" or "refunded" tag names what gave it back on hover and opens its sheet,
   which lists them ("Paid back by", with Unlink).
+- A store's first payment ever says "new" (`.tag.is-new`, green like money in), in the payment list and the latest
+  payments; in the Stores list, a store whose first payment is in the period shown says "new" too (never over all
+  time). The first 30 days of a bank's history have none: every store starts there.
 - A bank payment that paid a PayPal purchase says "via PayPal": it is a move between one's accounts, and the purchase
   counts at its shop, on the PayPal line.
 

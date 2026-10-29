@@ -27,6 +27,8 @@ export interface StoreTotal {
   total: number;
   visits: number;
   category: CategoryKey;
+  /** Its first payment ever is in these totals' period: new there (see Row.firstVisit). */
+  isNew: boolean;
 }
 
 export interface Totals {
@@ -76,9 +78,11 @@ function totalsOf(rows: Row[]): Totals {
       total: 0,
       visits: 0,
       category: row.category,
+      isNew: false,
     };
     store.total += row.spend;
     if (row.spend > 0) store.visits += 1;
+    if (row.firstVisit) store.isNew = true;
     totals.stores.set(row.storeKey, store);
   }
   return totals;
