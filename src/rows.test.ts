@@ -125,6 +125,20 @@ describe('card refunds named after the holder', () => {
     expect(row(order).spend).toBe(0);
   });
 
+  it('still gives it back when its store is renamed into one filed under moves between my accounts', () => {
+    const order = payment({description: 'Amazon', amount: -12.57, date: '2026-10-19'});
+    const refund = payment({description: 'Valentin Jan Dijkstra', kind: 'income', amount: 12.57, date: '2026-10-28'});
+    const rows = toRows([order, refund], {
+      ...sorting,
+      rules: {'other account': 'own'},
+      merges: {'valentin jan dijkstra': 'Valentin Dijkstra', 'valentin dijkstra': 'Other account'},
+    });
+    const row = (transaction: Transaction) => rows.find(item => item.id === transaction.id) as Row;
+    expect(row(refund).store).toBe('Other account');
+    expect(row(refund).refundOf).toMatchObject({id: order.id, store: 'Amazon'});
+    expect(row(order).spend).toBe(0);
+  });
+
   it('stays a move between one’s accounts when as much left another bank', () => {
     const order = payment({description: 'Amazon', amount: -12.57, date: '2026-10-19'});
     const sent = payment({
@@ -138,6 +152,21 @@ describe('card refunds named after the holder', () => {
     const rows = toRows([order, sent, received], sorting);
     expect(rows.find(item => item.id === received.id)?.refundOf).toBeNull();
     expect(rows.find(item => item.id === order.id)?.spend).toBe(12.57);
+  });
+
+  it('never gives back a card top-up of another account', () => {
+    const topUp = payment({description: 'Revolut', amount: -1000, date: '2026-08-17'});
+    const fromSavings = payment({
+      description: 'VIR SEPA M DIJKSTRA VALENTIN',
+      kind: 'income',
+      amount: 1000,
+      date: '2026-08-17',
+    });
+    const rows = toRows([topUp, fromSavings], {
+      ...sorting,
+      rules: {revolut: 'own', 'vir sepa m dijkstra valentin': 'own'},
+    });
+    expect(rows.find(item => item.id === fromSavings.id)?.refundOf).toBeNull();
   });
 });
 

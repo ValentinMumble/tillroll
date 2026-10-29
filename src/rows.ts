@@ -302,13 +302,15 @@ const HOLDER_REFUND_DAYS = 120;
  * as money from oneself. Such money in (from the bank sync, naming the holder, its category not picked by hand) that
  * gives back to the cent what is left of a card payment of the same bank in the 120 days before is that payment's
  * refund, the latest one; unless as much left another bank within a few days, a move between one's own accounts.
+ * Its store filed under moves between one's accounts (merged into "Other account", say) says no more than its name.
+ * Only spending gets a refund: never a card payment left out, like a top-up of one's other account.
  */
 function matchHolderRefunds(rows: Row[], me: string[]) {
   if (me.length === 0) return;
   const days = (first: string, second: string) => Math.abs(Date.parse(first) - Date.parse(second)) / 86_400_000;
   for (const credit of rows) {
-    if (credit.source !== 'bank' || credit.amount <= 0 || credit.refundOf || credit.basis === 'picked') continue;
-    if (credit.ownCategory || !namesMe(credit.description, me)) continue;
+    if (credit.source !== 'bank' || credit.amount <= 0 || credit.refundOf || credit.ownCategory) continue;
+    if ((credit.basis === 'picked' && credit.category !== 'own') || !namesMe(credit.description, me)) continue;
     const moved = rows.some(
       row =>
         row.amount < 0 &&
@@ -323,6 +325,7 @@ function matchHolderRefunds(rows: Row[], me: string[]) {
         row =>
           row.kind === 'card' &&
           row.amount < 0 &&
+          !LEFT_OUT.includes(row.category) &&
           bankOf(row) === bankOf(credit) &&
           row.currency === credit.currency &&
           row.date <= credit.date &&
