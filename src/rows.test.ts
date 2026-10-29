@@ -106,6 +106,41 @@ describe('paybacks', () => {
   });
 });
 
+describe('card refunds named after the holder', () => {
+  const sorting = {
+    rules: {},
+    categories: categoriesFrom([]),
+    merges: {},
+    labels: {},
+    paymentCategories: {},
+    me: ['Valentin Dijkstra'],
+  };
+
+  it('gives back the card payment of the same amount, a shop’s refund', () => {
+    const order = payment({description: 'Amazon', amount: -12.57, date: '2026-10-19'});
+    const refund = payment({description: 'Valentin Jan Dijkstra', kind: 'income', amount: 12.57, date: '2026-10-28'});
+    const rows = toRows([order, refund], sorting);
+    const row = (transaction: Transaction) => rows.find(item => item.id === transaction.id) as Row;
+    expect(row(refund).refundOf).toMatchObject({id: order.id, store: 'Amazon', byHand: false});
+    expect(row(order).spend).toBe(0);
+  });
+
+  it('stays a move between one’s accounts when as much left another bank', () => {
+    const order = payment({description: 'Amazon', amount: -12.57, date: '2026-10-19'});
+    const sent = payment({
+      bank: 'Crédit Coopératif',
+      description: 'VIR SEPA Valentin Dijkstra',
+      kind: 'transfer',
+      amount: -12.57,
+      date: '2026-10-27',
+    });
+    const received = payment({description: 'Valentin Jan Dijkstra', kind: 'income', amount: 12.57, date: '2026-10-28'});
+    const rows = toRows([order, sent, received], sorting);
+    expect(rows.find(item => item.id === received.id)?.refundOf).toBeNull();
+    expect(rows.find(item => item.id === order.id)?.spend).toBe(12.57);
+  });
+});
+
 describe('merges', () => {
   it('merges one bank’s payments only, before the store’s own merge', () => {
     const coop = payment({

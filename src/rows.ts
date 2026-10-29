@@ -1,4 +1,4 @@
-import {type Basis, type Categories, categoryOf, guessCategory, LEFT_OUT, UNSURE} from './categories';
+import {type Basis, type Categories, categoryOf, guessCategory, LEFT_OUT, namesMe, UNSURE} from './categories';
 import {addDays, shiftPeriod} from './periods';
 import {storeKey, storeName} from './stores';
 import {plain} from './text';
@@ -294,6 +294,51 @@ function linkPaybacks(rows: Row[], paybacks: Paybacks) {
   }
 }
 
+/** A card refund named after the card holder is matched with a card payment this many days before it at most. */
+const HOLDER_REFUND_DAYS = 120;
+
+/**
+ * Revolut's bank sync names a card refund after the card holder ("Valentin Jan Dijkstra"), not the shop, so it reads
+ * as money from oneself. Such money in (from the bank sync, naming the holder, its category not picked by hand) that
+ * gives back to the cent what is left of a card payment of the same bank in the 120 days before is that payment's
+ * refund, the latest one; unless as much left another bank within a few days, a move between one's own accounts.
+ */
+function matchHolderRefunds(rows: Row[], me: string[]) {
+  if (me.length === 0) return;
+  const days = (first: string, second: string) => Math.abs(Date.parse(first) - Date.parse(second)) / 86_400_000;
+  for (const credit of rows) {
+    if (credit.source !== 'bank' || credit.amount <= 0 || credit.refundOf || credit.basis === 'picked') continue;
+    if (credit.ownCategory || !namesMe(credit.description, me)) continue;
+    const moved = rows.some(
+      row =>
+        row.amount < 0 &&
+        bankOf(row) !== bankOf(credit) &&
+        cents(row.amount) === cents(credit.amount) &&
+        days(row.date, credit.date) <= TRANSFER_DAYS,
+    );
+    if (moved) continue;
+    const since = addDays(credit.date, -HOLDER_REFUND_DAYS);
+    const payment = rows
+      .filter(
+        row =>
+          row.kind === 'card' &&
+          row.amount < 0 &&
+          bankOf(row) === bankOf(credit) &&
+          row.currency === credit.currency &&
+          row.date <= credit.date &&
+          row.date >= since &&
+          Math.abs(-row.amount - row.refunded - credit.amount) < 0.005,
+      )
+      .sort((first, second) => (first.date < second.date ? 1 : -1))[0];
+    if (!payment) continue;
+    payment.refunded += credit.amount;
+    credit.refund = true;
+    credit.refundOf = {id: payment.id, date: payment.date, store: payment.store, byHand: false};
+    credit.category = payment.category;
+    credit.basis = 'kind';
+  }
+}
+
 function matchRefunds(rows: Row[], categories: Categories) {
   const spends = (row: Row) => Boolean(categories.byKey[row.category]?.spending) && !LEFT_OUT.includes(row.category);
   const payments = new Map<string, Row[]>();
@@ -409,6 +454,7 @@ export function toRows(
   linkOwnTransfers(rows);
   linkPayPal(rows);
   linkPaybacks(rows, paybacks);
+  matchHolderRefunds(rows, me);
   matchRefunds(rows, categories);
   for (const row of rows) {
     row.leftOut = LEFT_OUT.includes(row.category);

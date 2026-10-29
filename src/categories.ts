@@ -255,7 +255,7 @@ const FILLERS = new Set([
  * bank ("Payment from DIJKSTRA VALENTI", "M DIJKSTRA VALENTIN"). A name needs two words, so "Main" never matches.
  * One more word is fine (a middle name, "Revolut"); two are someone else's name too, as on a joint account.
  */
-function namesMe(text: string, me: string[]) {
+export function namesMe(text: string, me: string[]) {
   const said = wordsOf(text);
   return me.some(name => {
     const parts = wordsOf(name).filter(part => part.length >= 3);
