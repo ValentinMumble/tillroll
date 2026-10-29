@@ -316,6 +316,85 @@
   margin: 0;
 }
 
+/* The value over time: a line through the values typed, the lowest and highest on the left, the first and last day
+   under it, a dot with a tooltip on each value. */
+.value-chart {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+}
+
+.value-chart figcaption {
+  color: var(--ink-soft);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.value-plot {
+  position: relative;
+  height: 140px;
+  margin: 8px 8px 0 56px;
+}
+
+.value-axis {
+  position: absolute;
+  right: calc(100% + 10px);
+  color: var(--muted);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.value-axis.is-top {
+  top: 0;
+}
+
+.value-axis.is-bottom {
+  bottom: 0;
+}
+
+.value-line {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.value-line path {
+  fill: none;
+  stroke: var(--bar);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+
+.value-dot {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  margin: 0 0 -5px -5px;
+  border: 2px solid var(--surface);
+  border-radius: 50%;
+  background: var(--bar-strong);
+  cursor: pointer;
+}
+
+/* A ring, not a bigger dot: scaling it would scale its tooltip too. */
+.value-dot.is-hovered {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--bar) 45%, transparent);
+}
+
+.value-dot .chart-tip {
+  left: 50%;
+}
+
+.value-dates {
+  display: flex;
+  justify-content: space-between;
+  margin-left: 56px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
 /* Growth is good news here: green when it grew, red when it lost. */
 .is-up-good {
   color: var(--down);

@@ -16,6 +16,7 @@ import {
 import type {Balance, SavingsRecord, SavingsValue, SavingsValues} from '../types';
 import {BankBadge} from './BankBadge';
 import {BarStrip} from './BarStrip';
+import {ValueChart} from './ValueChart';
 
 interface Props {
   /** The payments of one currency, newest first. */
@@ -159,6 +160,7 @@ function AccountCard({
               : 'Type its value now and then, from its app or its yearly statement: Tillroll then shows how much it grew, beyond what you paid in.'}
           </p>
         )}
+        <ValueChart values={sorted} currency={currency} />
         <form
           className="savings-form"
           onSubmit={event => {
