@@ -234,6 +234,7 @@
 
 /* Every column has the same rows, labelled or not, so the bars share one baseline. */
 .stat-bar {
+  position: relative;
   display: grid;
   flex: 1;
   /* The column's own width: a label wider than it spills over, without widening its bar. */

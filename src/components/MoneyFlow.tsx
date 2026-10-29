@@ -3,6 +3,7 @@ import {money} from '../format';
 import {compactPeriodLabel, type Grain, periodLabel} from '../periods';
 import {type Report, rollingAverage, trendOf} from '../report';
 import {ChartSpan} from './ChartSpan';
+import {ChartTip} from './ChartTip';
 import {TrendLine} from './TrendLine';
 
 interface Props {
@@ -22,7 +23,8 @@ interface Props {
  * or down when the period spent more than came in; then the pay in each of them, with its trend.
  */
 export function MoneyFlow({report, grain, currency, toSavings, span, onSpan}: Props) {
-  // The pay column under the pointer (or tapped), with a tooltip like the month chart's.
+  // The kept and pay columns under the pointer (or tapped), with a tooltip like the month chart's.
+  const [hoveredKept, setHoveredKept] = useState<number | null>(null);
   const [hoveredPay, setHoveredPay] = useState<number | null>(null);
   const {moneyIn, total: spent} = report.current;
   const columns = report.series.map(item => ({...item, kept: item.moneyIn - item.total}));
@@ -85,18 +87,42 @@ export function MoneyFlow({report, grain, currency, toSavings, span, onSpan}: Pr
           <dd>{money(Math.abs(toSavings), currency)}</dd>
         </div>
       </dl>
-      <div className="flow-chart" role="img" aria-label="What each period kept, or spent beyond what came in">
+      <div
+        className="flow-chart"
+        role="img"
+        aria-label="What each period kept, or spent beyond what came in"
+        onPointerLeave={() => setHoveredKept(null)}
+      >
         {columns.map((item, index) => (
           <span
             key={item.period}
             className={`flow-column${item.period === report.period ? ' is-marked' : ''}${item.partial ? ' is-partial' : ''}`}
-            title={`${periodLabel(item.period, report.chartGrain)}: ${money(item.moneyIn, currency)} in, ${money(
-              item.total,
-              currency,
-            )} spent, ${item.kept >= 0 ? 'kept' : 'short by'} ${money(Math.abs(item.kept), currency)}`}
+            onPointerEnter={event => {
+              if (event.pointerType === 'mouse') setHoveredKept(index);
+            }}
+            // A tap shows it on a phone, and hides it again.
+            onClick={() => setHoveredKept(shown => (shown === index ? null : index))}
           >
             <span className="flow-half">
               {item.kept > 0 && <span className="flow-bar is-kept" style={{height: `${(item.kept / top) * 100}%`}} />}
+              {hoveredKept === index && (
+                <ChartTip
+                  column={index}
+                  columns={columns.length}
+                  bottom={`calc(${item.kept > 0 ? (item.kept / top) * 100 : 0}% + 8px)`}
+                >
+                  <strong>{periodLabel(item.period, report.chartGrain)}</strong>
+                  <span>
+                    {item.kept >= 0 ? 'Kept' : 'Short by'} {money(Math.abs(item.kept), currency)}
+                    {item.partial === 'ongoing' ? ' so far' : ''}
+                  </span>
+                  <span>{money(item.moneyIn, currency)} came in</span>
+                  <span>{money(item.total, currency)} spent</span>
+                  {item.moneyIn >= 0.5 && item.kept > 0 && (
+                    <span>{Math.round((item.kept / item.moneyIn) * 100)}% of what came in</span>
+                  )}
+                </ChartTip>
+              )}
             </span>
             <span className="flow-half is-below">
               {item.kept < 0 && <span className="flow-bar is-short" style={{height: `${(-item.kept / top) * 100}%`}} />}
@@ -136,16 +162,16 @@ export function MoneyFlow({report, grain, currency, toSavings, span, onSpan}: Pr
               >
                 <span className="pay-bar" style={{height: `${(item.pay / payTop) * 100}%`}} />
                 {hoveredPay === index && (
-                  <span
-                    className={`chart-tip${index < 2 ? ' is-start' : index > columns.length - 3 ? ' is-end' : ''}`}
-                    role="tooltip"
-                    style={{bottom: `calc(${(item.pay / payTop) * 100}% + 8px)`}}
+                  <ChartTip
+                    column={index}
+                    columns={columns.length}
+                    bottom={`calc(${(item.pay / payTop) * 100}% + 8px)`}
                   >
                     <strong>{periodLabel(item.period, report.chartGrain)}</strong>
                     <span>
                       {money(item.pay, currency)} of pay{item.partial === 'ongoing' ? ' so far' : ''}
                     </span>
-                  </span>
+                  </ChartTip>
                 )}
               </span>
             ))}

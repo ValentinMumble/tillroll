@@ -3,6 +3,7 @@ import type {Categories} from '../categories';
 import {compactMoney, money} from '../format';
 import {type Grain, periodLabel} from '../periods';
 import {type Report, rollingAverage, trendOf} from '../report';
+import {ChartTip} from './ChartTip';
 import {TrendLine} from './TrendLine';
 
 interface Props {
@@ -75,7 +76,6 @@ export function PeriodChart({series, selected, grain, currency, usual, categorie
         {trend && <TrendLine values={rollingAverage(full)} top={top} />}
         <div className="chart-columns" onMouseLeave={() => setHovered(null)}>
           {series.map((item, index) => {
-            const edge = index < 2 ? ' is-start' : index > series.length - 3 ? ' is-end' : '';
             const top = [...item.categories]
               .filter(([, value]) => value >= 0.5)
               .sort((first, second) => second[1] - first[1])
@@ -108,10 +108,10 @@ export function PeriodChart({series, selected, grain, currency, usual, categorie
                   <span className="chart-year-before" style={{bottom: height(item.lastYear)}} />
                 )}
                 {hovered === index && (
-                  <span
-                    className={`chart-tip${edge}`}
-                    role="tooltip"
-                    style={{bottom: `calc(${height(Math.max(item.total, landing ?? 0))} + 10px)`}}
+                  <ChartTip
+                    column={index}
+                    columns={series.length}
+                    bottom={`calc(${height(Math.max(item.total, landing ?? 0))} + 10px)`}
                   >
                     <strong>{periodLabel(item.period, grain)}</strong>
                     <span>
@@ -138,7 +138,7 @@ export function PeriodChart({series, selected, grain, currency, usual, categorie
                         {categories.byKey[key]?.icon} {categories.byKey[key]?.label ?? key} {money(value, currency)}
                       </span>
                     ))}
-                  </span>
+                  </ChartTip>
                 )}
               </button>
             );

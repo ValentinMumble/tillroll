@@ -4,6 +4,7 @@ import {money} from '../format';
 import {daysBetween, type Grain, periodLabel, today} from '../periods';
 import type {Report} from '../report';
 import {Delta} from './Delta';
+import {ChartTip} from './ChartTip';
 import {PaceRings} from './PaceRings';
 
 interface Props {
@@ -39,7 +40,6 @@ export function Summary({report, period, grain, currency, categories, toSavings,
   }, 0);
   const tipValue = hovered ? (current.categories.get(hovered) ?? 0) : 0;
   const tipMiddle = hovered ? (middles.get(hovered) ?? 50) : 50;
-  const tipEdge = tipMiddle < 12 ? ' is-start' : tipMiddle > 88 ? ' is-end' : '';
   const days = daysBetween(report.from, ongoing ? today() : report.to);
   const pace = report.pace;
   const left = pace ? pace.days - pace.spent.length : 0;
@@ -97,10 +97,10 @@ export function Summary({report, period, grain, currency, categories, toSavings,
             ))}
           </div>
           {hovered && (
-            <span
-              className={`chart-tip spend-tip${tipEdge}`}
-              role="tooltip"
-              style={tipEdge ? undefined : {left: `${tipMiddle}%`}}
+            <ChartTip
+              className="spend-tip"
+              edge={tipMiddle < 12 ? 'start' : tipMiddle > 88 ? 'end' : null}
+              left={`${tipMiddle}%`}
             >
               <strong>
                 {categories.byKey[hovered]?.icon} {labelOf(hovered)}
@@ -108,7 +108,7 @@ export function Summary({report, period, grain, currency, categories, toSavings,
               <span>
                 {money(tipValue, currency)} · {Math.round((tipValue / stripTotal) * 100)}% of the spending
               </span>
-            </span>
+            </ChartTip>
           )}
         </div>
       )}

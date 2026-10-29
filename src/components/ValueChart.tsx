@@ -2,6 +2,7 @@ import {useState} from 'react';
 import {compactMoney, money} from '../format';
 import {dayLabel} from '../periods';
 import type {SavingsValue} from '../types';
+import {ChartTip} from './ChartTip';
 
 interface Props {
   /** The values typed by hand, oldest first. */
@@ -40,7 +41,6 @@ export function ValueChart({values, currency}: Props) {
         </svg>
         {values.map((item, index) => {
           const change = index > 0 ? item.value - values[index - 1].value : null;
-          const edge = x(index) < 15 ? ' is-start' : x(index) > 85 ? ' is-end' : '';
           return (
             <span
               key={item.date}
@@ -52,7 +52,7 @@ export function ValueChart({values, currency}: Props) {
               onClick={() => setHovered(shown => (shown === index ? null : index))}
             >
               {hovered === index && (
-                <span className={`chart-tip${edge}`} role="tooltip" style={{bottom: '14px'}}>
+                <ChartTip edge={x(index) < 15 ? 'start' : x(index) > 85 ? 'end' : null} bottom="14px">
                   <strong>{dayLabel(item.date, true)}</strong>
                   <span>{money(item.value, currency, true)}</span>
                   {change !== null && (
@@ -61,7 +61,7 @@ export function ValueChart({values, currency}: Props) {
                       {money(Math.abs(change), currency, true)} since {dayLabel(values[index - 1].date, true)}
                     </span>
                   )}
-                </span>
+                </ChartTip>
               )}
             </span>
           );

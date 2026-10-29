@@ -3,6 +3,7 @@ import {money} from '../format';
 import {periodLabel, shiftPeriod, shortMonth} from '../periods';
 import type {SavingsAccount} from '../savings';
 import {ChartSpan} from './ChartSpan';
+import {ChartTip} from './ChartTip';
 
 interface Props {
   accounts: SavingsAccount[];
@@ -66,7 +67,6 @@ export function PutAside({accounts, thisMonth, currency, span, onSpan}: Props) {
         {columns.map((item, index) => {
           const height = (Math.abs(item.net) / top) * 100;
           const ongoing = item.month === thisMonth;
-          const edge = index < 2 ? ' is-start' : index > columns.length - 3 ? ' is-end' : '';
           return (
             <span
               key={item.month}
@@ -80,10 +80,10 @@ export function PutAside({accounts, thisMonth, currency, span, onSpan}: Props) {
               <span className="flow-half">
                 {item.net >= 0.5 && <span className="flow-bar is-saved" style={{height: `${height}%`}} />}
                 {hovered === index && (
-                  <span
-                    className={`chart-tip${edge}`}
-                    role="tooltip"
-                    style={{bottom: `calc(${item.net >= 0.5 ? height : 0}% + 8px)`}}
+                  <ChartTip
+                    column={index}
+                    columns={columns.length}
+                    bottom={`calc(${item.net >= 0.5 ? height : 0}% + 8px)`}
                   >
                     <strong>{periodLabel(item.month, 'month')}</strong>
                     <span>
@@ -100,7 +100,7 @@ export function PutAside({accounts, thisMonth, currency, span, onSpan}: Props) {
                         {money(Math.abs(part.net), currency)}
                       </span>
                     ))}
-                  </span>
+                  </ChartTip>
                 )}
               </span>
               <span className="flow-half is-below">
