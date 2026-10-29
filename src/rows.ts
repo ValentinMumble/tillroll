@@ -30,7 +30,8 @@ export interface Row extends Transaction {
   counts: boolean;
   /**
    * What the row adds to the spending: the amount turned positive, less what came back in refunds; negative for a
-   * refund matched with no payment; 0 for a matched refund (its payment costs less instead), or when not spending.
+   * refund matched with no payment, and for what a payback brought beyond its payment; 0 for a matched refund (its
+   * payment costs less instead), or when not spending.
    */
   spend: number;
   /** Left out of every total, money in and out too: between one's own accounts, or ignored by hand. */
@@ -41,6 +42,8 @@ export interface Row extends Transaction {
   refundOf: {id: string; date: string; store: string; byHand: boolean} | null;
   /** For a payment: how much of it came back in refunds. */
   refunded: number;
+  /** For money in linked by hand to a payment: what it brought beyond what was left of that payment to pay back. */
+  beyond: number;
   /** Labels put on it by hand. */
   labels: string[];
   /** Its category was picked for this payment only, over its store's. */
@@ -75,9 +78,22 @@ export function searchText(row: Row) {
   return plain(`${row.store} ${row.description} ${labels} ${amount} ${amount.replace('.', ',')}`);
 }
 
-/** The payments some money in was linked to by hand (see linkPaybacks): theirs is paid back, not refunded. */
-export const paidBackIds = (rows: Row[]) =>
-  new Set(rows.flatMap(row => (row.refundOf?.byHand ? [row.refundOf.id] : [])));
+/**
+ * The money in that gave each payment back, by the payment's id, oldest first: refunds, and paybacks linked by hand
+ * (see linkPaybacks), which make it paid back rather than refunded.
+ */
+export function givenBack(rows: Row[]) {
+  const map = new Map<string, Row[]>();
+  for (const row of rows) {
+    if (row.refundOf) map.set(row.refundOf.id, [...(map.get(row.refundOf.id) ?? []), row]);
+  }
+  for (const list of map.values()) list.sort((first, second) => (first.date < second.date ? -1 : 1));
+  return map;
+}
+
+/** What gave a payment back, as a heading: paid back when a payback was linked by hand to it, refunded otherwise. */
+export const givenTitle = (credits: Row[] = []) =>
+  credits.some(credit => credit.refundOf?.byHand) ? 'Paid back by' : 'Refunded by';
 
 /** The bank a row comes from: older rows have none, they are Revolut's. */
 export const bankOf = (row: Row) => row.bank ?? 'Revolut';
@@ -267,13 +283,12 @@ function linkPayPal(rows: Row[]) {
  * matched with the payment it gives back: the latest one at that store and bank in the 180 days before, with that
  * much not given back yet, the same amount first. That payment then costs what is left, in its own week and month.
  */
-/** Money in may round up the payment it pays back by this much at most (€18 for €17.99): that payment costs nothing. */
-export const PAYBACK_ROUNDING = 1;
-
 /**
- * Money in linked by hand to the payment it pays back (a friend's share of a flat paid with one's card): that payment
- * then costs what is left, in its own week and month, as with a refund, and the money in takes its category. A link
- * to a payment that is gone, or that would pay back more than the payment cost (beyond rounding it up), is left aside.
+ * Money in linked by hand to the payment it pays back (a friend's share of a flat paid with one's card, something
+ * sold on later): that payment then costs what is left, in its own week and month, as with a refund, and the money in
+ * takes its category. Money in beyond what was left (a friend rounding up, something sold for more than it cost)
+ * lowers the spending of its own week and month instead, as a refund matched with no payment does. A link to a
+ * payment that is gone, or paid back in full already, is left aside.
  */
 function linkPaybacks(rows: Row[], paybacks: Paybacks) {
   const byId = new Map(rows.map(row => [row.id, row]));
@@ -282,9 +297,10 @@ function linkPaybacks(rows: Row[], paybacks: Paybacks) {
     const payment = byId.get(paymentId);
     if (!credit || !payment || credit.amount <= 0 || payment.amount >= 0) continue;
     const left = -payment.amount - payment.refunded;
-    if (left <= 0 || left < credit.amount - PAYBACK_ROUNDING) continue;
-    // Rounded up, it pays back what is left of the payment, no more.
+    if (left < 0.005) continue;
     payment.refunded += Math.min(credit.amount, left);
+    // Rounding up by less than €1 (€18 for €17.99) is nothing.
+    credit.beyond = credit.amount - left >= 1 ? credit.amount - left : 0;
     credit.refund = true;
     credit.refundOf = {id: payment.id, date: payment.date, store: payment.store, byHand: true};
     if (!credit.ownCategory) {
@@ -447,6 +463,7 @@ export function toRows(
       refund: false,
       refundOf: null,
       refunded: 0,
+      beyond: 0,
       labels: labels[transaction.id] ?? [],
       ownCategory,
     };
@@ -462,7 +479,8 @@ export function toRows(
   for (const row of rows) {
     row.leftOut = LEFT_OUT.includes(row.category);
     row.counts = !row.leftOut && categories.byKey[row.category].spending;
-    row.spend = !row.counts || row.refundOf ? 0 : -row.amount - row.refunded;
+    // "0 -" keeps a payback with nothing beyond at 0, not -0.
+    row.spend = !row.counts ? 0 : row.refundOf ? 0 - row.beyond : -row.amount - row.refunded;
   }
   return rows.sort((first, second) => (first.date < second.date ? 1 : first.date > second.date ? -1 : 0));
 }

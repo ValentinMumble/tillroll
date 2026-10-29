@@ -97,12 +97,34 @@ describe('paybacks', () => {
     expect(rows.find(item => item.id === share.id)?.spend).toBe(0);
   });
 
-  it('leaves aside a link that would pay back more than the payment cost', () => {
+  it('lets a payback add a little on top, which lowers its own month’s spending', () => {
+    const pizza = payment({description: 'Pizza Posto', amount: -26.5, date: '2026-05-03'});
+    const share = payment({description: 'Anne-Cecile Martinet', kind: 'income', amount: 30, date: '2026-05-03'});
+    const rows = toRows([pizza, share], sorting({[share.id]: pizza.id}));
+    expect(rows.find(item => item.id === pizza.id)?.spend).toBe(0);
+    expect(rows.find(item => item.id === share.id)?.refundOf).toMatchObject({id: pizza.id, byHand: true});
+    expect(rows.find(item => item.id === share.id)?.spend).toBe(-3.5);
+  });
+
+  it('pays back what is left of a payment when something is sold on for more', () => {
+    const order = payment({description: 'Lordgun', amount: -238.99, date: '2023-06-14'});
+    const part = payment({description: 'Leboncoin', kind: 'income', amount: 159.5, date: '2024-03-02'});
+    const sale = payment({description: 'LBC France SAS', kind: 'income', amount: 280, date: '2025-07-21'});
+    const rows = toRows([order, part, sale], sorting({[part.id]: order.id, [sale.id]: order.id}));
+    const row = (transaction: Transaction) => rows.find(item => item.id === transaction.id) as Row;
+    expect(row(order).spend).toBe(0);
+    expect(row(part).spend).toBe(0);
+    expect(row(sale).beyond).toBeCloseTo(200.51);
+    expect(row(sale).spend).toBeCloseTo(-200.51);
+  });
+
+  it('leaves aside a link to a payment paid back in full already', () => {
     const coffee = payment({description: 'Cafe Pop', amount: -4.5, date: '2026-09-22'});
-    const share = payment({description: 'Alexandre Mazure', kind: 'income', amount: 286, date: '2026-10-03'});
-    const rows = toRows([coffee, share], sorting({[share.id]: coffee.id}));
-    expect(rows.find(item => item.id === coffee.id)?.spend).toBe(4.5);
-    expect(rows.find(item => item.id === share.id)?.refundOf).toBeNull();
+    const first = payment({description: 'Alexandre Mazure', kind: 'income', amount: 4.5, date: '2026-09-23'});
+    const second = payment({description: 'Alexandre Mazure', kind: 'income', amount: 4.5, date: '2026-09-24'});
+    const rows = toRows([coffee, first, second], sorting({[first.id]: coffee.id, [second.id]: coffee.id}));
+    expect(rows.find(item => item.id === first.id)?.refundOf).not.toBeNull();
+    expect(rows.find(item => item.id === second.id)?.refundOf).toBeNull();
   });
 });
 

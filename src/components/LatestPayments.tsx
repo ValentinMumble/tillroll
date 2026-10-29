@@ -2,14 +2,14 @@ import {useState} from 'react';
 import {type Categories, colourStyle} from '../categories';
 import {money} from '../format';
 import {dayLabel, recentDayLabel} from '../periods';
-import {isListed, isIncoming, isUnsure, paidBackIds, type Row, topCategories} from '../rows';
+import {givenBack, givenTitle, isListed, isIncoming, isUnsure, type Row, topCategories} from '../rows';
 import {loadPaymentsEverything, loadPaymentsOwn} from '../storage';
 import type {CategoryKey, Labels} from '../types';
 import {BankBadge} from './BankBadge';
 import {CategorySheet, MOST_USED} from './CategorySheet';
 import {ListSwitches} from './ListSwitches';
 import {LabelOptions, PaymentLabels} from './PaymentLabels';
-import {PaybackPicker} from './PaybackPicker';
+import {PaidBackBy, PaybackPicker} from './PaybackPicker';
 import {RefundTags} from './RefundTags';
 import {opensCategory} from '../device';
 
@@ -61,7 +61,7 @@ export function LatestPayments({
   const [own, setOwn] = useState(loadPaymentsOwn);
   const shown = rows.filter(row => isListed(row, {moneyIn, own}));
   // Newest first, a day at a time, until there are enough days and enough payments.
-  const paidBack = paidBackIds(allRows);
+  const given = givenBack(allRows);
   const latest: Row[] = [];
   const days = new Set<string>();
   for (const row of shown) {
@@ -126,7 +126,7 @@ export function LatestPayments({
                     {row.store}
                   </button>
                   {row.pending && <span className="tag">pending</span>}
-                  <RefundTags row={row} paidBack={paidBack} />
+                  <RefundTags row={row} givenBack={given} onOpen={() => setSheet(row)} />
                   <PaymentLabels row={row} onLabels={onLabels} onFocusLabel={onFocusLabel} />
                 </span>
                 <span className="latest-day">{row.time}</span>
@@ -175,7 +175,7 @@ export function LatestPayments({
           guess={sheet.basis !== 'picked'}
           frequent={topCategories(rows, MOST_USED + 1)}
           payback={
-            sheet.amount > 0 && (
+            sheet.amount > 0 ? (
               <PaybackPicker
                 row={rows.find(row => row.id === sheet.id) ?? sheet}
                 rows={allRows}
@@ -184,8 +184,19 @@ export function LatestPayments({
                   setSheet(null);
                 }}
               />
+            ) : (
+              given.has(sheet.id) && (
+                <PaidBackBy
+                  credits={given.get(sheet.id) ?? []}
+                  onUnlink={credit => {
+                    onPayback(credit, null);
+                    setSheet(null);
+                  }}
+                />
+              )
             )
           }
+          paybackTitle={sheet.amount < 0 ? givenTitle(given.get(sheet.id)) : undefined}
           labels={
             <PaymentLabels
               // The payment as it is now: labels added in the sheet show at once.

@@ -297,6 +297,32 @@
   gap: 8px;
 }
 
+/* A payment's sheet: the money in that gave it back, one line each, like the picker's. */
+.paid-back-by {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.paid-back-by li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
+  align-items: center;
+  gap: 12px;
+  min-height: 40px;
+  padding: 0 8px;
+  border-top: 1px solid var(--line);
+}
+
+.paid-back-by li:first-child {
+  border-top: 0;
+}
+
+.paid-back-by .payment-amount {
+  width: auto;
+}
+
 .payback-picker .hint {
   margin: 0;
 }

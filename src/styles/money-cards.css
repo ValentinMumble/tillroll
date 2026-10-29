@@ -428,6 +428,18 @@
   color: var(--down);
 }
 
+/* A payment's "paid back" tag opens its sheet, which lists what gave it back. */
+button.tag {
+  border: 0;
+  font-family: inherit;
+  line-height: inherit;
+  cursor: pointer;
+}
+
+button.tag:hover {
+  text-decoration: underline;
+}
+
 .payments > .link-button {
   margin-top: 12px;
 }

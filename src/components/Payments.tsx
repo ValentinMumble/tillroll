@@ -3,7 +3,17 @@ import {type Categories, colourStyle} from '../categories';
 import {money} from '../format';
 import {tidyLabel, withLabel} from '../labels';
 import {dayLabel, recentDayLabel, today} from '../periods';
-import {bankOf, isListed, isIncoming, isUnsure, paidBackIds, type Row, searchText, topCategories} from '../rows';
+import {
+  bankOf,
+  givenBack,
+  givenTitle,
+  isListed,
+  isIncoming,
+  isUnsure,
+  type Row,
+  searchText,
+  topCategories,
+} from '../rows';
 import {
   loadPaymentSort,
   loadPaymentsEverything,
@@ -20,7 +30,7 @@ import {CategoryFilter} from './CategoryFilter';
 import {CategorySheet, MOST_USED, type Scope} from './CategorySheet';
 import {ListSwitches} from './ListSwitches';
 import {LabelOptions, PaymentLabels} from './PaymentLabels';
-import {PaybackPicker} from './PaybackPicker';
+import {PaidBackBy, PaybackPicker} from './PaybackPicker';
 import {RefundTags} from './RefundTags';
 import {WebSearch} from './WebSearch';
 import {paymentCount, plain} from '../text';
@@ -185,8 +195,8 @@ export function Payments({
   );
   // What the listed moves put in savings, less what they took back (the moves show with "My accounts" on).
   const toSavings = visible.filter(row => savingsMoves.has(row.id)).reduce((sum, row) => sum - row.amount, 0);
-  // The payments some money in was linked to by hand: theirs is paid back, not refunded.
-  const paidBack = paidBackIds(allRows);
+  // The money in that gave each payment back, refunds and paybacks, for their tags and the payment's sheet.
+  const given = givenBack(allRows);
   // Moves between one's own accounts are in no total: their switch counts the period's.
   const moves = rows.filter(row => row.category === 'own').length;
   const page = visible.slice(0, limit);
@@ -539,7 +549,7 @@ export function Payments({
                     <WebSearch name={row.store} />
                     {row.pending && <span className="tag">pending</span>}
                     {isUnsure(row) && <span className="tag is-check">to check</span>}
-                    <RefundTags row={row} paidBack={paidBack} />
+                    <RefundTags row={row} givenBack={given} onOpen={() => setSheet([row])} />
                     <PaymentLabels row={row} onLabels={onLabels} onFocusLabel={onFocusLabel} />
                   </td>
                   <td className="payment-category">
@@ -640,8 +650,7 @@ export function Payments({
           guess={sheet.every(row => row.basis !== 'picked')}
           frequent={topCategories(rows, MOST_USED + 1)}
           payback={
-            sheet.length === 1 &&
-            sheet[0].amount > 0 && (
+            sheet.length !== 1 ? null : sheet[0].amount > 0 ? (
               <PaybackPicker
                 row={rows.find(row => row.id === sheet[0].id) ?? sheet[0]}
                 rows={allRows}
@@ -650,8 +659,19 @@ export function Payments({
                   setSheet(null);
                 }}
               />
+            ) : (
+              given.has(sheet[0].id) && (
+                <PaidBackBy
+                  credits={given.get(sheet[0].id) ?? []}
+                  onUnlink={credit => {
+                    onPayback(credit, null);
+                    setSheet(null);
+                  }}
+                />
+              )
             )
           }
+          paybackTitle={sheet.length === 1 && sheet[0].amount < 0 ? givenTitle(given.get(sheet[0].id)) : undefined}
           labels={
             sheet.length === 1 && (
               <PaymentLabels
