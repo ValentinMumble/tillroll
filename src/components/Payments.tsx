@@ -548,6 +548,14 @@ export function Payments({
                     </button>
                     <WebSearch name={row.store} />
                     {row.pending && <span className="tag">pending</span>}
+                    {row.viaPayPal && (
+                      <span
+                        className="tag"
+                        title="It paid a PayPal purchase, which counts at its shop: a move between your accounts"
+                      >
+                        via PayPal
+                      </span>
+                    )}
                     {isUnsure(row) && <span className="tag is-check">to check</span>}
                     <RefundTags row={row} givenBack={given} onOpen={() => setSheet([row])} />
                     <PaymentLabels row={row} onLabels={onLabels} onFocusLabel={onFocusLabel} />

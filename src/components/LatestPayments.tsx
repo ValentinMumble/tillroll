@@ -126,6 +126,14 @@ export function LatestPayments({
                     {row.store}
                   </button>
                   {row.pending && <span className="tag">pending</span>}
+                  {row.viaPayPal && (
+                    <span
+                      className="tag"
+                      title="It paid a PayPal purchase, which counts at its shop: a move between your accounts"
+                    >
+                      via PayPal
+                    </span>
+                  )}
                   <RefundTags row={row} givenBack={given} onOpen={() => setSheet(row)} />
                   <PaymentLabels row={row} onLabels={onLabels} onFocusLabel={onFocusLabel} />
                 </span>

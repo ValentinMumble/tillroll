@@ -44,6 +44,8 @@ export interface Row extends Transaction {
   refunded: number;
   /** For money in linked by hand to a payment: what it brought beyond what was left of that payment to pay back. */
   beyond: number;
+  /** A bank payment that paid a PayPal purchase: a move between one's accounts, the purchase counts at PayPal. */
+  viaPayPal: boolean;
   /** Labels put on it by hand. */
   labels: string[];
   /** Its category was picked for this payment only, over its store's. */
@@ -172,6 +174,7 @@ function linkOwnTransfers(rows: Row[]) {
     if (!other) continue;
     other.category = 'own';
     other.basis = 'kind';
+    other.viaPayPal = own.bank === 'PayPal' && other.amount < 0;
     candidates.splice(candidates.indexOf(other), 1);
   }
 }
@@ -247,6 +250,7 @@ function linkPayPal(rows: Row[]) {
     if (!twin) continue;
     twin.category = 'own';
     twin.basis = 'kind';
+    twin.viaPayPal = twin.amount < 0;
     if (Math.sign(twin.amount) !== Math.sign(payment.amount) && !keepsPick) toOwn();
     open.splice(open.indexOf(twin), 1);
     linked.add(payment);
@@ -273,6 +277,7 @@ function linkPayPal(rows: Row[]) {
     if (!twin) continue;
     twin.category = 'own';
     twin.basis = 'kind';
+    twin.viaPayPal = true;
     charges.splice(charges.indexOf(twin), 1);
   }
 }
@@ -464,6 +469,7 @@ export function toRows(
       refundOf: null,
       refunded: 0,
       beyond: 0,
+      viaPayPal: false,
       labels: labels[transaction.id] ?? [],
       ownCategory,
     };

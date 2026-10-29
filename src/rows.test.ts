@@ -29,7 +29,29 @@ describe('PayPal', () => {
     const row = rowsOf([shop, bank]);
     expect(row(bank).category).toBe('own');
     expect(row(bank).spend).toBe(0);
+    expect(row(bank).viaPayPal).toBe(true);
     expect(row(shop).spend).toBe(10);
+  });
+
+  it('marks a card payment naming the shop, paired with PayPal’s top-up, as paid via PayPal', () => {
+    const shop = payment({
+      bank: 'PayPal',
+      description: 'MGP Vinted - Kleiderkreisel',
+      amount: -11.84,
+      date: '2022-09-15',
+    });
+    const topUp = payment({
+      bank: 'PayPal',
+      description: 'Dépôt sur carte standard',
+      kind: 'topup',
+      amount: 11.84,
+      date: '2022-09-15',
+    });
+    const card = payment({description: 'Vinted', amount: -11.84, date: '2022-09-15'});
+    const row = rowsOf([shop, topUp, card]);
+    expect(row(card).category).toBe('own');
+    expect(row(card).viaPayPal).toBe(true);
+    expect(row(shop).spend).toBe(11.84);
   });
 
   it('pairs a withdrawal with the bank money in of as much, both moves', () => {
