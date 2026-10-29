@@ -47,6 +47,8 @@ interface Props {
   onCreateCategory: (rows: Row[], label: string, icon: string, scope: string) => void;
   onLabels: (changes: Labels) => void;
   onPayback: (row: Row, paymentId: string | null) => void;
+  /** What the period put in savings accounts, less what it took back (a negative amount when it took back more). */
+  toSavings: number;
   /** How far back the period chart goes: 1, 2 or 3 times its usual length. */
   chartSpan: number;
   onChartSpan: (span: number) => void;
@@ -84,6 +86,7 @@ export function Overview({
   onCreateCategory,
   onLabels,
   onPayback,
+  toSavings,
   chartSpan,
   onChartSpan,
 }: Props) {
@@ -97,6 +100,7 @@ export function Overview({
           grain={grain}
           currency={currency}
           categories={categories}
+          toSavings={toSavings}
           balances={<Balances balances={balances} currency={currency} onSavings={() => onShow('savings')} />}
         />
       </section>
@@ -177,7 +181,14 @@ export function Overview({
         currency={currency}
         onEdit={() => onShow('categories')}
       />
-      <MoneyFlow report={report} grain={grain} currency={currency} span={chartSpan} onSpan={onChartSpan} />
+      <MoneyFlow
+        report={report}
+        grain={grain}
+        currency={currency}
+        toSavings={toSavings}
+        span={chartSpan}
+        onSpan={onChartSpan}
+      />
       <FixedSplit report={report} grain={grain} currency={currency} />
       <RegularPayments subscriptions={report.subscriptions} currency={currency} onOpenStore={onOpenStore} />
       <Insights insights={report.insights} />

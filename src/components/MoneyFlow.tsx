@@ -9,6 +9,8 @@ interface Props {
   report: Report;
   grain: Grain;
   currency: string;
+  /** What the period put in savings accounts, less what it took back. */
+  toSavings: number;
   /** How far back its columns go, shared with the month chart (see ChartSpan). */
   span: number;
   onSpan: (span: number) => void;
@@ -19,10 +21,10 @@ interface Props {
  * spent, and what was kept, with its share of what came in. Under it, what each of the chart's periods kept: a bar up,
  * or down when the period spent more than came in; then the pay in each of them, with its trend.
  */
-export function MoneyFlow({report, grain, currency, span, onSpan}: Props) {
+export function MoneyFlow({report, grain, currency, toSavings, span, onSpan}: Props) {
   // The pay column under the pointer (or tapped), with a tooltip like the month chart's.
   const [hoveredPay, setHoveredPay] = useState<number | null>(null);
-  const {moneyIn, total: spent, movedOut} = report.current;
+  const {moneyIn, total: spent} = report.current;
   const columns = report.series.map(item => ({...item, kept: item.moneyIn - item.total}));
   if (grain === 'week' || columns.every(item => item.moneyIn < 0.5)) return null;
   const kept = moneyIn - spent;
@@ -79,8 +81,8 @@ export function MoneyFlow({report, grain, currency, span, onSpan}: Props) {
           <dd>{money(spent, currency)}</dd>
         </div>
         <div>
-          <dt>Moved out, not spent</dt>
-          <dd>{money(movedOut, currency)}</dd>
+          <dt>{toSavings < 0 ? 'Taken from savings' : 'To savings'}</dt>
+          <dd>{money(Math.abs(toSavings), currency)}</dd>
         </div>
       </dl>
       <div className="flow-chart" role="img" aria-label="What each period kept, or spent beyond what came in">

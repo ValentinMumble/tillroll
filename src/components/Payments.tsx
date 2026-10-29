@@ -55,6 +55,8 @@ interface Props {
   onPayback: (row: Row, paymentId: string | null) => void;
   /** The payments come from more than one bank: each shows its bank's letter. */
   showBanks: boolean;
+  /** The payments that put money in a savings account or take it back, by id (see savingsAccounts). */
+  savingsMoves: Set<string>;
 }
 
 const PAGE = 60;
@@ -104,6 +106,7 @@ export function Payments({
   onFocusCheck,
   onPayback,
   showBanks,
+  savingsMoves,
 }: Props) {
   const [moneyIn, setMoneyIn] = useState(loadPaymentsEverything);
   const [own, setOwn] = useState(loadPaymentsOwn);
@@ -180,6 +183,8 @@ export function Payments({
     (sum, row) => sum + (!row.counts && !row.leftOut && row.amount > 0 ? row.amount : 0),
     0,
   );
+  // What the listed moves put in savings, less what they took back (the moves show with "My accounts" on).
+  const toSavings = visible.filter(row => savingsMoves.has(row.id)).reduce((sum, row) => sum - row.amount, 0);
   // The payments some money in was linked to by hand: theirs is paid back, not refunded.
   const paidBack = paidBackIds(allRows);
   // Moves between one's own accounts are in no total: their switch counts the period's.
@@ -299,12 +304,10 @@ export function Payments({
         <span className="view-total">{money(spent, currency)}</span>
         <span className="hint">
           {paymentCount(paid)}
-          {moneyIn && (movedOut > 0 || cameIn > 0) && (
-            <>
-              {' '}
-              · {money(movedOut, currency)} moved out · {money(cameIn, currency)} in
-            </>
-          )}
+          {moneyIn && movedOut > 0 && ` · ${money(movedOut, currency)} moved out`}
+          {Math.abs(toSavings) >= 0.5 &&
+            ` · ${money(Math.abs(toSavings), currency)} ${toSavings > 0 ? 'to savings' : 'taken from savings'}`}
+          {moneyIn && cameIn > 0 && ` · ${money(cameIn, currency)} in`}
           {focus?.type === 'label' && ' · all time'}
         </span>
         {focusLabel && (

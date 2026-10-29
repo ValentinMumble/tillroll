@@ -29,6 +29,7 @@ import {isHomeScreenApp} from './device';
 import type {Pair} from './duplicates';
 import {timeAgo} from './format';
 import {type Grain, periodEnd, periodOf, shiftPeriod, today} from './periods';
+import {savingsAccounts} from './savings';
 import {buildReport} from './report';
 import {isUnsure, rowsBetween, type StoreToSort, storesToSort} from './rows';
 import {loadChartSpan, loadGrain, saveChartSpan, saveGrain, savePaymentSort} from './storage';
@@ -197,6 +198,21 @@ export default function App() {
     [currencyRows, period, grain, categories, chartSpan],
   );
   const periodRows = useMemo(() => rowsBetween(currencyRows, report.from, report.to), [currencyRows, report]);
+  // The payments that put money in a savings account or take it back (see savingsAccounts), by id, and what the period
+  // put in, less what it took back.
+  const savingsMoves = useMemo(
+    () =>
+      new Set(
+        savingsAccounts(currencyRows, today().slice(0, 7), data?.savingsValues ?? {}, holders).flatMap(account =>
+          account.moves.map(row => row.id),
+        ),
+      ),
+    [currencyRows, data?.savingsValues, holders],
+  );
+  const toSavings = useMemo(
+    () => periodRows.filter(row => savingsMoves.has(row.id)).reduce((sum, row) => sum - row.amount, 0),
+    [periodRows, savingsMoves],
+  );
   const toCheck = useMemo(() => periodRows.filter(isUnsure).length, [periodRows]);
 
   function changeGrain(next: Grain) {
@@ -520,6 +536,7 @@ export default function App() {
               onCreateCategory={(targets, label, icon, scope) => void createCategoryFor(targets, label, icon, scope)}
               onLabels={changes => void setLabels(changes)}
               onPayback={(row, paymentId) => void setPayback(row, paymentId)}
+              toSavings={toSavings}
               chartSpan={chartSpan}
               onChartSpan={span => {
                 setChartSpan(span);
@@ -601,6 +618,7 @@ export default function App() {
               key={paymentsRun}
               rows={focus?.type === 'label' ? currencyRows : periodRows}
               allRows={currencyRows}
+              savingsMoves={savingsMoves}
               onAllTime={() => changeGrain('all')}
               categories={categories}
               focus={focus}

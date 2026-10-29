@@ -12,6 +12,8 @@ interface Props {
   grain: Grain;
   currency: string;
   categories: Categories;
+  /** What the period put in savings accounts, less what it took back. */
+  toSavings: number;
   /** The banks' balances (see Balances), beside the total on a wide screen, at the end on a phone. */
   balances?: ReactNode;
 }
@@ -21,7 +23,7 @@ interface Props {
  * period it is, time against money as two rings, and a strip of the categories' colours, each as long as its share.
  * The balances fill the space beside them.
  */
-export function Summary({report, period, grain, currency, categories, balances}: Props) {
+export function Summary({report, period, grain, currency, categories, toSavings, balances}: Props) {
   const {current, baseline, ongoing} = report;
   const parts = [...current.categories]
     .filter(([, value]) => value >= 0.5)
@@ -120,8 +122,8 @@ export function Summary({report, period, grain, currency, categories, balances}:
           <dd>{money(current.total / days, currency)}</dd>
         </div>
         <div>
-          <dt>Moved out, not spent</dt>
-          <dd>{money(current.movedOut, currency)}</dd>
+          <dt>{toSavings < 0 ? 'Taken from savings' : 'To savings'}</dt>
+          <dd>{money(Math.abs(toSavings), currency)}</dd>
         </div>
         <div>
           <dt>Money in</dt>
