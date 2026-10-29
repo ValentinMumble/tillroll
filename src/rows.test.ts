@@ -150,6 +150,52 @@ describe('paybacks', () => {
   });
 });
 
+describe('sales', () => {
+  it('lowers its own category’s spending, not the latest payment at its store', () => {
+    const racket = payment({description: 'Leboncoin', amount: -74.2, date: '2025-06-12'});
+    const sale = payment({description: 'Leboncoin', kind: 'income', amount: 35, date: '2025-08-04'});
+    const bike = categoriesFrom([{key: 'bike', label: 'Bike', icon: '🚲', spending: true}]);
+    const rows = toRows([racket, sale], {
+      rules: {},
+      categories: bike,
+      merges: {},
+      labels: {},
+      paymentCategories: {[racket.id]: 'fun', [sale.id]: 'bike'},
+    });
+    const row = (transaction: Transaction) => rows.find(item => item.id === transaction.id) as Row;
+    expect(row(sale).refundOf).toBeNull();
+    expect(row(sale).spend).toBe(-35);
+    expect(row(racket).spend).toBe(74.2);
+  });
+
+  it('never gives back a payment of the same category with other labels', () => {
+    const bag = payment({description: 'Leboncoin', amount: -102.79, date: '2024-01-02'});
+    const sale = payment({description: 'Leboncoin', kind: 'income', amount: 50, date: '2024-03-05'});
+    const rows = toRows([bag, sale], {
+      rules: {},
+      categories: categoriesFrom([]),
+      merges: {},
+      labels: {[bag.id]: ['Sacoche Ortlieb'], [sale.id]: ['Restrap']},
+      paymentCategories: {[bag.id]: 'shopping', [sale.id]: 'shopping'},
+    });
+    expect(rows.find(item => item.id === sale.id)?.refundOf).toBeNull();
+  });
+
+  it('still gives back a payment of its category, a refund sent by transfer', () => {
+    const ticket = payment({description: 'SNCF', amount: -176, date: '2026-07-26'});
+    const refund = payment({description: 'SNCF', kind: 'income', amount: 88, date: '2026-08-03'});
+    const rows = toRows([ticket, refund], {
+      rules: {sncf: 'transport'},
+      categories: categoriesFrom([]),
+      merges: {},
+      labels: {},
+      paymentCategories: {[refund.id]: 'transport'},
+    });
+    expect(rows.find(item => item.id === refund.id)?.refundOf?.id).toBe(ticket.id);
+    expect(rows.find(item => item.id === ticket.id)?.spend).toBe(88);
+  });
+});
+
 describe('card refunds named after the holder', () => {
   const sorting = {
     rules: {},

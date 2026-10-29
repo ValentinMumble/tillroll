@@ -284,7 +284,10 @@ function linkPayPal(rows: Row[]) {
 
 /**
  * Refunds: money back from a store. The bank says it is one, or a category that counts as spending was picked for
- * it; money in of exactly what a card payment at the same store cost counts too. Oldest first, each refund is
+ * it; money in of exactly what a card payment at the same store cost counts too. Money in by transfer filed under a
+ * spending category (a refund sent by transfer, or something sold on) gives back only a payment of that category,
+ * and with labels on both, one they share: pedals sold are no refund of a racket bought at the same marketplace.
+ * Otherwise it lowers that category's spending in its own week and month. Oldest first, each refund is
  * matched with the payment it gives back: the latest one at that store and bank in the 180 days before, with that
  * much not given back yet, the same amount first. That payment then costs what is left, in its own week and month.
  */
@@ -384,11 +387,20 @@ function matchRefunds(rows: Row[], categories: Categories) {
     if (!sure && credit.kind !== 'income') continue;
     const since = addDays(credit.date, -REFUND_DAYS);
     const left = (row: Row) => -row.amount - row.refunded;
+    const named = (row: Row) => row.labels.map(label => label.toLowerCase());
+    const related = (row: Row) =>
+      credit.kind !== 'income' ||
+      !sure ||
+      (row.category === credit.category &&
+        (credit.labels.length === 0 ||
+          row.labels.length === 0 ||
+          named(row).some(label => named(credit).includes(label))));
     const open = (payments.get(`${bankOf(credit)}|${credit.currency}|${credit.storeKey}`) ?? []).filter(
       row =>
         row.date <= credit.date &&
         row.date >= since &&
         left(row) >= credit.amount - 0.005 &&
+        related(row) &&
         // Money in that the bank does not call a refund only matches a card payment: a person paying back is no store.
         (sure || row.kind === 'card'),
     );
