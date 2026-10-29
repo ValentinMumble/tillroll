@@ -12,6 +12,7 @@ import {
   redis,
   RULES,
   SAVINGS_VALUES,
+  TRIPS,
 } from './_lib/store.js';
 
 /*
@@ -162,6 +163,22 @@ const PARTS: Record<string, (body: Record<string, unknown>) => Promise<unknown>>
     });
   },
 
+  /** { label, trip: {from?, to?} }: marks a label as a trip, with its days when set by hand; a null trip unmarks it. */
+  async trips({label, trip}) {
+    const isDay = (value: unknown) =>
+      value === undefined || (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value));
+    const days = trip as {from?: unknown; to?: unknown} | null;
+    const valid =
+      typeof label === 'string' &&
+      label.trim().length > 0 &&
+      label.length <= 40 &&
+      (days === null || (typeof days === 'object' && isDay(days.from) && isDay(days.to)));
+    if (!valid) throw new HttpError(400, 'Expected a label and its trip days');
+    if (days === null) return redis().hdel(TRIPS, label);
+    const {from, to} = days as {from?: string; to?: string};
+    return redis().hset(TRIPS, {[label]: {...(from ? {from} : {}), ...(to ? {to} : {})}});
+  },
+
   /** { category, amount }: a category's monthly budget; null takes it off. */
   async budgets({category, amount}) {
     const valid =
@@ -190,8 +207,8 @@ const PARTS: Record<string, (body: Record<string, unknown>) => Promise<unknown>>
 };
 
 /**
- * PUT /api/sorting?part=<rules|categories|merges|payment-categories|labels|distinct|savings-values|budgets>, with that
- * part's body.
+ * PUT /api/sorting?part=<rules|categories|merges|payment-categories|labels|trips|distinct|savings-values|budgets>, with
+ * that part's body.
  */
 export function PUT(request: Request) {
   return handle(async () => {

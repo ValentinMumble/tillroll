@@ -9,6 +9,7 @@ import type {
   Rules,
   SavingsValues,
   Transaction,
+  Trips,
 } from '../src/types';
 import {handle, json} from './_lib/http.js';
 import {requireOwner} from './_lib/owner.js';
@@ -25,13 +26,14 @@ import {
   RULES,
   SAVINGS_VALUES,
   TRANSACTIONS,
+  TRIPS,
 } from './_lib/store.js';
 import {connections, pendingByBank} from './_lib/sync.js';
 
 /**
  * GET /api/data: the owner's transactions (bank sync and imported statements), how they are sorted (categories per
- * store, categories changed, stores merged, money in linked to what it pays back), the savings values typed by hand,
- * the budgets, and the bank connections with their accounts' balances.
+ * store, categories changed, stores merged, money in linked to what it pays back, labels and the trips among them),
+ * the savings values typed by hand, the budgets, and the bank connections with their accounts' balances.
  */
 export function GET(request: Request) {
   return handle(async () => {
@@ -44,6 +46,7 @@ export function GET(request: Request) {
       categories,
       merges,
       labels,
+      trips,
       paymentCategories,
       paybacks,
       distinct,
@@ -58,6 +61,7 @@ export function GET(request: Request) {
       store.get<CategoryEdit[]>(CATEGORIES),
       store.hgetall<Merges>(MERGES),
       store.hgetall<Labels>(LABELS),
+      store.hgetall<Trips>(TRIPS),
       store.hgetall<PaymentCategories>(PAYMENT_CATEGORIES),
       store.hgetall<Paybacks>(PAYBACKS),
       store.smembers(DISTINCT),
@@ -72,6 +76,7 @@ export function GET(request: Request) {
       categories: categories ?? [],
       merges: merges ?? {},
       labels: labels ?? {},
+      trips: trips ?? {},
       paymentCategories: paymentCategories ?? {},
       paybacks: paybacks ?? {},
       distinct: distinct ?? [],

@@ -69,6 +69,15 @@ export type PaymentCategories = Record<string, CategoryKey>;
 /** Labels put on payments by hand (a trip, a gift, a shared bill), by transaction id. */
 export type Labels = Record<string, string[]>;
 
+/** A label that names a trip: its first and last days when set by hand (else its payments' first and last days). */
+export interface Trip {
+  from?: string;
+  to?: string;
+}
+
+/** The labels marked as trips, by label as written (matched without minding capitals). */
+export type Trips = Record<string, Trip>;
+
 /** Money in linked by hand to the payment it pays back (a friend's share of a flat), by id: the payment's id. */
 export type Paybacks = Record<string, string>;
 

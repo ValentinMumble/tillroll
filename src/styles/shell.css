@@ -657,8 +657,8 @@
   }
 
   /* Two lines per payment: store and amount, then the date or time and the category. On a phone the list is for
-     fixing categories: no ticks, and no search link or label button on each row (the store's dialog has the search;
-     labels already given still show). A tap on the row opens its category. */
+     fixing categories and labelling: no ticks and no search link on each row (the store's dialog has the search), but
+     the # to add a label stays, as in the latest payments. A tap on the row opens its category. */
   .payments tr {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
@@ -679,8 +679,7 @@
 
   .payments .payment-pick,
   .payments .pick-all,
-  .payments .web-search,
-  .payments .label-add {
+  .payments .web-search {
     display: none;
   }
 

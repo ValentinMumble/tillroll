@@ -125,11 +125,6 @@ export function LatestPayments({
                   >
                     {row.store}
                   </button>
-                  {row.firstVisit && (
-                    <span className="tag is-new" title="Your first payment here">
-                      new
-                    </span>
-                  )}
                   {row.pending && <span className="tag">pending</span>}
                   {row.viaPayPal && (
                     <span

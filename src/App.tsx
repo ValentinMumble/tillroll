@@ -33,6 +33,8 @@ import {savingsAccounts} from './savings';
 import {buildReport} from './report';
 import {isUnsure, rowsBetween, type StoreToSort, storesToSort} from './rows';
 import {loadChartSpan, loadGrain, saveChartSpan, saveGrain, savePaymentSort} from './storage';
+import {TripLabels} from './tripLabels';
+import {tripNames} from './trips';
 import {MENU_ONLY, type Tab, TABS} from './tabs';
 import type {CategoryKey} from './types';
 import {useData} from './useData';
@@ -124,6 +126,7 @@ export default function App() {
     renameLabel,
     deleteLabel,
     setLabels,
+    setTrip,
     separateStore,
     renameStore,
     editStore,
@@ -183,6 +186,8 @@ export default function App() {
     setFocus(null);
   }
   const currencyRows = useMemo(() => rows.filter(row => row.currency === currency), [rows, currency]);
+  // The labels marked as trips: their chips wear the trips' colour.
+  const tripLabels = useMemo(() => tripNames(data?.trips ?? {}), [data?.trips]);
   // With payments from several banks, each payment shows its bank's letter.
   const showBanks = useMemo(() => new Set(rows.map(row => row.bank ?? 'Revolut')).size > 1, [rows]);
 
@@ -507,140 +512,154 @@ export default function App() {
         />
 
         <main className="view">
-          {tab === 'overview' && (
-            <Overview
-              report={report}
-              period={period}
-              grain={grain}
-              currency={currency}
-              categories={categories}
-              rows={periodRows}
-              allRows={currencyRows}
-              balances={data?.balances ?? []}
-              budgets={data?.budgets ?? {}}
-              toSort={toSort.length}
-              toCheck={toCheck}
-              showBanks={showBanks}
-              labelNames={labelNames}
-              focus={focus}
-              onFocus={focusOn}
-              onShow={next => {
-                openTab(next);
-                window.scrollTo({top: 0});
-              }}
-              onSeeAllPayments={() => {
-                setFocus(null);
-                setTab('payments');
-                window.scrollTo({top: 0});
-              }}
-              onSelectPeriod={selectChartPeriod}
-              onSort={openSorter}
-              onOpenStore={store => setDialog({type: 'store', store})}
-              onEditCategories={() => setDialog({type: 'categories', store: null})}
-              onEditStores={() => setDialog({type: 'stores', store: null})}
-              onCategorize={(targets, category, scope) => void categorize(targets, category, scope)}
-              onCreateCategory={(targets, label, icon, scope) => void createCategoryFor(targets, label, icon, scope)}
-              onLabels={changes => void setLabels(changes)}
-              onPayback={(row, paymentId) => void setPayback(row, paymentId)}
-              toSavings={toSavings}
-              chartSpan={chartSpan}
-              onChartSpan={changeChartSpan}
-            />
-          )}
-          {tab === 'calendar' && (
-            <Calendar
-              rows={currencyRows}
-              categories={categories}
-              currency={currency}
-              initialYear={(grain === 'all'
-                ? lastDay
-                : periodEnd(period, grain) < lastDay
-                  ? periodEnd(period, grain)
-                  : lastDay
-              ).slice(0, 4)}
-              labelNames={labelNames}
-              onLabels={changes => void setLabels(changes)}
-              onOpenMonth={month => {
-                setGrain('month');
-                saveGrain('month');
-                changePeriod(month);
-                setFocus(null);
-                setTab('overview');
-                window.scrollTo({top: 0});
-              }}
-            />
-          )}
-          {tab === 'stats' && <FunStats rows={currencyRows} currency={currency} categories={categories} />}
-          {tab === 'savings' && (
-            <Savings
-              rows={currencyRows}
-              currency={currency}
-              values={data?.savingsValues ?? {}}
-              holders={holders}
-              balances={data?.balances ?? []}
-              onSave={(account, record) => void setSavings(account, record)}
-              chartSpan={chartSpan}
-              onChartSpan={changeChartSpan}
-            />
-          )}
-          {tab === 'categories' && (
-            <>
-              <CategoryBreakdown
-                {...breakdown}
-                onEdit={() => setDialog({type: 'categories', store: null})}
-                onOpenCategory={category => setDialog({type: 'category', category})}
-              />
-              <BudgetCard
+          <TripLabels.Provider value={tripLabels}>
+            {tab === 'overview' && (
+              <Overview
                 report={report}
+                period={period}
                 grain={grain}
-                categories={categories}
-                budgets={data?.budgets ?? {}}
                 currency={currency}
-                onSave={(category, amount) => void setBudget(category, amount)}
+                categories={categories}
+                rows={periodRows}
+                allRows={currencyRows}
+                balances={data?.balances ?? []}
+                budgets={data?.budgets ?? {}}
+                toSort={toSort.length}
+                toCheck={toCheck}
+                showBanks={showBanks}
+                labelNames={labelNames}
+                focus={focus}
+                onFocus={focusOn}
+                onShow={next => {
+                  openTab(next);
+                  window.scrollTo({top: 0});
+                }}
+                onSeeAllPayments={() => {
+                  setFocus(null);
+                  setTab('payments');
+                  window.scrollTo({top: 0});
+                }}
+                onSelectPeriod={selectChartPeriod}
+                onSort={openSorter}
+                onOpenStore={store => setDialog({type: 'store', store})}
+                onEditCategories={() => setDialog({type: 'categories', store: null})}
+                onEditStores={() => setDialog({type: 'stores', store: null})}
+                onCategorize={(targets, category, scope) => void categorize(targets, category, scope)}
+                onCreateCategory={(targets, label, icon, scope) => void createCategoryFor(targets, label, icon, scope)}
+                onLabels={changes => void setLabels(changes)}
+                onPayback={(row, paymentId) => void setPayback(row, paymentId)}
+                toSavings={toSavings}
+                chartSpan={chartSpan}
+                onChartSpan={changeChartSpan}
               />
-              <LabelList
+            )}
+            {tab === 'calendar' && (
+              <Calendar
+                rows={currencyRows}
+                categories={categories}
+                currency={currency}
+                initialYear={(grain === 'all'
+                  ? lastDay
+                  : periodEnd(period, grain) < lastDay
+                    ? periodEnd(period, grain)
+                    : lastDay
+                ).slice(0, 4)}
+                labelNames={labelNames}
+                onLabels={changes => void setLabels(changes)}
+                onOpenMonth={month => {
+                  setGrain('month');
+                  saveGrain('month');
+                  changePeriod(month);
+                  setFocus(null);
+                  setTab('overview');
+                  window.scrollTo({top: 0});
+                }}
+              />
+            )}
+            {tab === 'stats' && (
+              <FunStats
                 rows={currencyRows}
                 currency={currency}
-                onOpen={label => focusOn({type: 'label', key: label})}
-                onRename={(label, newLabel) => void renameLabel(label, newLabel)}
-                onDelete={label => void deleteLabel(label)}
+                categories={categories}
+                trips={data?.trips ?? {}}
+                onOpenLabel={label => focusOn({type: 'label', key: label})}
               />
-            </>
-          )}
-          {tab === 'stores' && (
-            <StoreBreakdown
-              {...breakdown}
-              onEdit={() => setDialog({type: 'stores', store: focus?.type === 'store' ? focus.key : null})}
-              onOpenStore={store => setDialog({type: 'store', store})}
-              duplicates={duplicates.length}
-              onDuplicates={() => setDialog({type: 'duplicates', pairs: duplicates})}
-              merges={Object.keys(data?.merges ?? {}).length}
-              onMerges={() => setDialog({type: 'merges'})}
-            />
-          )}
-          {tab === 'payments' && (
-            <Payments
-              key={paymentsRun}
-              rows={focus?.type === 'label' ? currencyRows : periodRows}
-              allRows={currencyRows}
-              savingsMoves={savingsMoves}
-              onAllTime={() => changeGrain('all')}
-              categories={categories}
-              focus={focus}
-              onClearFocus={() => setFocus(null)}
-              onCategorize={(targets, category, scope) => void categorize(targets, category, scope)}
-              onCreateCategory={(targets, label, icon, scope) => void createCategoryFor(targets, label, icon, scope)}
-              onEditStore={key => setDialog({type: 'stores', store: key})}
-              onOpenStore={store => setDialog({type: 'store', store})}
-              labelNames={labelNames}
-              onLabels={changes => void setLabels(changes)}
-              onFocusLabel={label => focusOn({type: 'label', key: label})}
-              onFocusCategories={keys => setFocus(keys.length ? {type: 'category', keys} : null)}
-              onFocusCheck={() => setFocus({type: 'check'})}
-              onPayback={(row, paymentId) => void setPayback(row, paymentId)}
-              showBanks={showBanks}
-            />
-          )}
+            )}
+            {tab === 'savings' && (
+              <Savings
+                rows={currencyRows}
+                currency={currency}
+                values={data?.savingsValues ?? {}}
+                holders={holders}
+                balances={data?.balances ?? []}
+                onSave={(account, record) => void setSavings(account, record)}
+                chartSpan={chartSpan}
+                onChartSpan={changeChartSpan}
+              />
+            )}
+            {tab === 'categories' && (
+              <>
+                <CategoryBreakdown
+                  {...breakdown}
+                  onEdit={() => setDialog({type: 'categories', store: null})}
+                  onOpenCategory={category => setDialog({type: 'category', category})}
+                />
+                <BudgetCard
+                  report={report}
+                  grain={grain}
+                  categories={categories}
+                  budgets={data?.budgets ?? {}}
+                  currency={currency}
+                  onSave={(category, amount) => void setBudget(category, amount)}
+                />
+                <LabelList
+                  rows={currencyRows}
+                  currency={currency}
+                  onOpen={label => focusOn({type: 'label', key: label})}
+                  onRename={(label, newLabel) => void renameLabel(label, newLabel)}
+                  onDelete={label => void deleteLabel(label)}
+                  categories={categories}
+                  trips={data?.trips ?? {}}
+                  onTrip={(label, trip) => void setTrip(label, trip)}
+                  onLabels={changes => void setLabels(changes)}
+                />
+              </>
+            )}
+            {tab === 'stores' && (
+              <StoreBreakdown
+                {...breakdown}
+                onEdit={() => setDialog({type: 'stores', store: focus?.type === 'store' ? focus.key : null})}
+                onOpenStore={store => setDialog({type: 'store', store})}
+                duplicates={duplicates.length}
+                onDuplicates={() => setDialog({type: 'duplicates', pairs: duplicates})}
+                merges={Object.keys(data?.merges ?? {}).length}
+                onMerges={() => setDialog({type: 'merges'})}
+              />
+            )}
+            {tab === 'payments' && (
+              <Payments
+                key={paymentsRun}
+                rows={focus?.type === 'label' ? currencyRows : periodRows}
+                allRows={currencyRows}
+                savingsMoves={savingsMoves}
+                onAllTime={() => changeGrain('all')}
+                categories={categories}
+                focus={focus}
+                onClearFocus={() => setFocus(null)}
+                onCategorize={(targets, category, scope) => void categorize(targets, category, scope)}
+                onCreateCategory={(targets, label, icon, scope) => void createCategoryFor(targets, label, icon, scope)}
+                onEditStore={key => setDialog({type: 'stores', store: key})}
+                onOpenStore={store => setDialog({type: 'store', store})}
+                labelNames={labelNames}
+                onLabels={changes => void setLabels(changes)}
+                onFocusLabel={label => focusOn({type: 'label', key: label})}
+                onFocusCategories={keys => setFocus(keys.length ? {type: 'category', keys} : null)}
+                onFocusCheck={() => setFocus({type: 'check'})}
+                onPayback={(row, paymentId) => void setPayback(row, paymentId)}
+                showBanks={showBanks}
+              />
+            )}
+          </TripLabels.Provider>
         </main>
 
         <footer className="foot">

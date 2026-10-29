@@ -71,15 +71,19 @@ shows, then the actions as `.link-button`s at the right end (`.card-actions` whe
 - Money that goes both ways (what a period kept or spent beyond what came in, what a month put aside or took back
   from savings) is a bar up from a middle line or down below it. Savings' "Put aside" chart is violet both ways, and
   its tooltip splits a month by account.
+- Trips side by side (Fun stats) are one bar each, as long as the trip cost against the biggest, split by category in
+  the categories' colours with 2px gaps; categories under 8% of a trip join one grey "Other" part. Each part has its
+  tooltip, the categories are named under the bars, the list sorts by Latest, Biggest or A day, and a trip's name
+  opens its payments. A trip with payments on few of its days says "to complete" and is left out of the costs a day.
 
 ### Tags
 
 - Refund and payback tags (`RefundTags`) look the same wherever a payment shows: the payment list and the overview's
   latest payments. A payment's "paid back" or "refunded" tag names what gave it back on hover and opens its sheet,
   which lists them ("Paid back by", with Unlink).
-- A store's first payment ever says "new" (`.tag.is-new`, green like money in), in the payment list and the latest
-  payments; in the Stores list, a store whose first payment is in the period shown says "new" too (never over all
-  time). The first 30 days of a bank's history have none: every store starts there.
+- A label marked as a trip wears a light orange tint (`.label-chip.is-trip`, the `--trip` token at 26% with the text
+  in `--ink`) wherever its chip shows, apart from the other labels' accent, and drops the # (its colour says it is a
+  trip); in the Labels card its name has a light orange dot instead of the #, like the "Trips" switch.
 - A bank payment that paid a PayPal purchase says "via PayPal": it is a move between one's accounts, and the purchase
   counts at its shop, on the PayPal line.
 
@@ -127,6 +131,10 @@ shows, then the actions as `.link-button`s at the right end (`.card-actions` whe
 - Every dropdown has the `.select` look closed: same height, border, radius and caret. One choice is a plain
   `<select>` (a phone opens its own picker); several choices are a button opening a menu where a tick adds a choice
   and the name picks it alone (`CategoryFilter`), reading "All categories", one choice, or the first and "+ 2".
+- The Labels card sorts by Latest, Biggest, Most used or A to Z (a small segmented control in its head), with its
+  search and a "Trips (N)" switch, shown once a label is a trip, in one row under it.
+- In the payment list, a category picked while a label, a trip or a store is the filter narrows it (a trip's eating
+  out), with its counts taken within it; picking another label or store starts again with every category.
 - In a dialog, a few short names that each take an action (merged names, look-alike stores) are chips with the
   action inside (`.name-chip`: ✕ to separate, Merge), not rows with the action at the far end of a wide line.
 - A category always shows as its emoji and its name, with its colour as a dot or a tint.
@@ -149,10 +157,11 @@ The overview answers "how is this month going?" first, above all on a phone, so 
 ## Phone (560px and below)
 
 - Wide screens (over 960px) pick the view in the sidebar; narrower ones in the frosted tab bar at the bottom.
-- On a phone the main job is fixing categories: a tap on a payment opens the category sheet. Keep rows light (no
-  ticks, no extra buttons on each row); the rest lives in the sheet or the store's dialog.
+- On a phone the main jobs are fixing categories and labelling: a tap on a payment opens the category sheet, and
+  each row keeps its # to add a label (as in the latest payments). Keep rows light otherwise (no ticks, no search
+  link); the rest lives in the sheet or the store's dialog.
 - Anything a row's buttons do on a computer must also be reachable from the sheet or the store's dialog: the sheet
-  for one payment holds its labels, since a phone row has no # button.
+  for one payment holds its labels too.
 - The home-screen app has no browser around it, so it has its own pull to refresh at the top of the page
   (`PullToRefresh`): it syncs the banks for the owner and loads the page again for anyone else.
 - So the home-screen app's header has no Sync button: a pull syncs, and "Sync now" stays in the ⋯ menu. A Safari tab

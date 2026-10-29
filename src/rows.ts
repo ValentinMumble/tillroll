@@ -50,11 +50,6 @@ export interface Row extends Transaction {
   labels: string[];
   /** Its category was picked for this payment only, over its store's. */
   ownCategory: boolean;
-  /**
-   * The first payment ever at its store (money out, not a move between one's own accounts): the store is new here.
-   * Never in the first 30 days of its bank's history, which start with every store.
-   */
-  firstVisit: boolean;
 }
 
 /** How payments are sorted: categories picked per store, the categories themselves, stores merged. */
@@ -492,7 +487,6 @@ export function toRows(
       viaPayPal: false,
       labels: labels[transaction.id] ?? [],
       ownCategory,
-      firstVisit: false,
     };
   });
   // The pairings below take the first match they meet: the same order every time, whatever order the payments came in.
@@ -503,18 +497,11 @@ export function toRows(
   linkPaybacks(rows, paybacks);
   matchHolderRefunds(rows, me);
   matchRefunds(rows, categories);
-  // Oldest first here: each bank's first day, and each store's first payment.
-  const bankStarts = new Map<string, string>();
-  for (const row of rows) if (!bankStarts.has(bankOf(row))) bankStarts.set(bankOf(row), row.date);
-  const seen = new Set<string>();
   for (const row of rows) {
     row.leftOut = LEFT_OUT.includes(row.category);
     row.counts = !row.leftOut && categories.byKey[row.category].spending;
     // "0 -" keeps a payback with nothing beyond at 0, not -0.
     row.spend = !row.counts ? 0 : row.refundOf ? 0 - row.beyond : -row.amount - row.refunded;
-    if (row.amount >= 0 || row.leftOut || seen.has(row.storeKey)) continue;
-    seen.add(row.storeKey);
-    row.firstVisit = row.date >= addDays(bankStarts.get(bankOf(row)) ?? row.date, 30);
   }
   return rows.sort((first, second) => (first.date < second.date ? 1 : first.date > second.date ? -1 : 0));
 }

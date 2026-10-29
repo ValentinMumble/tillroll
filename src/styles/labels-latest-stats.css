@@ -323,3 +323,250 @@
   color: var(--muted);
   font-size: 13px;
 }
+
+/* A trip: its first and last days side by side, then the payments of those days to label, ticked or not. */
+.trip-dialog-form {
+  display: grid;
+  gap: 12px;
+  min-height: 0;
+  overflow: hidden auto;
+}
+
+.trip-days {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  align-items: end;
+  gap: 12px 16px;
+  margin: 0 20px;
+}
+
+.trip-days .field {
+  display: grid;
+  gap: 6px;
+  color: var(--ink-soft);
+  font-size: 13px;
+}
+
+.trip-days .link-button {
+  justify-self: start;
+  font-size: 13px;
+}
+
+.trip-candidates {
+  display: grid;
+  gap: 6px;
+  margin: 0 20px;
+}
+
+.trip-candidates h3 {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.trip-candidate-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.trip-candidate-list label {
+  display: grid;
+  grid-template-columns: auto 64px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  border-top: 1px solid var(--line);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.trip-candidate-store {
+  overflow: hidden;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.trip-unmark {
+  margin-right: auto;
+  font-size: 13px;
+}
+
+/* A trip's name in the Labels card, with a dot in the trip chips' light orange. */
+.label-name.is-trip {
+  color: var(--ink);
+}
+
+.label-name.is-trip::before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 6px;
+  border-radius: 999px;
+  background: var(--trip);
+  vertical-align: 1px;
+}
+
+/* The trips side by side: name, days, what it cost and a day of it, then a bar as long as what it cost, split by
+   category with a 2px gap between the parts. */
+.trip-lines {
+  margin-bottom: 24px;
+}
+
+.trip-lines ul {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.trip-lines li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px 12px;
+  padding: 8px 10px;
+}
+
+/* The caption, then the sort. */
+.trip-lines figcaption {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+/* The name (it opens the trip's payments) and its "to complete" tag. */
+.trip-line-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.trip-line-name {
+  overflow: hidden;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-weight: 500;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.trip-line-name:hover {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.trip-line-head .tag {
+  flex: none;
+}
+
+.trip-line-total {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.trip-line-days,
+.trip-line-day {
+  font-size: 13px;
+}
+
+.trip-line-day {
+  text-align: right;
+}
+
+.trip-bar {
+  display: flex;
+  grid-column: 1 / -1;
+  gap: 2px;
+  min-width: 4px;
+  height: 8px;
+  margin-top: 4px;
+}
+
+.trip-bar-part {
+  position: relative;
+  flex-basis: 0;
+  min-width: 2px;
+  border-radius: 2px;
+  background: var(--cat, var(--cat-grey));
+  cursor: default;
+}
+
+.trip-bar-part:first-child {
+  border-radius: 4px 2px 2px 4px;
+}
+
+.trip-bar-part:last-child {
+  border-radius: 2px 4px 4px 2px;
+}
+
+.trip-bar-part:only-child {
+  border-radius: 4px;
+}
+
+.trip-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin: 8px 10px 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.trip-candidates-hint .link-button {
+  font-size: 13px;
+}
+
+/* A place also paid in the months around the trip: likely not the trip's, so it stays quiet. */
+.trip-candidate-list li.is-regular {
+  color: var(--muted);
+}
+
+.trip-candidate-list li.is-regular .trip-candidate-store {
+  font-weight: 400;
+}
+
+/* The Labels card's search, and the switch to its trips only. */
+.label-filters {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.label-filters .text-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.label-filters .chip {
+  flex: none;
+}
+
+.label-filters .chip[aria-pressed='true'] {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
+}
+
+.trip-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--trip);
+}

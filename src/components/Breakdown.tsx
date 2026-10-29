@@ -335,12 +335,6 @@ export function StoreBreakdown({
                       title={categories.byKey[store.category]?.label}
                     />
                     <span className="bar-name">{store.name}</span>
-                    {/* Over all time every store started somewhere: none is new. */}
-                    {store.isNew && report.period !== 'all' && (
-                      <span className="tag is-new" title="Your first payment here was in this period">
-                        new
-                      </span>
-                    )}
                   </span>
                   {!preview && (
                     <Trend

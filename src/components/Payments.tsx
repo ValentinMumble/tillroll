@@ -1,8 +1,8 @@
-import {useEffect, useRef, useState} from 'react';
+import {useContext, useEffect, useRef, useState} from 'react';
 import {type Categories, colourStyle} from '../categories';
 import {money} from '../format';
 import {tidyLabel, withLabel} from '../labels';
-import {dayLabel, recentDayLabel, today} from '../periods';
+import {dayLabel, recentDayLabel} from '../periods';
 import {
   bankOf,
   givenBack,
@@ -34,6 +34,7 @@ import {PaidBackBy, PaybackPicker} from './PaybackPicker';
 import {RefundTags} from './RefundTags';
 import {WebSearch} from './WebSearch';
 import {paymentCount, plain} from '../text';
+import {TripLabels} from '../tripLabels';
 import {opensCategory} from '../device';
 
 interface Props {
@@ -134,6 +135,13 @@ export function Payments({
   const [pickedLabel, setPickedLabel] = useState('');
   // The payments the category sheet is open for.
   const [sheet, setSheet] = useState<Row[] | null>(null);
+  const tripLabels = useContext(TripLabels);
+  // Categories picked on top of a label or a store (a trip's eating out): kept for that filter only, a new one drops
+  // them. With no label or store, a category picked is the list's filter itself (focus).
+  const [narrowed, setNarrowed] = useState<{focus: Focus; keys: CategoryKey[]} | null>(null);
+  const narrows = focus?.type === 'label' || focus?.type === 'store';
+  const pickedCategories =
+    focus?.type === 'category' ? focus.keys : narrows && narrowed?.focus === focus ? narrowed.keys : [];
   // "See in context": every payment around a day of the filtered list, the filter's matches marked. It keeps what to
   // go back to (the filter it came from, which a new filter closes it for, and how far that list was drawn), and how
   // many newer payments show above the day.
@@ -160,17 +168,24 @@ export function Payments({
     const text = searchText(row);
     return words.every(word => text.includes(word));
   };
+  // The label or store picked, alone: what the category filter counts in.
+  const inLabelOrStore = (row: Row) => {
+    if (focus?.type === 'label' && !row.labels.some(label => label.toLowerCase() === focus.key.toLowerCase())) {
+      return false;
+    }
+    return focus?.type !== 'store' || row.storeKey === focus.key;
+  };
   const inFocus = (row: Row) => {
     if (bank && bankOf(row) !== bank) return false;
     if (toCheck && !isUnsure(row)) return false;
-    if (focus?.type === 'category' && !focus.keys.includes(row.category)) return false;
+    if (pickedCategories.length && !pickedCategories.includes(row.category)) return false;
     if (focus?.type === 'label' && !row.labels.some(label => label.toLowerCase() === focus.key.toLowerCase())) {
       return false;
     }
     return focus?.type !== 'store' || row.storeKey === focus.key;
   };
   // A category picked in the filter shows its payments, even the ones that are not spending.
-  const switchedOn = (row: Row) => isListed(row, {moneyIn, own}) || focus?.type === 'category' || toCheck;
+  const switchedOn = (row: Row) => isListed(row, {moneyIn, own}) || pickedCategories.length > 0 || toCheck;
   // In context, every period and every category, newest first; the switches still apply, but never to the matches.
   const visible = around
     ? allRows
@@ -186,10 +201,11 @@ export function Payments({
   const hidden = {
     moneyIn: hiddenBySwitch.filter(row => row.category !== 'own').length,
     own: hiddenBySwitch.filter(row => row.category === 'own').length,
-    category:
-      focus?.type === 'category'
-        ? found.filter(row => !focus.keys.includes(row.category) && isListed(row, {moneyIn, own})).length
-        : 0,
+    category: pickedCategories.length
+      ? found.filter(
+          row => !pickedCategories.includes(row.category) && inLabelOrStore(row) && isListed(row, {moneyIn, own}),
+        ).length
+      : 0,
     period: 0,
   };
   if (words.length && !around) {
@@ -253,9 +269,10 @@ export function Payments({
   // A time column only when some payments listed have a time (statements give one, the bank sync does not): over the
   // whole list, not only the rows drawn, so it never appears while the list scrolls.
   const withTimes = visible.some(row => row.time);
-  // Dates carry their year when the list covers more than one (all time, a label), or another year than this one.
-  const years = new Set(visible.map(row => row.date.slice(0, 4)));
-  const withYears = years.size > 1 || (years.size === 1 && !years.has(today().slice(0, 4)));
+  // Dates carry their year when the list covers more than one (all time, a label, the context of a day): the period's
+  // years, not only the ones a search or a filter leaves, so one match over all time still says its year. A week, a
+  // month or a year has its year in the period picker already.
+  const withYears = new Set([...rows, ...visible].map(row => row.date.slice(0, 4))).size > 1;
   const dayTotals = new Map<string, number>();
   const dayCounts = new Map<string, number>();
   // What each day spent by category, for the strip of colours beside its heading.
@@ -270,12 +287,13 @@ export function Payments({
     }
   }
   // Every category with payments, with their number: picking one shows them all.
-  // The filters' counts: each category's within the bank picked, each bank's in the whole period.
+  // The filters' counts: each category's within the bank and the label or store picked, each bank's in the whole
+  // period.
   const categoryCounts = new Map<CategoryKey, number>();
   const bankCounts = new Map<string, number>();
   for (const row of rows) {
     bankCounts.set(bankOf(row), (bankCounts.get(bankOf(row)) ?? 0) + (counted(row) ? 1 : 0));
-    if (bank && bankOf(row) !== bank) continue;
+    if ((bank && bankOf(row) !== bank) || !inLabelOrStore(row)) continue;
     categoryCounts.set(row.category, (categoryCounts.get(row.category) ?? 0) + (counted(row) ? 1 : 0));
   }
   const selection = visible.filter(row => picked.has(row.id));
@@ -354,7 +372,15 @@ export function Payments({
         ];
   const sheetCategories = sheet ? new Set(sheet.map(row => row.category)) : new Set<CategoryKey>();
 
-  const focusLabel = focus?.type === 'label' ? `# ${focus.key}` : focus?.type === 'store' ? focus.name : null;
+  // A label's filter chip says # before it, a trip's does not (as on the payments' chips).
+  const focusLabel =
+    focus?.type === 'label'
+      ? tripLabels.has(focus.key.toLowerCase())
+        ? focus.key
+        : `# ${focus.key}`
+      : focus?.type === 'store'
+        ? focus.name
+        : null;
 
   return (
     <section className="card payments">
@@ -458,9 +484,11 @@ export function Payments({
             <CategoryFilter
               categories={categories}
               counts={categoryCounts}
-              picked={focus?.type === 'category' ? focus.keys : []}
+              picked={pickedCategories}
               onChange={keys => {
-                onFocusCategories(keys);
+                // On a label or a store, the categories narrow it; otherwise they are the filter.
+                if (narrows && focus) setNarrowed({focus, keys});
+                else onFocusCategories(keys);
                 setLimit(PAGE);
               }}
             />
@@ -517,7 +545,12 @@ export function Payments({
               </button>
             ),
             hidden.category > 0 && (
-              <button key="category" type="button" className="link-button" onClick={() => onFocusCategories([])}>
+              <button
+                key="category"
+                type="button"
+                className="link-button"
+                onClick={() => (narrows ? setNarrowed(null) : onFocusCategories([]))}
+              >
                 {hidden.category} in other categories
               </button>
             ),
@@ -646,11 +679,6 @@ export function Payments({
                         {row.store}
                       </button>
                       <WebSearch name={row.store} />
-                      {row.firstVisit && (
-                        <span className="tag is-new" title="Your first payment here">
-                          new
-                        </span>
-                      )}
                       {row.pending && <span className="tag">pending</span>}
                       {row.viaPayPal && (
                         <span

@@ -10,6 +10,7 @@ import type {
   Rules,
   SavingsValues,
   Transaction,
+  Trips,
 } from './types';
 
 /**
@@ -21,6 +22,7 @@ const RULES = 'tillroll.rules';
 const CATEGORIES = 'tillroll.categories';
 const MERGES = 'tillroll.merges';
 const LABELS = 'tillroll.labels';
+const TRIPS = 'tillroll.trips';
 const PAYMENT_CATEGORIES = 'tillroll.payment-categories';
 const PAYBACKS = 'tillroll.paybacks';
 const DISTINCT = 'tillroll.distinct';
@@ -29,6 +31,8 @@ const BUDGETS = 'tillroll.budgets';
 const GRAIN = 'tillroll.grain';
 const CHART_SPAN = 'tillroll.chart-span';
 const PAYMENT_SORT = 'tillroll.payment-sort';
+const LABEL_SORT = 'tillroll.label-sort';
+const TRIP_SORT = 'tillroll.trip-sort';
 const SHEET_SCOPE = 'tillroll.sheet-scope';
 const RECENT_PICKS = 'tillroll.recent-picks';
 const PAYMENTS_EVERYTHING = 'tillroll.payments-everything';
@@ -67,6 +71,7 @@ export function loadLocalSorting() {
     categories: read<CategoryEdit[]>(CATEGORIES) ?? [],
     merges: read<Merges>(MERGES) ?? {},
     labels: read<Labels>(LABELS) ?? {},
+    trips: read<Trips>(TRIPS) ?? {},
     paymentCategories: read<PaymentCategories>(PAYMENT_CATEGORIES) ?? {},
     paybacks: read<Paybacks>(PAYBACKS) ?? {},
     distinct: read<string[]>(DISTINCT) ?? [],
@@ -81,6 +86,7 @@ export function saveLocalSorting(
     categories?: CategoryEdit[];
     merges?: Merges;
     labels?: Labels;
+    trips?: Trips;
     paymentCategories?: PaymentCategories;
     paybacks?: Paybacks;
     distinct?: string[];
@@ -94,6 +100,7 @@ export function saveLocalSorting(
       CATEGORIES,
       MERGES,
       LABELS,
+      TRIPS,
       PAYMENT_CATEGORIES,
       PAYBACKS,
       DISTINCT,
@@ -109,6 +116,7 @@ export function saveLocalSorting(
   if (sorting.paymentCategories) write(PAYMENT_CATEGORIES, sorting.paymentCategories);
   if (sorting.paybacks) write(PAYBACKS, sorting.paybacks);
   if (sorting.labels) write(LABELS, sorting.labels);
+  if (sorting.trips) write(TRIPS, sorting.trips);
   if (sorting.rules) write(RULES, sorting.rules);
   if (sorting.categories) write(CATEGORIES, sorting.categories);
   if (sorting.merges) write(MERGES, sorting.merges);
@@ -139,6 +147,26 @@ export function loadPaymentSort(): PaymentSort {
 }
 
 export const savePaymentSort = (sort: PaymentSort) => write(PAYMENT_SORT, sort);
+
+/** How the Labels card is sorted: the latest used, the biggest, A to Z or the most used, remembered in each browser. */
+export type LabelSort = 'latest' | 'biggest' | 'name' | 'used';
+
+export function loadLabelSort(): LabelSort {
+  const saved = read<LabelSort>(LABEL_SORT);
+  return saved && ['latest', 'biggest', 'name', 'used'].includes(saved) ? saved : 'latest';
+}
+
+export const saveLabelSort = (sort: LabelSort) => write(LABEL_SORT, sort);
+
+/** How Fun stats' trips are sorted: the latest, the biggest or the priciest a day, remembered in each browser. */
+export type TripSort = 'latest' | 'biggest' | 'day';
+
+export function loadTripSort(): TripSort {
+  const saved = read<TripSort>(TRIP_SORT);
+  return saved && ['latest', 'biggest', 'day'].includes(saved) ? saved : 'latest';
+}
+
+export const saveTripSort = (sort: TripSort) => write(TRIP_SORT, sort);
 
 /** Where the category sheet's choice applies ("store" or "payment"), as last picked, remembered in each browser. */
 export const loadSheetScope = () => read<string>(SHEET_SCOPE);

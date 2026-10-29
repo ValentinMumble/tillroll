@@ -132,6 +132,12 @@
   vertical-align: middle;
 }
 
+/* A trip's label: a light orange tint, apart from the other labels' accent; its text stays in ink. */
+.label-chip.is-trip {
+  background: color-mix(in srgb, var(--trip) 26%, transparent);
+  color: var(--ink);
+}
+
 .label-chip button {
   padding: 2px 3px 2px 9px;
   border: 0;

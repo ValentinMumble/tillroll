@@ -55,6 +55,8 @@
   --cat-7: #6250d6;
   --cat-8: #e34948;
   --cat-grey: #8a8780;
+  /* Trips (labels marked so): a light orange, the orange category's lightened, on their chips and dots. */
+  --trip: color-mix(in srgb, var(--cat-2) 70%, var(--surface));
   /* How much of a category's colour tints its pill. */
   --tint: 16%;
   --font-body: 'DM Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
@@ -109,6 +111,8 @@
     --cat-7: #9085e9;
     --cat-8: #e66767;
     --cat-grey: #77756f;
+    /* Lightened towards the ink, which is light here. */
+    --trip: color-mix(in srgb, var(--cat-2) 70%, var(--ink));
     --tint: 24%;
   }
 }

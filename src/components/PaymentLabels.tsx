@@ -1,6 +1,7 @@
-import {useState} from 'react';
+import {useContext, useState} from 'react';
 import {tidyLabel, withLabel, withoutLabel} from '../labels';
 import type {Row} from '../rows';
+import {TripLabels} from '../tripLabels';
 import type {Labels} from '../types';
 
 /** The list of labels in use that a label field offers while typing. */
@@ -30,6 +31,7 @@ interface Props {
 export function PaymentLabels({row, onLabels, onFocusLabel}: Props) {
   // The label being typed, while the field is open.
   const [text, setText] = useState<string | null>(null);
+  const trips = useContext(TripLabels);
 
   function add() {
     const label = tidyLabel(text ?? '');
@@ -40,9 +42,14 @@ export function PaymentLabels({row, onLabels, onFocusLabel}: Props) {
   return (
     <>
       {row.labels.map(label => (
-        <span key={label} className="label-chip">
-          <button type="button" title="Show every payment with this label" onClick={() => onFocusLabel(label)}>
-            # {label}
+        <span key={label} className={`label-chip${trips.has(label.toLowerCase()) ? ' is-trip' : ''}`}>
+          <button
+            type="button"
+            title={trips.has(label.toLowerCase()) ? 'A trip: show its payments' : 'Show every payment with this label'}
+            onClick={() => onFocusLabel(label)}
+          >
+            {/* A trip is told by its colour: no #. */}
+            {trips.has(label.toLowerCase()) ? label : `# ${label}`}
           </button>
           <button
             type="button"

@@ -12,6 +12,8 @@ import type {
   SavingsRecord,
   SavingsValues,
   Transaction,
+  Trip,
+  Trips,
 } from './types';
 
 export class RequestError extends Error {
@@ -51,6 +53,7 @@ export interface OwnerData {
   categories: CategoryEdit[];
   merges: Merges;
   labels: Labels;
+  trips: Trips;
   paymentCategories: PaymentCategories;
   paybacks: Paybacks;
   /** Pairs of stores marked "not the same". */
@@ -130,6 +133,11 @@ export function saveBudget(category: CategoryKey, amount: number | null) {
 
 export function saveDistinct(pairs: string[]) {
   return request<{ok: true}>('/api/sorting?part=distinct', {method: 'PUT', body: JSON.stringify({pairs})});
+}
+
+/** Marks a label as a trip, with its days when set by hand (null unmarks it). */
+export function saveTrip(label: string, trip: Trip | null) {
+  return request<{ok: true}>('/api/sorting?part=trips', {method: 'PUT', body: JSON.stringify({label, trip})});
 }
 
 /** The labels of some payments, each one's full list (empty takes them off). */

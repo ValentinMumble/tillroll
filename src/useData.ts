@@ -9,6 +9,7 @@ import {
   saveCategories,
   saveDistinct,
   saveLabels,
+  saveTrip,
   saveMerge,
   savePaybacks,
   savePaymentCategories,
@@ -31,6 +32,7 @@ import {readStatement} from './statement';
 import {loadLocalData, loadLocalSorting, saveLocalData, saveLocalSorting} from './storage';
 import {mergedInto, storeKey as keyOfStore} from './stores';
 import {withoutCoveredTotals, withoutOverlap} from './transactions';
+import {tripKeyOf} from './trips';
 import type {
   Balance,
   Budgets,
@@ -45,6 +47,8 @@ import type {
   SavingsRecord,
   SavingsValues,
   Transaction,
+  Trip,
+  Trips,
 } from './types';
 
 export interface Data {
@@ -54,6 +58,8 @@ export interface Data {
   categories: CategoryEdit[];
   merges: Merges;
   labels: Labels;
+  /** The labels marked as trips. */
+  trips: Trips;
   paymentCategories: PaymentCategories;
   paybacks: Paybacks;
   /** Pairs of stores marked "not the same" in the duplicates deck. */
@@ -83,6 +89,7 @@ function fromOwner(owner: OwnerData): Data {
     categories: owner.categories ?? [],
     merges: owner.merges ?? {},
     labels: owner.labels ?? {},
+    trips: owner.trips ?? {},
     paymentCategories: owner.paymentCategories ?? {},
     paybacks: owner.paybacks ?? {},
     distinct: owner.distinct ?? [],
@@ -401,6 +408,18 @@ export function useData({focus, setFocus, resetView}: View) {
     if (focus?.type === 'label' && focus.key.toLowerCase() === label.toLowerCase()) {
       setFocus({type: 'label', key: newLabel});
     }
+    // A trip keeps being one under its new name.
+    const key = tripKeyOf(data.trips, label);
+    if (key !== undefined) {
+      const trip = data.trips[key];
+      const trips = {...data.trips};
+      delete trips[key];
+      trips[newLabel] = trip;
+      await change({trips}, async () => {
+        await saveTrip(key, null);
+        await saveTrip(newLabel, trip);
+      });
+    }
     await setLabels(changes);
   }
 
@@ -412,7 +431,18 @@ export function useData({focus, setFocus, resetView}: View) {
       if (list.some(item => item.toLowerCase() === label.toLowerCase())) changes[id] = withoutLabel(list, label);
     }
     if (focus?.type === 'label' && focus.key.toLowerCase() === label.toLowerCase()) setFocus(null);
+    if (tripKeyOf(data.trips, label) !== undefined) await setTrip(label, null);
     await setLabels(changes);
+  }
+
+  /** Marks a label as a trip, with its days when set by hand (null unmarks it). */
+  async function setTrip(label: string, trip: Trip | null) {
+    if (!data) return;
+    const key = tripKeyOf(data.trips, label) ?? label;
+    const trips = {...data.trips};
+    if (trip) trips[key] = trip;
+    else delete trips[key];
+    await change({trips}, () => saveTrip(key, trip));
   }
 
   /** Each payment's new list of labels (an empty one takes them all off). */
@@ -499,6 +529,7 @@ export function useData({focus, setFocus, resetView}: View) {
               categories: data.categories,
               merges: data.merges,
               labels: data.labels,
+              trips: data.trips,
               paymentCategories: data.paymentCategories,
               paybacks: data.paybacks,
               distinct: data.distinct,
@@ -605,6 +636,7 @@ export function useData({focus, setFocus, resetView}: View) {
     renameLabel,
     deleteLabel,
     setLabels,
+    setTrip,
     separateStore,
     renameStore,
     editStore,
