@@ -16,6 +16,7 @@ import {
 import type {Balance, SavingsRecord, SavingsValue, SavingsValues} from '../types';
 import {BankBadge} from './BankBadge';
 import {BarStrip} from './BarStrip';
+import {PutAside} from './PutAside';
 import {ValueChart} from './ValueChart';
 
 interface Props {
@@ -29,6 +30,9 @@ interface Props {
   balances: Balance[];
   /** An account's values typed by hand, all of them, or an account added by hand; null takes it off. */
   onSave: (account: string, record: SavingsRecord | null) => void;
+  /** How far back the "put aside" chart goes, shared with the overview's charts (see ChartSpan). */
+  chartSpan: number;
+  onChartSpan: (span: number) => void;
 }
 
 /** The values typed for an account, oldest first. */
@@ -215,7 +219,7 @@ function AccountCard({
  * Savings: each account money is put aside in (an assurance vie, a livret, Revolut's savings), what went in and out
  * month by month and year by year, and its value when typed by hand, with how much it grew beyond what was paid in.
  */
-export function Savings({rows, currency, values, holders, balances, onSave}: Props) {
+export function Savings({rows, currency, values, holders, balances, onSave, chartSpan, onChartSpan}: Props) {
   const accounts = savingsAccounts(rows, today().slice(0, 7), values, holders);
   const [name, setName] = useState('');
   const [value, setValue] = useState('');
@@ -324,6 +328,7 @@ export function Savings({rows, currency, values, holders, balances, onSave}: Pro
           )}
         </section>
       )}
+      <PutAside accounts={accounts} thisMonth={thisMonth} currency={currency} span={chartSpan} onSpan={onChartSpan} />
       {accounts.length === 0 && (
         <section className="card">
           <h2>Savings</h2>

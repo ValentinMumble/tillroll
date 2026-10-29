@@ -210,6 +210,7 @@
 }
 
 .flow-half {
+  position: relative;
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -232,6 +233,21 @@
 .flow-bar.is-short {
   border-radius: 0 0 4px 4px;
   background: var(--up);
+}
+
+/* Savings: what a month put aside (up) or took back (down), in the one violet both ways. */
+.flow-bar.is-saved {
+  background: var(--bar);
+}
+
+.flow-bar.is-taken {
+  border-radius: 0 0 4px 4px;
+  background: var(--bar);
+}
+
+.flow-column.is-hovered .flow-bar.is-saved,
+.flow-column.is-hovered .flow-bar.is-taken {
+  background: var(--bar-strong);
 }
 
 /* A period still going, or only partly in the data: lighter. */

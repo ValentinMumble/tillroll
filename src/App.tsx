@@ -223,6 +223,12 @@ export default function App() {
     saveGrain(next);
   }
 
+  /** How far back the charts go, the overview's and the savings', remembered on this device. */
+  function changeChartSpan(next: number) {
+    setChartSpan(next);
+    saveChartSpan(next);
+  }
+
   /** Another period. The filter stays (a category, a store, a label), to follow the same payments from year to year. */
   function changePeriod(next: string) {
     setChosenPeriod(next);
@@ -538,10 +544,7 @@ export default function App() {
               onPayback={(row, paymentId) => void setPayback(row, paymentId)}
               toSavings={toSavings}
               chartSpan={chartSpan}
-              onChartSpan={span => {
-                setChartSpan(span);
-                saveChartSpan(span);
-              }}
+              onChartSpan={changeChartSpan}
             />
           )}
           {tab === 'calendar' && (
@@ -576,6 +579,8 @@ export default function App() {
               holders={holders}
               balances={data?.balances ?? []}
               onSave={(account, record) => void setSavings(account, record)}
+              chartSpan={chartSpan}
+              onChartSpan={changeChartSpan}
             />
           )}
           {tab === 'categories' && (
