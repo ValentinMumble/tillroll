@@ -13,8 +13,8 @@ interface Props {
 
 /**
  * The payment list's category filter, several at once: a button like a select ("All categories", "↔️ Transfers",
- * "↔️ Transfers + 2") that opens the categories with a tick each and their payments. A click outside or Escape
- * closes it.
+ * "↔️ Transfers + 2") that opens the categories with their payments. A category's tick adds it to the ones shown, its
+ * name shows it alone and closes the menu. A click outside or Escape closes it too.
  */
 export function CategoryFilter({categories, counts, picked, onChange}: Props) {
   const ref = useRef<HTMLDetailsElement>(null);
@@ -49,19 +49,31 @@ export function CategoryFilter({categories, counts, picked, onChange}: Props) {
         <button type="button" className="link-button" disabled={picked.length === 0} onClick={() => onChange([])}>
           All categories
         </button>
+        {/* The tick adds a category to the ones shown (or takes it off); the name shows that one alone. */}
         {shown.map(category => (
-          <label key={category.key} className="category-filter-option">
+          <div key={category.key} className="category-filter-option">
             <input
               type="checkbox"
+              aria-label={`Also show ${category.label}`}
               checked={picked.includes(category.key)}
               onChange={event =>
                 onChange(event.target.checked ? [...picked, category.key] : picked.filter(key => key !== category.key))
               }
             />
-            <span aria-hidden="true">{category.icon}</span>
-            <span className="category-filter-name">{category.label}</span>
-            <span className="muted">{counts.get(category.key) ?? 0}</span>
-          </label>
+            <button
+              type="button"
+              className="category-filter-only"
+              title={`Only ${category.label}`}
+              onClick={() => {
+                onChange([category.key]);
+                if (ref.current) ref.current.open = false;
+              }}
+            >
+              <span aria-hidden="true">{category.icon}</span>
+              <span className="category-filter-name">{category.label}</span>
+              <span className="muted">{counts.get(category.key) ?? 0}</span>
+            </button>
+          </div>
         ))}
       </div>
     </details>

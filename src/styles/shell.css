@@ -239,12 +239,31 @@
 
 .category-filter-option {
   display: grid;
-  grid-template-columns: auto auto minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
   gap: 8px;
   min-height: 36px;
   padding: 0 8px;
   border-radius: 8px;
+}
+
+.category-filter-option input {
+  cursor: pointer;
+}
+
+/* The name and its count: a button that shows this category alone. */
+.category-filter-only {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
   cursor: pointer;
 }
 

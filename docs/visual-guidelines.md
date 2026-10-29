@@ -107,8 +107,8 @@ shows, then the actions as `.link-button`s at the right end (`.card-actions` whe
   `--line` rule on its left.
 - Show a search field above a list once it has more than 8 items, and an `.empty` line when nothing matches.
 - Every dropdown has the `.select` look closed: same height, border, radius and caret. One choice is a plain
-  `<select>` (a phone opens its own picker); several choices are a button opening a menu with a tick for each
-  (`CategoryFilter`), reading "All categories", one choice, or the first and "+ 2".
+  `<select>` (a phone opens its own picker); several choices are a button opening a menu where a tick adds a choice
+  and the name picks it alone (`CategoryFilter`), reading "All categories", one choice, or the first and "+ 2".
 - In a dialog, a few short names that each take an action (merged names, look-alike stores) are chips with the
   action inside (`.name-chip`: ✕ to separate, Merge), not rows with the action at the far end of a wide line.
 - A category always shows as its emoji and its name, with its colour as a dot or a tint.
