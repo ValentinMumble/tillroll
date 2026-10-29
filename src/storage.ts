@@ -2,6 +2,7 @@ import type {Grain} from './periods';
 import type {
   Budgets,
   CategoryEdit,
+  CategoryKey,
   Labels,
   Merges,
   Paybacks,
@@ -29,6 +30,7 @@ const GRAIN = 'tillroll.grain';
 const CHART_SPAN = 'tillroll.chart-span';
 const PAYMENT_SORT = 'tillroll.payment-sort';
 const SHEET_SCOPE = 'tillroll.sheet-scope';
+const RECENT_PICKS = 'tillroll.recent-picks';
 const PAYMENTS_EVERYTHING = 'tillroll.payments-everything';
 const PAYMENTS_OWN = 'tillroll.payments-own';
 const CATEGORY_VIEW = 'tillroll.category-view';
@@ -141,6 +143,11 @@ export const savePaymentSort = (sort: PaymentSort) => write(PAYMENT_SORT, sort);
 /** Where the category sheet's choice applies ("store" or "payment"), as last picked, remembered in each browser. */
 export const loadSheetScope = () => read<string>(SHEET_SCOPE);
 export const saveSheetScope = (scope: string) => write(SHEET_SCOPE, scope);
+
+/** The categories picked last in the category sheet, the latest first (ten at most), remembered in each browser. */
+export const loadRecentPicks = () => read<CategoryKey[]>(RECENT_PICKS) ?? [];
+export const saveRecentPick = (category: CategoryKey) =>
+  write(RECENT_PICKS, [category, ...loadRecentPicks().filter(key => key !== category)].slice(0, 10));
 
 /** Whether the payment lists also show money in, remembered in each browser. */
 export const loadPaymentsEverything = () => read<boolean>(PAYMENTS_EVERYTHING) === true;

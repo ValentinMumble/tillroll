@@ -1,8 +1,14 @@
 import {type ReactNode, useState} from 'react';
 import {type Categories, colourStyle, DEFAULT_ICON, oneIcon} from '../categories';
-import {loadSheetScope, saveSheetScope} from '../storage';
+import {loadRecentPicks, loadSheetScope, saveRecentPick, saveSheetScope} from '../storage';
 import type {CategoryKey} from '../types';
 import {useDialog} from '../useDialog';
+
+/**
+ * The categories offered first, the ones picked lately then the ones most used: one may be the one picked now, which
+ * is left out.
+ */
+export const MOST_USED = 5;
 
 export interface Scope {
   key: string;
@@ -60,9 +66,20 @@ export function CategorySheet({
   const [adding, setAdding] = useState(false);
   const [name, setName] = useState('');
   const [icon, setIcon] = useState('');
-  const often = frequent.filter(key => key !== current && categories.byKey[key]).slice(0, 3);
+  // The categories picked lately first (in this browser), then the ones with the most payments, five in all.
+  const [recent] = useState(() =>
+    loadRecentPicks()
+      .filter(key => key !== current && categories.byKey[key])
+      .slice(0, MOST_USED),
+  );
+  const often = [
+    ...recent,
+    ...frequent.filter(key => key !== current && categories.byKey[key] && !recent.includes(key)),
+  ].slice(0, MOST_USED);
+  const oftenTitle = recent.length >= MOST_USED ? 'Recent' : recent.length > 0 ? 'Recent and most used' : 'Most used';
 
   function pick(category: CategoryKey | null) {
+    if (category) saveRecentPick(category);
     onPick(category, scope);
     closeDialog();
   }
@@ -133,7 +150,7 @@ export function CategorySheet({
         )}
         {often.length > 0 && (
           <section className="sheet-group" aria-labelledby="sheet-often">
-            <h3 id="sheet-often">Most used</h3>
+            <h3 id="sheet-often">{oftenTitle}</h3>
             <div className="sheet-often">{often.map(key => categoryButton(key, true))}</div>
           </section>
         )}

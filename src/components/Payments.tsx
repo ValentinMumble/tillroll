@@ -17,7 +17,7 @@ import type {CategoryKey, Labels} from '../types';
 import {BankBadge} from './BankBadge';
 import type {Focus} from './Breakdown';
 import {CategoryFilter} from './CategoryFilter';
-import {CategorySheet, type Scope} from './CategorySheet';
+import {CategorySheet, MOST_USED, type Scope} from './CategorySheet';
 import {ListSwitches} from './ListSwitches';
 import {LabelOptions, PaymentLabels} from './PaymentLabels';
 import {PaybackPicker} from './PaybackPicker';
@@ -626,7 +626,7 @@ export function Payments({
           categories={categories}
           current={sheetCategories.size === 1 ? [...sheetCategories][0] : null}
           guess={sheet.every(row => row.basis !== 'picked')}
-          frequent={topCategories(rows, 4)}
+          frequent={topCategories(rows, MOST_USED + 1)}
           payback={
             sheet.length === 1 &&
             sheet[0].amount > 0 && (

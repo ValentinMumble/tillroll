@@ -6,7 +6,7 @@ import {isListed, isIncoming, isUnsure, paidBackIds, type Row, topCategories} fr
 import {loadPaymentsEverything, loadPaymentsOwn} from '../storage';
 import type {CategoryKey, Labels} from '../types';
 import {BankBadge} from './BankBadge';
-import {CategorySheet} from './CategorySheet';
+import {CategorySheet, MOST_USED} from './CategorySheet';
 import {ListSwitches} from './ListSwitches';
 import {LabelOptions, PaymentLabels} from './PaymentLabels';
 import {PaybackPicker} from './PaybackPicker';
@@ -173,7 +173,7 @@ export function LatestPayments({
           categories={categories}
           current={sheet.category}
           guess={sheet.basis !== 'picked'}
-          frequent={topCategories(rows, 4)}
+          frequent={topCategories(rows, MOST_USED + 1)}
           payback={
             sheet.amount > 0 && (
               <PaybackPicker
