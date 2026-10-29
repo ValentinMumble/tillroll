@@ -15,11 +15,17 @@ function differs(category: Category) {
   const original = BUILT_IN.find(item => item.key === category.key);
   return (
     original &&
-    (original.label !== category.label || original.icon !== category.icon || original.spending !== category.spending)
+    (original.label !== category.label ||
+      original.icon !== category.icon ||
+      original.spending !== category.spending ||
+      Boolean(category.hobby))
   );
 }
 
-/** Rename categories, change their icon or whether they count as spending, add new ones and delete those. */
+/**
+ * Rename categories, change their icon, whether they count as spending and whether they are a hobby (with a tile in
+ * the fun stats), add new ones and delete those.
+ */
 export function CategoryEditor({categories, forStore, onSave, onClose}: Props) {
   const {ref: dialogRef, onKeyDown: onDialogKeyDown, close: closeDialog} = useDialog();
   const [draft, setDraft] = useState<Category[]>(categories.list);
@@ -129,16 +135,28 @@ export function CategoryEditor({categories, forStore, onSave, onClose}: Props) {
               maxLength={40}
               onChange={event => update(category.key, {label: event.target.value})}
             />
-            <label className="check">
-              <input
-                type="checkbox"
-                checked={category.spending && !LEFT_OUT.includes(category.key)}
-                // Money between one's accounts and ignored payments stay out of every total.
-                disabled={LEFT_OUT.includes(category.key)}
-                onChange={event => update(category.key, {spending: event.target.checked})}
-              />
-              Counts as spending
-            </label>
+            <span className="category-checks">
+              <label className="check">
+                <input
+                  type="checkbox"
+                  checked={category.spending && !LEFT_OUT.includes(category.key)}
+                  // Money between one's accounts and ignored payments stay out of every total.
+                  disabled={LEFT_OUT.includes(category.key)}
+                  onChange={event => update(category.key, {spending: event.target.checked})}
+                />
+                Counts as spending
+              </label>
+              <label className="check">
+                <input
+                  type="checkbox"
+                  checked={Boolean(category.hobby) && category.spending}
+                  // A hobby is spending: money in or moves have no hobby tile.
+                  disabled={!category.spending || LEFT_OUT.includes(category.key)}
+                  onChange={event => update(category.key, {hobby: event.target.checked})}
+                />
+                Hobby
+              </label>
+            </span>
             {category.custom ? (
               <button
                 type="button"
@@ -152,10 +170,7 @@ export function CategoryEditor({categories, forStore, onSave, onClose}: Props) {
                 type="button"
                 className="link-button"
                 onClick={() =>
-                  update(
-                    category.key,
-                    BUILT_IN.find(item => item.key === category.key)!,
-                  )
+                  update(category.key, {...BUILT_IN.find(item => item.key === category.key)!, hobby: false})
                 }
               >
                 Reset

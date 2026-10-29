@@ -117,10 +117,11 @@ export function editsFrom(list: Category[]): CategoryEdit[] {
         !original ||
         original.label !== category.label ||
         original.icon !== category.icon ||
-        original.spending !== category.spending
+        original.spending !== category.spending ||
+        Boolean(category.hobby)
       );
     })
-    .map(({key, label, icon, spending}) => ({key, label, icon, spending}));
+    .map(({key, label, icon, spending, hobby}) => ({key, label, icon, spending, ...(hobby ? {hobby} : {})}));
 }
 
 export function newCategoryKey(label: string) {

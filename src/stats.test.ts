@@ -2,6 +2,8 @@ import {describe, expect, it} from 'vitest';
 import {categoriesFrom} from './categories';
 import {toRows} from './rows';
 import {funStats} from './stats';
+import {trainStats} from './trains';
+import {hobbyStats} from './hobbies';
 import type {Transaction} from './types';
 
 let lastId = 0;
@@ -39,5 +41,54 @@ describe('fun stats', () => {
       payment({description: 'Boulangerie', amount: -2, date: `2026-10-${String(index + 1).padStart(2, '0')}`}),
     );
     expect(titled('Small stuff adds up', coffees)?.value).toBe('€20');
+  });
+});
+
+describe('train stats', () => {
+  it('finds the line taken most, the places reached and how far', () => {
+    const tickets = [
+      payment({description: 'SNCF-VOYAGEURS', amount: -17, date: '2026-01-10'}),
+      payment({description: 'SNCF-VOYAGEURS', amount: -17, date: '2026-01-12'}),
+      payment({description: 'Trainline', amount: -92, date: '2026-02-01'}),
+      payment({description: 'Cafe Pop', amount: -4, date: '2026-02-02'}),
+    ];
+    const rows = toRows(tickets, {
+      rules: {},
+      categories,
+      merges: {},
+      labels: {
+        [tickets[0].id]: ['Nantes ⇄ Lorient'],
+        [tickets[1].id]: ['Nantes ⇄ Lorient'],
+        [tickets[2].id]: ['Nantes ⇄ Paris'],
+      },
+      paymentCategories: {},
+    });
+    const facts = trainStats(rows, 'EUR');
+    const fact = (title: string) => facts.find(item => item.title === title);
+    expect(fact('Spent on train tickets')?.detail).toMatch(/^3 tickets/);
+    expect(fact('Your line')?.value).toBe('Nantes ⇄ Lorient');
+    expect(fact('Reached by train')?.detail).toBe('from Nantes, most often Lorient (2), Paris (1)');
+    expect(fact('Furthest by train')?.value).toBe('Paris');
+    expect(fact('Priciest ticket')?.value).toBe('€92');
+  });
+});
+
+describe('hobby stats', () => {
+  it('shows each hobby with what came back from resales', () => {
+    const bike = categoriesFrom([{key: 'bike', label: 'Bike', icon: '🚲', spending: true, hobby: true}]);
+    const wheels = payment({description: 'Bike shop', amount: -300, date: '2026-01-10'});
+    const sold = payment({description: 'Leboncoin', kind: 'income', amount: 120, date: '2026-05-10'});
+    const rows = toRows([wheels, sold], {
+      rules: {},
+      categories: bike,
+      merges: {},
+      labels: {[wheels.id]: ['Wheels']},
+      paymentCategories: {[wheels.id]: 'bike', [sold.id]: 'bike'},
+    });
+    const [all, tile] = hobbyStats(rows, 'EUR', bike);
+    expect(all.detail).toMatch(/^1 hobby/);
+    expect(tile.title).toBe('Bike');
+    expect(tile.value).toBe('€180');
+    expect(tile.detail).toBe('1 purchase since 2026; €120 back from resales and refunds; the biggest Wheels (€300)');
   });
 });

@@ -150,6 +150,24 @@
   border-top: 1px solid var(--line);
 }
 
+/* Counts as spending, and Hobby, side by side; under the name on a phone. */
+.category-checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+
+@media (max-width: 560px) {
+  .category-list li {
+    grid-template-columns: 44px minmax(0, 1fr) 52px;
+  }
+
+  .category-checks {
+    grid-row: 2;
+    grid-column: 2 / 4;
+  }
+}
+
 .category-list li.is-new .text-input {
   border-color: var(--accent);
 }

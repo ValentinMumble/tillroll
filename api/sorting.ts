@@ -34,7 +34,8 @@ function isEdit(value: unknown): value is CategoryEdit {
     typeof item.icon === 'string' &&
     item.icon.length > 0 &&
     item.icon.length <= 16 &&
-    typeof item.spending === 'boolean'
+    typeof item.spending === 'boolean' &&
+    (item.hobby === undefined || typeof item.hobby === 'boolean')
   );
 }
 
@@ -81,7 +82,13 @@ const PARTS: Record<string, (body: Record<string, unknown>) => Promise<unknown>>
     }
     return redis().set(
       CATEGORIES,
-      categories.map(({key, label, icon, spending}) => ({key, label: label.trim(), icon: icon.trim(), spending})),
+      categories.map(({key, label, icon, spending, hobby}) => ({
+        key,
+        label: label.trim(),
+        icon: icon.trim(),
+        spending,
+        ...(hobby ? {hobby} : {}),
+      })),
     );
   },
 

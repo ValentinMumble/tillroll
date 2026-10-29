@@ -97,6 +97,8 @@ export interface CategoryEdit {
   icon: string;
   /** False for money that only moves or comes in: it is not counted as spending. */
   spending: boolean;
+  /** A hobby: it has its own tile in the fun stats' Hobbies section. */
+  hobby?: boolean;
 }
 
 /** One of the owner's bank connections, as the page sees it. */

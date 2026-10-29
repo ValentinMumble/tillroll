@@ -259,8 +259,8 @@ export function funStats(rows: Row[], currency: string, categories: Categories):
     });
   }
 
-  // Your own categories, the costliest first: the ones paid mostly by a regular payment (a loan, charges) are no
-  // hobby, so they stay out.
+  // Your own categories, the costliest first: the ones marked as hobbies when there are some; otherwise all but the
+  // ones paid mostly by a regular payment (a loan, charges), which are no hobby.
   const regularKeys = new Set(regular.map(item => item.key));
   const own = new Map<string, {total: number; regular: number}>();
   for (const row of payments) {
@@ -270,8 +270,9 @@ export function funStats(rows: Row[], currency: string, categories: Categories):
     if (regularKeys.has(`${row.storeKey}|${row.category}`)) entry.regular += row.spend;
     own.set(row.category, entry);
   }
+  const marked = new Set(categories.list.filter(category => category.hobby).map(category => category.key));
   const hobbies = [...own]
-    .filter(([, entry]) => entry.regular < entry.total / 2)
+    .filter(([key, entry]) => (marked.size > 0 ? marked.has(key) : entry.regular < entry.total / 2))
     .sort((first, second) => second[1].total - first[1].total);
   if (hobbies.length > 0) {
     const [key, entry] = hobbies[0];
