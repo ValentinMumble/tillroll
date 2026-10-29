@@ -45,11 +45,13 @@ describe('fun stats', () => {
 });
 
 describe('train stats', () => {
-  it('finds the line taken most, the places reached and how far', () => {
+  it('finds the lines taken most, the places reached, how far and the price over the years', () => {
     const tickets = [
+      payment({description: 'SNCF-VOYAGEURS', amount: -10, date: '2025-01-10'}),
       payment({description: 'SNCF-VOYAGEURS', amount: -17, date: '2026-01-10'}),
-      payment({description: 'SNCF-VOYAGEURS', amount: -17, date: '2026-01-12'}),
-      payment({description: 'Trainline', amount: -92, date: '2026-02-01'}),
+      payment({description: 'SNCF-VOYAGEURS', amount: -17, date: '2026-02-12'}),
+      payment({description: 'Trainline', amount: -92, date: '2026-03-01'}),
+      payment({description: 'SNCF-VOYAGEURS', amount: -49, date: '2026-03-02'}),
       payment({description: 'Cafe Pop', amount: -4, date: '2026-02-02'}),
     ];
     const rows = toRows(tickets, {
@@ -59,17 +61,27 @@ describe('train stats', () => {
       labels: {
         [tickets[0].id]: ['Nantes ⇄ Lorient'],
         [tickets[1].id]: ['Nantes ⇄ Lorient'],
-        [tickets[2].id]: ['Nantes ⇄ Paris'],
+        [tickets[2].id]: ['Nantes ⇄ Lorient'],
+        [tickets[3].id]: ['Nantes ⇄ Paris'],
+        [tickets[4].id]: ['Carte Avantage'],
       },
       paymentCategories: {},
     });
-    const facts = trainStats(rows, 'EUR');
-    const fact = (title: string) => facts.find(item => item.title === title);
-    expect(fact('Spent on train tickets')?.detail).toMatch(/^3 tickets/);
-    expect(fact('Your line')?.value).toBe('Nantes ⇄ Lorient');
-    expect(fact('Reached by train')?.detail).toBe('from Nantes, most often Lorient (2), Paris (1)');
-    expect(fact('Furthest by train')?.value).toBe('Paris');
+    const stats = trainStats(rows, 'EUR');
+    const fact = (title: string) => stats?.facts.find(item => item.title === title);
+    expect(fact('Spent on train tickets')?.detail).toMatch(/^4 tickets/);
+    expect(stats?.lines.map(line => [line.name, line.count])).toEqual([
+      ['Nantes ⇄ Lorient', 3],
+      ['Nantes ⇄ Paris', 1],
+    ]);
+    expect(stats?.years.map(year => year.count)).toEqual([1, 3]);
+    expect(fact('Nantes ⇄ Lorient over the years')?.value).toBe('€10.00 → €17.00');
+    expect(fact('Reached by train')?.detail).toBe('from Nantes; most often Lorient (3), Paris (1)');
+    expect(fact('Longest ride')?.value).toBe('Nantes ⇄ Paris');
+    expect(fact('Longest run')?.value).toBe('3 months in a row');
     expect(fact('Priciest ticket')?.value).toBe('€92');
+    // The railcard is no ticket.
+    expect(fact('Railcards')?.value).toBe('€49');
   });
 });
 

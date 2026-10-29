@@ -273,6 +273,19 @@
   white-space: nowrap;
 }
 
+/* The train lines taken most: the breakdown's bars, to read, not to click. */
+.train-lines {
+  margin-bottom: 24px;
+}
+
+.bar-row.is-static {
+  cursor: default;
+}
+
+.bar-row.is-static:hover {
+  background: none;
+}
+
 .facts-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));

@@ -4,7 +4,8 @@ import {dayLabel, WEEKDAYS} from '../periods';
 import type {Row} from '../rows';
 import {hobbyStats} from '../hobbies';
 import {type Fact, funStats} from '../stats';
-import {trainStats} from '../trains';
+import {money} from '../format';
+import {trainStats, type TrainStats} from '../trains';
 import {BarStrip} from './BarStrip';
 
 interface Props {
@@ -32,6 +33,34 @@ function FactList({facts}: {facts: Fact[]}) {
         </li>
       ))}
     </ul>
+  );
+}
+
+function ticketCount(count: number) {
+  return `${count} ticket${count === 1 ? '' : 's'}`;
+}
+
+/** The lines taken most, as bars: how many tickets, what one cost on average. */
+function LineList({lines, currency}: {lines: TrainStats['lines']; currency: string}) {
+  const top = Math.max(1, ...lines.map(line => line.count));
+  return (
+    <figure className="stat-bars train-lines">
+      <figcaption>Your lines</figcaption>
+      <ul className="bars">
+        {lines.map(line => (
+          <li key={line.name} className="bar-row is-static">
+            <span className="bar-label">
+              <span className="bar-name">{line.name}</span>
+            </span>
+            <span className="bar-value">{ticketCount(line.count)}</span>
+            <span className="bar-change muted">{money(line.total / line.count, currency)} each</span>
+            <span className="bar-track">
+              <span className="bar-fill" style={{width: `${(line.count / top) * 100}%`}} />
+            </span>
+          </li>
+        ))}
+      </ul>
+    </figure>
   );
 }
 
@@ -98,13 +127,30 @@ export function FunStats({rows, currency, categories}: Props) {
         </header>
         {hobbies.length > 0 && <FactList facts={hobbies} />}
       </section>
-      {trains.length > 0 && (
+      {trains && (
         <section className="card fun-stats">
           <header className="card-head">
             <h2>Trains</h2>
-            <span className="hint">from your train tickets and their route labels; distances are rough</span>
+            <span className="hint">from your train tickets and their route labels; distances and CO₂ are rough</span>
           </header>
-          <FactList facts={trains} />
+          <div className="stat-charts">
+            <BarStrip
+              caption="Spent on train tickets, by year"
+              values={trains.years.map(year => year.total)}
+              labels={trains.years.map(year => `’${year.year.slice(2)}`)}
+              titles={trains.years.map(year => `${year.year}, ${ticketCount(year.count)}`)}
+              currency={currency}
+            />
+            <BarStrip
+              caption="By month of the year, every year together"
+              values={trains.months}
+              labels={MONTHS.map(month => month.charAt(0))}
+              titles={MONTHS}
+              currency={currency}
+            />
+          </div>
+          {trains.lines.length > 0 && <LineList lines={trains.lines} currency={currency} />}
+          <FactList facts={trains.facts} />
         </section>
       )}
     </>

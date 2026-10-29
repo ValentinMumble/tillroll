@@ -113,6 +113,8 @@ shows, then the actions as `.link-button`s at the right end (`.card-actions` whe
 
 - A row is: the name (in `--ink`, 500), then `N payments · €X` in `.muted`, then its action as a `.link-button` at
   the right end. Write "1 payment", never "1 payments".
+- A ranked list only to read (the train lines in Fun stats) uses the breakdown's bars as `.bar-row.is-static`: no
+  hover, no pointer.
 - Groups of rows are split by a 1px `--line` hairline. A sub-list (the stores merged into one) is indented with a 2px
   `--line` rule on its left.
 - Show a search field above a list once it has more than 8 items, and an `.empty` line when nothing matches.
