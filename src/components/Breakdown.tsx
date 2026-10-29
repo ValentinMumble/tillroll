@@ -1,5 +1,6 @@
 import {useState} from 'react';
 import {type Categories, colourStyle} from '../categories';
+import {smoothPath} from '../curve';
 import {money} from '../format';
 import type {Report} from '../report';
 import {type CategoryView, loadCategoryView, saveCategoryView} from '../storage';
@@ -31,17 +32,50 @@ function share(part: number, whole: number) {
   return percent > 0 && percent < 1 ? '<1%' : `${Math.round(percent)}%`;
 }
 
-/** A category's spending over the chart's periods, the chosen one marked. */
-function Trend({values, marked}: {values: number[]; marked: number}) {
-  const width = 72;
-  const height = 22;
+/**
+ * A category's spending over the chart's periods: a curve with a soft fill under it, the chosen period marked. A
+ * period only partly in (the one still going) joins the curve with a dashed line, so its smaller total never reads as
+ * a fall. A faint dashed line marks its usual, the middle of its full periods, and its tooltip says how much.
+ */
+function Trend({
+  values,
+  partial,
+  marked,
+  currency,
+}: {
+  values: number[];
+  partial: boolean[];
+  marked: number;
+  currency: string;
+}) {
+  const width = 120;
+  const height = 32;
   const top = Math.max(1, ...values);
   const step = values.length > 1 ? width / (values.length - 1) : 0;
-  const points = values.map((value, index) => [index * step, height - 3 - (Math.max(0, value) / top) * (height - 6)]);
+  const yOf = (value: number) => height - 3 - (Math.max(0, value) / top) * (height - 6);
+  const points = values.map((value, index) => ({x: index * step, y: yOf(value)}));
+  const firstFull = partial.indexOf(false);
+  const lastFull = partial.lastIndexOf(false);
+  const full = firstFull < 0 ? [] : points.slice(firstFull, lastFull + 1);
+  const curve = full.length > 1 ? smoothPath(full) : null;
+  const partEnds = [
+    firstFull > 0 ? [points[firstFull - 1], points[firstFull]] : null,
+    firstFull >= 0 && lastFull < points.length - 1 ? [points[lastFull], points[lastFull + 1]] : null,
+  ].filter(ends => ends !== null);
+  const fullValues = values.filter((_value, index) => !partial[index]).sort((first, second) => first - second);
+  const usual = fullValues.length >= 3 ? fullValues[fullValues.length >> 1] : null;
   return (
     <svg className="trend" viewBox={`0 0 ${width} ${height}`} aria-hidden="true">
-      <polyline points={points.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(' ')} />
-      {points[marked] && <circle cx={points[marked][0]} cy={points[marked][1]} r="2.5" />}
+      {usual !== null && <title>{`Usual: ${money(usual, currency)}`}</title>}
+      {curve && (
+        <path className="trend-area" d={`${curve} L ${full[full.length - 1].x} ${height} L ${full[0].x} ${height} Z`} />
+      )}
+      {usual !== null && <line className="trend-usual" x1="0" x2={width} y1={yOf(usual)} y2={yOf(usual)} />}
+      {curve && <path className="trend-line" d={curve} />}
+      {partEnds.map(([from, to]) => (
+        <line key={from.x} className="trend-line is-partial" x1={from.x} y1={from.y} x2={to.x} y2={to.y} />
+      ))}
+      {points[marked] && <circle cx={points[marked].x} cy={points[marked].y} r="3" />}
     </svg>
   );
 }
@@ -147,7 +181,14 @@ export function CategoryBreakdown({
                     </span>
                     {category.label}
                   </span>
-                  {!preview && <Trend values={series.map(item => item.categories.get(key) ?? 0)} marked={marked} />}
+                  {!preview && (
+                    <Trend
+                      values={series.map(item => item.categories.get(key) ?? 0)}
+                      partial={series.map(item => item.partial !== null)}
+                      marked={marked}
+                      currency={currency}
+                    />
+                  )}
                   <span className="bar-value">
                     {money(value, currency)} <small>{share(value, current.total)}</small>
                   </span>
@@ -298,7 +339,9 @@ export function StoreBreakdown({
                   {!preview && (
                     <Trend
                       values={report.series.map(item => item.stores.get(store.key)?.total ?? 0)}
+                      partial={report.series.map(item => item.partial !== null)}
                       marked={report.series.findIndex(item => item.period === report.period)}
+                      currency={currency}
                     />
                   )}
                   <span className="bar-value">{money(store.total, currency)}</span>

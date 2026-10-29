@@ -64,6 +64,8 @@ shows, then the actions as `.link-button`s at the right end (`.card-actions` whe
   should land. The chosen period has a shaded band behind its column, not a different colour.
 - The tooltip says everything a column shows, plus its top three categories. The keys sit in one wrapping row under
   the chart.
+- A category's or a store's small trend line in the lists curves through its periods with a soft fill in its colour. The period
+  still going joins it dashed, and a faint dashed line marks its usual (its tooltip gives the amount).
 - Money that goes both ways (what a period kept or spent beyond what came in, what a month put aside or took back
   from savings) is a bar up from a middle line or down below it. Savings' "Put aside" chart is violet both ways, and
   its tooltip splits a month by account.

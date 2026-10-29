@@ -309,21 +309,37 @@
 }
 
 .bar-row.has-trend {
-  grid-template-columns: minmax(0, 1fr) 72px auto 84px;
+  grid-template-columns: minmax(0, 1fr) 120px auto 84px;
 }
 
 .trend {
-  width: 72px;
-  height: 22px;
+  width: 120px;
+  height: 32px;
   overflow: visible;
 }
 
-.trend polyline {
+.trend-area {
+  fill: color-mix(in srgb, var(--cat, var(--bar)) 18%, transparent);
+}
+
+.trend-line {
   fill: none;
   stroke: var(--cat, var(--bar));
-  stroke-width: 1.5;
+  stroke-width: 2;
   stroke-linecap: round;
   stroke-linejoin: round;
+}
+
+/* The period still going joins the curve dashed: its total is not in yet. */
+.trend-line.is-partial {
+  stroke-dasharray: 2 4;
+}
+
+/* The category's usual, under the curve. */
+.trend-usual {
+  stroke: var(--axis);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
 }
 
 .trend circle {
