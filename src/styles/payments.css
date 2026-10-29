@@ -26,6 +26,28 @@
 .payments table {
   width: 100%;
   border-collapse: collapse;
+  /* The widths come from the colgroup, not from the rows drawn so far. */
+  table-layout: fixed;
+}
+
+.col-pick {
+  width: 32px;
+}
+
+.col-day {
+  width: 72px;
+}
+
+.col-day.with-year {
+  width: 112px;
+}
+
+.col-category {
+  width: 220px;
+}
+
+.col-amount {
+  width: 110px;
 }
 
 .payments td {

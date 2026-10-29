@@ -616,6 +616,11 @@
     display: block;
   }
 
+  /* Rows are grids on a phone: the table's column widths have nothing to size. */
+  .payments colgroup {
+    display: none;
+  }
+
   /* Two lines per payment: store and amount, then the date or time and the category. On a phone the list is for
      fixing categories: no ticks, and no search link or label button on each row (the store's dialog has the search;
      labels already given still show). A tap on the row opens its category. */

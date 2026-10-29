@@ -200,8 +200,9 @@ export function Payments({
     observer.observe(end);
     return () => observer.disconnect();
   }, [hasMore, limit]);
-  // A time column only when some payments listed have a time (statements give one, the bank sync does not).
-  const withTimes = page.some(row => row.time);
+  // A time column only when some payments listed have a time (statements give one, the bank sync does not): over the
+  // whole list, not only the rows drawn, so it never appears while the list scrolls.
+  const withTimes = visible.some(row => row.time);
   // Dates carry their year when the list covers more than one (all time, a label), or another year than this one.
   const years = new Set(visible.map(row => row.date.slice(0, 4)));
   const withYears = years.size > 1 || (years.size === 1 && !years.has(today().slice(0, 4)));
@@ -456,6 +457,14 @@ export function Payments({
         </p>
       ) : (
         <table>
+          {/* Fixed column widths, so the payments coming in as the list scrolls never move the columns. */}
+          <colgroup>
+            <col className="col-pick" />
+            {(!byDay || withTimes) && <col className={`col-day${!byDay && withYears ? ' with-year' : ''}`} />}
+            <col />
+            <col className="col-category" />
+            <col className="col-amount" />
+          </colgroup>
           <thead className="visually-hidden">
             <tr>
               <th>Pick</th>
