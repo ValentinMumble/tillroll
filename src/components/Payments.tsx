@@ -704,18 +704,21 @@ export function Payments({
                         {row.store}
                       </button>
                       <WebSearch name={row.store} />
-                      {row.pending && <span className="tag is-pending">pending</span>}
-                      {row.viaPayPal && (
-                        <span
-                          className="tag"
-                          title="It paid a PayPal purchase, which counts at its shop: a move between your accounts"
-                        >
-                          via PayPal
-                        </span>
-                      )}
-                      {isUnsure(row) && <span className="tag is-check">to check</span>}
-                      <RefundTags row={row} givenBack={given} onOpen={() => setSheet([row])} />
-                      <PaymentLabels row={row} onLabels={onLabels} onFocusLabel={onFocusLabel} />
+                      {/* The tags and labels: after the name, or on a phone's second line, after the category. */}
+                      <span className="payment-extras">
+                        {row.pending && <span className="tag is-pending">pending</span>}
+                        {row.viaPayPal && (
+                          <span
+                            className="tag"
+                            title="It paid a PayPal purchase, which counts at its shop: a move between your accounts"
+                          >
+                            via PayPal
+                          </span>
+                        )}
+                        {isUnsure(row) && <span className="tag is-check">to check</span>}
+                        <RefundTags row={row} givenBack={given} onOpen={() => setSheet([row])} />
+                        <PaymentLabels row={row} onLabels={onLabels} onFocusLabel={onFocusLabel} />
+                      </span>
                     </td>
                     <td className="payment-category">
                       <button

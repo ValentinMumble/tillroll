@@ -3,11 +3,9 @@ import {type Categories, colourStyle} from '../categories';
 import {money} from '../format';
 import {dayLabel, recentDayLabel} from '../periods';
 import {givenBack, givenTitle, isListed, isIncoming, isUnsure, type Row, topCategories} from '../rows';
-import {loadPaymentsEverything, loadPaymentsOwn} from '../storage';
 import type {CategoryKey, Labels} from '../types';
 import {BankBadge} from './BankBadge';
 import {CategorySheet, MOST_USED} from './CategorySheet';
-import {ListSwitches} from './ListSwitches';
 import {LabelOptions, PaymentLabels} from './PaymentLabels';
 import {PaidBackBy, PaybackPicker} from './PaybackPicker';
 import {RefundTags} from './RefundTags';
@@ -56,10 +54,8 @@ export function LatestPayments({
   onPayback,
 }: Props) {
   const [sheet, setSheet] = useState<Row | null>(null);
-  // The same choices as the payment list's, remembered in each browser.
-  const [moneyIn, setMoneyIn] = useState(loadPaymentsEverything);
-  const [own, setOwn] = useState(loadPaymentsOwn);
-  const shown = rows.filter(row => isListed(row, {moneyIn, own}));
+  // Everything that moved, money in and moves between one's own accounts too: the payment list has the switches.
+  const shown = rows.filter(row => isListed(row, {moneyIn: true, own: true}));
   // Newest first, a day at a time, until there are enough days and enough payments.
   const given = givenBack(allRows);
   const latest: Row[] = [];
@@ -69,7 +65,6 @@ export function LatestPayments({
     latest.push(row);
     days.add(row.date);
   }
-  const moves = rows.filter(row => row.category === 'own').length;
   // What went out each day, over every listed payment of the day, not only the ones shown.
   const dayTotals = new Map<string, number>();
   const dayCounts = new Map<string, number>();
@@ -81,7 +76,6 @@ export function LatestPayments({
     <section className="card is-preview latest">
       <header className="card-head">
         <h2>Latest payments</h2>
-        <ListSwitches moneyIn={moneyIn} own={own} moves={moves} onMoneyIn={setMoneyIn} onOwn={setOwn} />
         {shown.length > latest.length && (
           <button type="button" className="link-button" onClick={onSeeAll}>
             All {shown.length} payments →
@@ -128,17 +122,20 @@ export function LatestPayments({
                   >
                     {row.store}
                   </button>
-                  {row.pending && <span className="tag is-pending">pending</span>}
-                  {row.viaPayPal && (
-                    <span
-                      className="tag"
-                      title="It paid a PayPal purchase, which counts at its shop: a move between your accounts"
-                    >
-                      via PayPal
-                    </span>
-                  )}
-                  <RefundTags row={row} givenBack={given} onOpen={() => setSheet(row)} />
-                  <PaymentLabels row={row} onLabels={onLabels} onFocusLabel={onFocusLabel} />
+                  {/* The tags and labels: after the name, or on a phone's second line, after the category. */}
+                  <span className="payment-extras">
+                    {row.pending && <span className="tag is-pending">pending</span>}
+                    {row.viaPayPal && (
+                      <span
+                        className="tag"
+                        title="It paid a PayPal purchase, which counts at its shop: a move between your accounts"
+                      >
+                        via PayPal
+                      </span>
+                    )}
+                    <RefundTags row={row} givenBack={given} onOpen={() => setSheet(row)} />
+                    <PaymentLabels row={row} onLabels={onLabels} onFocusLabel={onFocusLabel} />
+                  </span>
                 </span>
                 <span className="latest-day">{row.time}</span>
                 <button

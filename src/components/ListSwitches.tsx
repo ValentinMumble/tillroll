@@ -10,8 +10,8 @@ interface Props {
 }
 
 /**
- * What a payment list shows besides spending: money in, and the moves between one's own accounts.
- * Both choices are remembered in each browser, for the overview and the payment list alike.
+ * What the payment list shows besides spending: money in, and the moves between one's own accounts.
+ * Both choices are remembered in each browser. The overview's latest payments always show both.
  */
 export function ListSwitches({moneyIn, own, moves, onMoneyIn, onOwn}: Props) {
   return (

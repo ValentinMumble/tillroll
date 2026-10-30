@@ -195,6 +195,11 @@
   font-weight: 700;
 }
 
+/* A payment's tags and labels: in the flow after its name (a phone puts them on its own line, see shell.css). */
+.payment-extras {
+  display: contents;
+}
+
 /* A pending payment's word after its category: a phone's only (a computer shows its tag). */
 .category-button-pending {
   display: none;

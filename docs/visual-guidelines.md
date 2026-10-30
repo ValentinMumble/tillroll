@@ -164,7 +164,8 @@ The overview answers "how is this month going?" first, above all on a phone, so 
 2. The prompts, when there is something to do: stores to sort, payments to check.
 3. The latest payments, whole days only (at least the last 3 days, and more days until there are at least 8
    payments), under day headings like the payment list's ("Today", "Yesterday", "Mon 12 Oct"), with what
-   went out that day on the right when it had more than one payment.
+   went out that day on the right when it had more than one payment. They show everything that moved, money in
+   and moves between my accounts too, with no switches: those are the payment list's.
 4. For a year only, "Your 2025": the year in a few numbers, as the fun stats' tiles (what it cost against the
    year before, what was kept when the pay is in the data, the biggest month, top category and places, new places,
    trips, trains, the biggest day and the dearest weekday).
@@ -182,7 +183,10 @@ The overview answers "how is this month going?" first, above all on a phone, so 
 - On a phone the main jobs are fixing categories and labelling: a tap anywhere on a payment opens its sheet, which
   holds its labels too. So a row is light, the same in the payment list and the latest payments, as in a bank's app:
   the category's emoji in a circle tinted in its colour on the left, the store and the amount, then the category's
-  name and the time in small grey text under them. No pill, no tick, no search link, no #. A pending payment has its
+  name and the time in small grey text under them. A row is always two lines: the store's name is cut short when
+  long, and its tags and labels go on the second line after the category, on one line, each cut short when they do
+  not fit (the sheet shows them whole, and takes a label off: no × on a row's chips). The bank's letter sits on the
+  circle's corner. No pill, no tick, no search link, no #. A pending payment has its
   amount in grey and "pending" after its category instead of a tag. Day headings drop their colour strip.
 - On a phone the payment list has one row of controls above it: the search, "to check" and Filters, which opens the
   sort, the switches, the category and the bank under them, with a count of the ones not at their usual setting.

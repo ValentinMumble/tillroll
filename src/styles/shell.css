@@ -738,12 +738,12 @@
   .payments tr {
     position: relative;
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, auto) minmax(0, 1fr) auto;
     grid-template-areas:
-      'store amount'
-      'category day';
+      'store store amount'
+      'category extras day';
     align-items: center;
-    gap: 2px 12px;
+    gap: 2px 8px;
     min-height: 58px;
     padding: 10px 0 10px 46px;
     border-top: 1px solid var(--line);
@@ -781,9 +781,88 @@
     font-size: 12px;
   }
 
-  .payments .payment-store {
+  /* The store's cell lets its parts into the row's grid: the name on the first line (cut short when long), the tags
+     and labels on the second, after the category, so the amount stays beside the name. */
+  .payments .payment-store,
+  .latest-store {
+    display: contents;
+  }
+
+  .payments .payment-store-name,
+  .latest .latest-name {
     grid-area: store;
+    justify-self: start;
     min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* One line, never two: when they do not fit, each tag and label is cut short (the sheet shows them whole). */
+  .payments .payment-extras,
+  .latest .payment-extras {
+    display: flex;
+    grid-area: extras;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .payment-extras > .tag {
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* The bank's letter sits on the corner of the category's circle. */
+  .payments tr .bank-badge,
+  .latest li .bank-badge {
+    position: absolute;
+    z-index: 1;
+    top: calc(50% + 3px);
+    left: 22px;
+    display: grid;
+    place-items: center;
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    border-radius: 50%;
+    background: var(--surface);
+    box-shadow: 0 0 0 1.5px var(--line);
+    font-size: 9px;
+    line-height: 1;
+  }
+
+  .payments tr.is-match .bank-badge {
+    left: 32px;
+  }
+
+  /* Smaller label chips, without their ×: a label comes off in the payment's sheet. */
+  .payments tr .label-chip,
+  .latest li .label-chip {
+    flex: 0 1 auto;
+    min-width: 0;
+    max-width: 100%;
+    margin-left: 0;
+    font-size: 11px;
+  }
+
+  .payments tr .label-chip button,
+  .latest li .label-chip button {
+    min-width: 0;
+    padding: 1px 8px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .payments tr .label-chip button + button,
+  .latest li .label-chip button + button {
+    display: none;
   }
 
   .payments .payment-amount {
@@ -806,7 +885,7 @@
   /* The category: its name in small grey text, its emoji in the row's circle. The whole row opens it. */
   .payments .category-button,
   .latest .category-button {
-    gap: 2px;
+    gap: 4px;
     min-height: 0;
     padding: 0;
     border: 0;
@@ -854,8 +933,9 @@
     color: var(--muted);
   }
 
-  .payments .tag {
-    margin-left: 6px;
+  .payments .tag,
+  .latest .payment-extras .tag {
+    margin-left: 0;
     padding: 0 5px;
     font-size: 10px;
     vertical-align: 1px;

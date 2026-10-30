@@ -163,15 +163,11 @@
   }
 
   .latest li {
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, auto) minmax(0, 1fr) auto;
     grid-template-areas:
-      'store amount'
-      'category day';
+      'store store amount'
+      'category extras day';
     gap: 2px 8px;
-  }
-
-  .latest-store {
-    grid-area: store;
   }
 
   .latest li.latest-day-head {
@@ -194,17 +190,6 @@
   .latest .payment-amount {
     grid-area: amount;
     justify-self: end;
-  }
-
-  /* The title and the link on one line, the switches under them. */
-  .latest .card-head > .link-button {
-    order: 1;
-    margin-left: auto;
-  }
-
-  .latest .card-head > .list-switches {
-    order: 2;
-    margin-left: 0;
   }
 }
 
