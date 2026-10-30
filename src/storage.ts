@@ -158,7 +158,7 @@ export function loadLabelSort(): LabelSort {
 
 export const saveLabelSort = (sort: LabelSort) => write(LABEL_SORT, sort);
 
-/** How Fun stats' trips are sorted: the latest, the biggest or the priciest a day, remembered in each browser. */
+/** How the trips are sorted (Trips): the latest, the biggest or the priciest a day, remembered in each browser. */
 export type TripSort = 'latest' | 'biggest' | 'day';
 
 export function loadTripSort(): TripSort {

@@ -11,7 +11,6 @@ import {BudgetCard} from './Budgets';
 import {FixedSplit} from './FixedSplit';
 import {Insights} from './Insights';
 import {LatestPayments} from './LatestPayments';
-import {MoneyFlow} from './MoneyFlow';
 import {PeriodChart} from './PeriodChart';
 import {RegularPayments} from './RegularPayments';
 import {Summary} from './Summary';
@@ -60,7 +59,7 @@ interface Props {
 /**
  * The overview, in a fixed order (see docs/visual-guidelines.md): the period so far, the balances, what is waiting to
  * be sorted or checked, the latest payments, the year in a few numbers (a year only), then the period chart, top
- * categories and stores, budgets, money in and out, fixed and flexible, regular payments and insights.
+ * categories and stores, budgets, fixed and flexible, regular payments and insights. Money in and out is in Money.
  */
 export function Overview({
   report,
@@ -105,7 +104,7 @@ export function Overview({
           currency={currency}
           categories={categories}
           toSavings={toSavings}
-          balances={<Balances balances={balances} currency={currency} onSavings={() => onShow('savings')} />}
+          balances={<Balances balances={balances} currency={currency} onSavings={() => onShow('money')} />}
         />
       </section>
       {toSort > 0 && (
@@ -196,15 +195,6 @@ export function Overview({
         budgets={budgets}
         currency={currency}
         onEdit={() => onShow('categories')}
-      />
-      <MoneyFlow
-        report={report}
-        grain={grain}
-        currency={currency}
-        categories={categories}
-        toSavings={toSavings}
-        span={chartSpan}
-        onSpan={onChartSpan}
       />
       <FixedSplit report={report} grain={grain} currency={currency} />
       <RegularPayments subscriptions={report.subscriptions} currency={currency} onOpenStore={onOpenStore} />

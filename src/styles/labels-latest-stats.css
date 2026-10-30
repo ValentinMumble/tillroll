@@ -627,7 +627,7 @@
   font-weight: 400;
 }
 
-/* The Labels card's search, and the switch to its trips only. */
+/* The Labels card's search. */
 .label-filters {
   display: flex;
   align-items: center;
@@ -638,22 +638,4 @@
 .label-filters .text-input {
   flex: 1;
   min-width: 0;
-}
-
-.label-filters .chip {
-  flex: none;
-}
-
-.label-filters .chip[aria-pressed='true'] {
-  border-color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 12%, transparent);
-  color: var(--accent);
-}
-
-.trip-dot {
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  border-radius: 999px;
-  background: var(--trip);
 }

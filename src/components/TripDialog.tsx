@@ -19,6 +19,8 @@ interface Props {
   /** The trip's days as set here (none set: the days of its payments); null makes the label a plain one again. */
   onSave: (trip: Trip | null) => void;
   onLabels: (changes: Labels) => void;
+  /** Shows the trip's payments in the payment list, from the count in its heading. */
+  onShowPayments?: () => void;
   onClose: () => void;
 }
 
@@ -38,7 +40,17 @@ async function findPlace(query: string): Promise<TripPlace | null> {
  * day, to tick and label in one go. Nothing is ticked by itself: the unlikely ones (a place also paid in the two
  * months around the trip) are dimmed, and one link ticks the likely ones. "Not a trip" makes it a plain label again.
  */
-export function TripDialog({label, trip, rows, currency, categories, onSave, onLabels, onClose}: Props) {
+export function TripDialog({
+  label,
+  trip,
+  rows,
+  currency,
+  categories,
+  onSave,
+  onLabels,
+  onShowPayments,
+  onClose,
+}: Props) {
   const {ref: dialogRef, onKeyDown: onDialogKeyDown, close: closeDialog} = useDialog();
   const auto = useMemo(() => tripDays(rows, label), [rows, label]);
   const [from, setFrom] = useState(trip.from ?? auto.from);
@@ -106,7 +118,23 @@ export function TripDialog({label, trip, rows, currency, categories, onSave, onL
             ✕
           </button>
           <p className="hint">
-            A trip · {paymentCount(labelled.length)} · {money(total, currency)}
+            A trip ·{' '}
+            {onShowPayments && labelled.length > 0 ? (
+              <button
+                type="button"
+                className="link-button"
+                title="See them in the payment list"
+                onClick={() => {
+                  closeDialog();
+                  onShowPayments();
+                }}
+              >
+                {paymentCount(labelled.length)}
+              </button>
+            ) : (
+              paymentCount(labelled.length)
+            )}{' '}
+            · {money(total, currency)}
             {valid && ` · ${dayCount(from, to)} days`}
           </p>
         </header>

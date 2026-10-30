@@ -3,7 +3,7 @@ import type {Categories} from '../categories';
 import type {Row} from '../rows';
 import type {Trips} from '../types';
 import {yearFacts} from '../year';
-import {FactList} from './FunStats';
+import {FactList} from './FactList';
 
 interface Props {
   year: string;

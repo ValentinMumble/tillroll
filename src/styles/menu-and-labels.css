@@ -49,7 +49,7 @@
   font-size: 13px;
 }
 
-/* The view open now, when it is one the menu opens (Calendar, Fun stats). */
+/* The view open now, when it is one the menu opens (Calendar, Money, Trips, Fun stats). */
 .menu-panel .button.is-current {
   color: var(--accent);
 }

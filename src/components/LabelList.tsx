@@ -42,7 +42,8 @@ interface LabelLine {
 
 /**
  * Every label with what it adds up to (all time): open its payments, rename it or take it off everywhere. A label can
- * be made a trip: it then shows its days and opens the trip's dialog (its days, the payments of those days to label).
+ * be made a trip: it then shows its days and opens the trip's dialog (its days, place, the payments of those days to
+ * label). The trips themselves are in their own view (see TripsView).
  */
 export function LabelList({rows, currency, onOpen, onRename, onDelete, categories, trips, onTrip, onLabels}: Props) {
   const [renaming, setRenaming] = useState<{label: string; text: string} | null>(null);
@@ -50,8 +51,6 @@ export function LabelList({rows, currency, onOpen, onRename, onDelete, categorie
   const [openTrip, setOpenTrip] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState<LabelSort>(loadLabelSort);
-  // Only the labels marked as trips.
-  const [tripsOnly, setTripsOnly] = useState(false);
   const lines = new Map<string, LabelLine>();
   for (const row of rows) {
     for (const label of row.labels) {
@@ -76,11 +75,7 @@ export function LabelList({rows, currency, onOpen, onRename, onDelete, categorie
             : -1,
   );
   const words = plain(query).split(/\s+/).filter(Boolean);
-  const isTrip = (line: LabelLine) => tripKeyOf(trips, line.name) !== undefined;
-  const tripCount = labels.filter(isTrip).length;
-  const shown = labels.filter(
-    line => (!tripsOnly || isTrip(line)) && words.every(word => plain(line.name).includes(word)),
-  );
+  const shown = labels.filter(line => words.every(word => plain(line.name).includes(word)));
 
   function finishRename() {
     if (!renaming) return;
@@ -112,29 +107,16 @@ export function LabelList({rows, currency, onOpen, onRename, onDelete, categorie
           </div>
         )}
       </header>
-      {(labels.length > 8 || tripCount > 0) && (
+      {labels.length > 8 && (
         <div className="label-filters">
-          {labels.length > 8 && (
-            <input
-              className="text-input"
-              type="search"
-              aria-label="Find a label"
-              placeholder="Find a label"
-              value={query}
-              onChange={event => setQuery(event.target.value)}
-            />
-          )}
-          {(tripCount > 0 || tripsOnly) && (
-            <button
-              type="button"
-              className="chip"
-              aria-pressed={tripsOnly}
-              title={tripsOnly ? 'Show every label' : 'Show the trips only'}
-              onClick={() => setTripsOnly(!tripsOnly)}
-            >
-              <span className="trip-dot" aria-hidden="true" /> Trips ({tripCount})
-            </button>
-          )}
+          <input
+            className="text-input"
+            type="search"
+            aria-label="Find a label"
+            placeholder="Find a label"
+            value={query}
+            onChange={event => setQuery(event.target.value)}
+          />
         </div>
       )}
       {labels.length === 0 ? (

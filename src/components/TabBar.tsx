@@ -17,7 +17,7 @@ export function TabIcon({path}: {path: string}) {
 
 /**
  * The phone layout's tab bar: a frosted capsule with a lens that slides under the chosen tab. A view opened from the
- * menu (Calendar, Fun stats) has no tab: no lens then.
+ * menu (Calendar, Money, Trips, Fun stats) has no tab: no lens then.
  */
 export function TabBar({tab, onTab}: Props) {
   const index = PHONE_TABS.findIndex(item => item.key === tab);

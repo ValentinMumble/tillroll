@@ -76,11 +76,11 @@ shows, then the actions as `.link-button`s at the right end (`.card-actions` whe
   `--axis` pool to each category in its colour, to savings and to what is left (`--bar`) on the right. Bands are the
   part's colour at 30% (55% hovered), every part is named with its amount beside it, and its tooltip gives its share.
   Six categories at most; the rest, and any under 3% of the spending, join a grey "Other spending".
-- The trips map (Fun stats, above the trips side by side) is Leaflet on CARTO's light or dark tiles, as the page is:
+- The trips map (Trips, above the trips side by side) is Leaflet on Esri's light or dark grey tiles (no key), as the page is:
   a violet bubble a trip (`--bar` at 55%, a `--bar-strong` ring), its area as big as what the trip cost, a tooltip
   like `ChartTip`, and a click shows the trip's payments. It opens on the trips in and around Europe. A trip's place
   is set in its dialog (a name, found with OpenStreetMap); a note under the map counts the trips with none.
-- Trips side by side (Fun stats) are one bar each, as long as the trip cost against the biggest, split by category in
+- Trips side by side (Trips) are one bar each, as long as the trip cost against the biggest, split by category in
   the categories' colours with 2px gaps; categories under 8% of a trip join one grey "Other" part. Each part has its
   tooltip, the categories are named under the bars, the list sorts by Latest, Biggest or A day, and a trip's name
   opens its payments. A trip with payments on few of its days says "to complete" and is left out of the costs a day.
@@ -129,7 +129,7 @@ shows, then the actions as `.link-button`s at the right end (`.card-actions` whe
 
 - A row is: the name (in `--ink`, 500), then `N payments · €X` in `.muted`, then its action as a `.link-button` at
   the right end. Write "1 payment", never "1 payments".
-- A ranked list only to read (the train lines in Fun stats) uses the breakdown's bars as `.bar-row.is-static`: no
+- A ranked list only to read (the train lines in Trips) uses the breakdown's bars as `.bar-row.is-static`: no
   hover, no pointer.
 - Groups of rows are split by a 1px `--line` hairline. A sub-list (the stores merged into one) is indented with a 2px
   `--line` rule on its left.
@@ -141,7 +141,8 @@ shows, then the actions as `.link-button`s at the right end (`.card-actions` whe
   `<select>` (a phone opens its own picker); several choices are a button opening a menu where a tick adds a choice
   and the name picks it alone (`CategoryFilter`), reading "All categories", one choice, or the first and "+ 2".
 - The Labels card sorts by Latest, Biggest, Most used or A to Z (a small segmented control in its head), with its
-  search and a "Trips (N)" switch, shown once a label is a trip, in one row under it.
+  search under it once there are more than 8. A label made a trip keeps its line there; the trips themselves are in
+  Trips, where a trip's name or bubble opens its dialog, and the count of payments in the dialog's head shows them.
 - In the payment list, a category picked while a label, a trip or a store is the filter narrows it (a trip's eating
   out), with its counts taken within it; picking another label or store starts again with every category.
 - In a dialog, a few short names that each take an action (merged names, look-alike stores) are chips with the
@@ -165,12 +166,17 @@ The overview answers "how is this month going?" first, above all on a phone, so 
 4. For a year only, "Your 2025": the year in a few numbers, as the fun stats' tiles (what it cost against the
    year before, what was kept when the pay is in the data, the biggest month, top category and places, new places,
    trips, trains, the biggest day and the dearest weekday).
-5. Everything else: the period chart, top categories and stores, budgets, money in and out, fixed and flexible,
-   regular payments, insights.
+5. Everything else: the period chart, top categories and stores, budgets, fixed and flexible, regular payments,
+   insights. Money in and out lives in Money, above the savings.
 
 ## Phone (560px and below)
 
 - Wide screens (over 960px) pick the view in the sidebar; narrower ones in the frosted tab bar at the bottom.
+- The views come in two groups. Spending: Overview, Payments, Categories, Stores, Calendar (where the money goes,
+  period by period). More: Money (money in and out, then net worth and savings), Trips (the map, the trips side by
+  side, their facts, the trains) and Fun stats (the playful facts and hobbies). The sidebar shows the two groups under
+  small headings like a card's title; the phone's tab bar holds Overview, Payments, Categories and Stores, and its
+  ⋯ menu the rest. An old address keeps working: #savings opens Money.
 - On a phone the main jobs are fixing categories and labelling: a tap on a payment opens the category sheet, and
   each row keeps its # to add a label (as in the latest payments). Keep rows light otherwise (no ticks, no search
   link); the rest lives in the sheet or the store's dialog.

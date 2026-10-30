@@ -12,7 +12,7 @@ interface Props {
 const escape = (text: string) => text.replace(/[&<>"']/g, character => `&#${character.charCodeAt(0)};`);
 
 /**
- * The trips with a place on a map (Leaflet, with CARTO's light or dark tiles to match the page): one violet bubble a
+ * The trips with a place on a map (Leaflet, with Esri's light or dark grey tiles to match the page): one violet bubble a
  * trip, its area as big as what it cost against the biggest. A bubble's tooltip says the trip, its days and cost; a
  * tap or a click shows its payments. It opens on the trips in and around Europe; zooming out shows the farther ones.
  * Leaflet loads only when there is a trip to show.
@@ -37,12 +37,13 @@ export function TripMap({trips, currency, onOpen}: Props) {
       const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
       const map = L.map(element, {scrollWheelZoom: false, worldCopyJump: true});
       remove = () => map.remove();
-      L.tileLayer(`https://{s}.basemaps.cartocdn.com/${dark ? 'dark_all' : 'light_all'}/{z}/{x}/{y}{r}.png`, {
-        attribution:
-          '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> © <a href="https://carto.com/attributions">CARTO</a>',
-        subdomains: 'abcd',
-        maxZoom: 18,
-      }).addTo(map);
+      // Esri's grey canvas, as in Statva: no key needed (CARTO's tiles now want one).
+      L.tileLayer(
+        `https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/${
+          dark ? 'World_Dark_Gray_Base' : 'World_Light_Gray_Base'
+        }/MapServer/tile/{z}/{y}/{x}`,
+        {attribution: 'Tiles © Esri, DeLorme, NAVTEQ', maxZoom: 16},
+      ).addTo(map);
       const top = Math.max(...placed.map(trip => trip.total));
       // The biggest first, so the small ones sit on top and stay easy to reach.
       for (const trip of [...placed].sort((first, second) => second.total - first.total)) {
@@ -88,7 +89,7 @@ export function TripMap({trips, currency, onOpen}: Props) {
       {placed.length < trips.length && (
         <p className="hint">
           {trips.length - placed.length} trip{trips.length - placed.length === 1 ? ' has' : 's have'} no place yet: add
-          one in the trip&rsquo;s dialog (Trip days, in Labels).
+          one in the trip&rsquo;s dialog (its name, below).
         </p>
       )}
     </figure>

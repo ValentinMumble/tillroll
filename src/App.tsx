@@ -14,6 +14,7 @@ import {Landing} from './components/Landing';
 import {Logo} from './components/Logo';
 import {Menu} from './components/Menu';
 import {MergesDialog} from './components/MergesDialog';
+import {MoneyFlow} from './components/MoneyFlow';
 import {Overview} from './components/Overview';
 import {Payments} from './components/Payments';
 import {PullToRefresh} from './components/PullToRefresh';
@@ -25,6 +26,7 @@ import {StoreDialog} from './components/StoreDialog';
 import {StoreEditor} from './components/StoreEditor';
 import {TabBar} from './components/TabBar';
 import {Toolbar} from './components/Toolbar';
+import {TripsView} from './components/TripsView';
 import {isHomeScreenApp} from './device';
 import type {Pair} from './duplicates';
 import {timeAgo} from './format';
@@ -35,7 +37,7 @@ import {isUnsure, rowsBetween, type StoreToSort, storesToSort} from './rows';
 import {loadChartSpan, loadGrain, saveChartSpan, saveGrain, savePaymentSort} from './storage';
 import {TripLabels} from './tripLabels';
 import {tripNames} from './trips';
-import {MENU_ONLY, type Tab, TABS} from './tabs';
+import {MENU_ONLY, type Tab, tabOf, TABS} from './tabs';
 import type {CategoryKey} from './types';
 import {useData} from './useData';
 
@@ -70,12 +72,13 @@ function placeFromHistory(): Place {
   const saved = window.history.state as Place | null;
   // A category filter saved before it held several: its one category.
   const focus = saved?.focus as (Focus & {key?: string}) | null | undefined;
-  if (saved?.tab && focus?.type === 'category' && !Array.isArray(focus.keys)) {
-    return {...saved, focus: focus.key ? {type: 'category', keys: [focus.key]} : null};
+  // A view saved under an older name (Savings is Money now): the view that took its place.
+  const tab = saved?.tab ? tabOf(saved.tab) : null;
+  if (saved && tab && focus?.type === 'category' && !Array.isArray(focus.keys)) {
+    return {tab, focus: focus.key ? {type: 'category', keys: [focus.key]} : null};
   }
-  if (saved?.tab) return saved;
-  const name = window.location.hash.slice(1);
-  return {tab: TABS.some(item => item.key === name) ? (name as Tab) : 'overview', focus: null};
+  if (saved && tab) return {...saved, tab};
+  return {tab: tabOf(window.location.hash.slice(1)) ?? 'overview', focus: null};
 }
 
 /**
@@ -577,16 +580,30 @@ export default function App() {
                 }}
               />
             )}
-            {tab === 'stats' && (
-              <FunStats
+            {tab === 'stats' && <FunStats rows={currencyRows} currency={currency} categories={categories} />}
+            {tab === 'trips' && (
+              <TripsView
                 rows={currencyRows}
                 currency={currency}
                 categories={categories}
                 trips={data?.trips ?? {}}
                 onOpenLabel={label => focusOn({type: 'label', key: label})}
+                onTrip={(label, trip) => void setTrip(label, trip)}
+                onLabels={changes => void setLabels(changes)}
               />
             )}
-            {tab === 'savings' && (
+            {tab === 'money' && (
+              <MoneyFlow
+                report={report}
+                grain={grain}
+                currency={currency}
+                categories={categories}
+                toSavings={toSavings}
+                span={chartSpan}
+                onSpan={changeChartSpan}
+              />
+            )}
+            {tab === 'money' && (
               <Savings
                 rows={currencyRows}
                 currency={currency}
