@@ -127,6 +127,8 @@ export function Payments({
   const [limit, setLimit] = useState(PAGE);
   const [sort, setSort] = useState<PaymentSort>(loadPaymentSort);
   const [query, setQuery] = useState('');
+  // On a phone, the filters shown under the search (see filtersOn).
+  const [filtersOpen, setFiltersOpen] = useState(false);
   // One bank's payments only; null shows every bank's.
   const [bank, setBank] = useState<string | null>(null);
   // Ticked payments, the last one ticked (for shift-click runs), and the label typed for them.
@@ -382,6 +384,36 @@ export function Payments({
         ? focus.name
         : null;
 
+  const sortButtons = (
+    <div className="segmented is-small" role="group" aria-label="Sort payments by">
+      {SORTS.map(item => {
+        const active = sort.key === item.key;
+        const way = item.key === 'store' ? (sort.descending ? 'Z to A' : 'A to Z') : sort.descending ? 'down' : 'up';
+        return (
+          <button
+            key={item.key}
+            type="button"
+            aria-pressed={active}
+            aria-label={active ? `${item.label}, ${way}` : item.label}
+            onClick={() => sortBy(item.key)}
+          >
+            {item.label}
+            {active && <span aria-hidden="true">{sort.descending ? ' ↓' : ' ↑'}</span>}
+          </button>
+        );
+      })}
+    </div>
+  );
+  const switches = <ListSwitches moneyIn={moneyIn} own={own} moves={moves} onMoneyIn={setMoneyIn} onOwn={setOwn} />;
+  // How many of a phone's folded filters are not the usual ones: its Filters button counts them.
+  const filtersOn = [
+    sort.key !== 'date' || !sort.descending,
+    pickedCategories.length > 0,
+    bank !== null,
+    moneyIn,
+    own,
+  ].filter(Boolean).length;
+
   return (
     <section className="card payments">
       <header className="card-head">
@@ -408,28 +440,8 @@ export function Payments({
             Rename or merge
           </button>
         )}
-        {!around && (
-          <div className="segmented is-small" role="group" aria-label="Sort payments by">
-            {SORTS.map(item => {
-              const active = sort.key === item.key;
-              const way =
-                item.key === 'store' ? (sort.descending ? 'Z to A' : 'A to Z') : sort.descending ? 'down' : 'up';
-              return (
-                <button
-                  key={item.key}
-                  type="button"
-                  aria-pressed={active}
-                  aria-label={active ? `${item.label}, ${way}` : item.label}
-                  onClick={() => sortBy(item.key)}
-                >
-                  {item.label}
-                  {active && <span aria-hidden="true">{sort.descending ? ' ↓' : ' ↑'}</span>}
-                </button>
-              );
-            })}
-          </div>
-        )}
-        <ListSwitches moneyIn={moneyIn} own={own} moves={moves} onMoneyIn={setMoneyIn} onOwn={setOwn} />
+        {!around && sortButtons}
+        {switches}
       </header>
       {around && (
         <div className="payments-context">
@@ -479,8 +491,21 @@ export function Payments({
               {toCheck && <span aria-hidden="true">✕</span>}
             </button>
           )}
-          {/* The category and the bank: side by side on a phone, under the search. */}
-          <div className="payments-selects">
+          {/* A phone's Filters button shows the sort, the switches, the category and the bank under the search. */}
+          <button
+            type="button"
+            className="chip payments-filters-toggle"
+            aria-expanded={filtersOpen}
+            aria-controls="payments-selects"
+            onClick={() => setFiltersOpen(open => !open)}
+          >
+            Filters
+            {filtersOn > 0 && <span className="chip-count">{filtersOn}</span>}
+          </button>
+          <div id="payments-selects" className={`payments-selects${filtersOpen ? ' is-open' : ''}`}>
+            {/* A computer has these two in the card's head. */}
+            {sortButtons}
+            {switches}
             <CategoryFilter
               categories={categories}
               counts={categoryCounts}
@@ -635,7 +660,7 @@ export function Payments({
                   ),
                   <tr
                     key={row.id}
-                    className={`${(row.counts && row.spend !== 0) || isIncoming(row) ? '' : 'is-muted'}${picked.has(row.id) ? ' is-picked' : ''}${around?.matches.has(row.id) ? ' is-match' : ''}`}
+                    className={`${(row.counts && row.spend !== 0) || isIncoming(row) ? '' : 'is-muted'}${picked.has(row.id) ? ' is-picked' : ''}${around?.matches.has(row.id) ? ' is-match' : ''}${row.pending ? ' is-pending' : ''}`}
                     onClick={event => {
                       if (opensCategory(event)) setSheet([row]);
                     }}
@@ -679,7 +704,7 @@ export function Payments({
                         {row.store}
                       </button>
                       <WebSearch name={row.store} />
-                      {row.pending && <span className="tag">pending</span>}
+                      {row.pending && <span className="tag is-pending">pending</span>}
                       {row.viaPayPal && (
                         <span
                           className="tag"
@@ -713,6 +738,8 @@ export function Payments({
                             •
                           </span>
                         )}
+                        {/* On a phone a pending payment says so here, under its store, instead of a tag. */}
+                        {row.pending && <span className="category-button-pending"> · pending</span>}
                       </button>
                     </td>
                     <td className={`payment-amount${row.amount > 0 ? ' is-in' : ''}`}>

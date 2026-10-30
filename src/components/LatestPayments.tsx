@@ -110,7 +110,10 @@ export function LatestPayments({
               <li
                 key={row.id}
                 // Faded like in the payment list: not spending, or nothing spent in the end (€0, refunded in full).
-                className={(row.counts && row.spend !== 0) || isIncoming(row) ? undefined : 'is-muted'}
+                className={
+                  `${(row.counts && row.spend !== 0) || isIncoming(row) ? '' : 'is-muted'}${row.pending ? ' is-pending' : ''}` ||
+                  undefined
+                }
                 onClick={event => {
                   if (opensCategory(event)) setSheet(row);
                 }}
@@ -125,7 +128,7 @@ export function LatestPayments({
                   >
                     {row.store}
                   </button>
-                  {row.pending && <span className="tag">pending</span>}
+                  {row.pending && <span className="tag is-pending">pending</span>}
                   {row.viaPayPal && (
                     <span
                       className="tag"
@@ -156,6 +159,8 @@ export function LatestPayments({
                       •
                     </span>
                   )}
+                  {/* On a phone a pending payment says so here, under its store, instead of a tag. */}
+                  {row.pending && <span className="category-button-pending"> · pending</span>}
                 </button>
                 <span className={`payment-amount${row.amount > 0 ? ' is-in' : ''}`}>
                   {money(row.amount, row.currency, true)}

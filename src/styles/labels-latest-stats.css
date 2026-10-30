@@ -155,7 +155,8 @@
   justify-self: start;
 }
 
-/* On a phone, two lines per payment: the store and the amount, then the day and the category. */
+/* On a phone, two lines per payment as in the payment list: the store and the amount, then the category and the time
+   (the category's circle is in shell.css). */
 @media (max-width: 560px) {
   .latest ul {
     display: block;
@@ -165,7 +166,7 @@
     grid-template-columns: minmax(0, 1fr) auto;
     grid-template-areas:
       'store amount'
-      'day category';
+      'category day';
     gap: 2px 8px;
   }
 
@@ -180,12 +181,14 @@
 
   .latest-day {
     grid-area: day;
+    justify-self: end;
     font-size: 12px;
   }
 
   .latest .category-button {
     grid-area: category;
-    justify-self: end;
+    justify-self: start;
+    max-width: 100%;
   }
 
   .latest .payment-amount {

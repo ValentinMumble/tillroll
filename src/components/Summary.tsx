@@ -22,8 +22,8 @@ interface Props {
 /**
  * The receipt's total: what the period cost, against the usual period or the previous one so far, how far into the
  * period it is, time against money as two rings, and a strip of the categories' colours, each as long as its share.
- * The balances fill the space beside them. Under it, the facts: payments, a day, money in, what was kept of it (its
- * share), and what went to savings.
+ * The balances fill the space beside them. Under it, four facts: payments with what a day cost, money in, what was kept
+ * of it (its share), and what went to savings.
  */
 export function Summary({report, period, grain, currency, categories, toSavings, balances}: Props) {
   const {current, baseline, ongoing} = report;
@@ -118,17 +118,16 @@ export function Summary({report, period, grain, currency, categories, toSavings,
       <dl className="facts">
         <div>
           <dt>Payments</dt>
-          <dd>{current.payments}</dd>
-        </div>
-        <div>
-          <dt>Per day</dt>
-          <dd>{money(current.total / days, currency)}</dd>
+          <dd>
+            {current.payments}
+            <span className="muted"> · {money(current.total / days, currency)} a day</span>
+          </dd>
         </div>
         <div>
           <dt>Money in</dt>
           <dd>{money(current.moneyIn, currency)}</dd>
         </div>
-        <div>
+        <div className="fact-kept">
           <dt>{kept < 0 ? 'Spent beyond money in' : 'Kept'}</dt>
           <dd>
             {money(Math.abs(kept), currency)}

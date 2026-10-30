@@ -195,6 +195,11 @@
   font-weight: 700;
 }
 
+/* A pending payment's word after its category: a phone's only (a computer shows its tag). */
+.category-button-pending {
+  display: none;
+}
+
 .payment-pick {
   width: 28px;
 }

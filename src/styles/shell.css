@@ -200,6 +200,30 @@
   min-width: 0;
 }
 
+/* A phone's Filters button, and its copies of the sort and the switches: a computer has them in the card's head. */
+.payments-filters-toggle,
+.payments-selects > .segmented,
+.payments-selects > .list-switches {
+  display: none;
+}
+
+.payments-filters-toggle[aria-expanded='true'] {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.payments-filters-toggle .chip-count {
+  min-width: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--surface);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 18px;
+  text-align: center;
+}
+
 /* The category filter: a button like the bank's select (its caret is the .select one), and under it a menu like the
    ⋯ menu's, a tick for each category. */
 .category-filter {
@@ -304,22 +328,49 @@
 }
 
 @media (max-width: 560px) {
-  /* The search and the "to check" switch, the category and bank filters under them, side by side (no tick-all box: a
-     phone does not tick). */
+  /* One row above the list: the search, the Filters button and the "to check" switch (no tick-all box: a phone does
+     not tick). Filters opens the rest under them: the sort and the switches, then the category and the bank side by
+     side. In context there is no search, so the head keeps the switches. */
   .payments-filters > .text-input {
-    flex-basis: 120px;
+    flex: 1 1 0;
+    min-width: 96px;
+  }
+
+  .payments .card-head > .segmented,
+  .payments:has(> .payments-filters) > .card-head > .list-switches {
+    display: none;
+  }
+
+  .payments-filters-toggle {
+    display: inline-flex;
+    flex: none;
   }
 
   .payments-selects {
+    display: none;
+  }
+
+  .payments-selects.is-open {
     display: flex;
     flex: 1 1 100%;
+    flex-wrap: wrap;
     gap: 8px;
     min-width: 0;
   }
 
+  .payments-selects > .segmented,
+  .payments-selects > .list-switches {
+    display: inline-flex;
+  }
+
+  .payments-selects > .list-switches {
+    margin-left: auto;
+  }
+
+  /* Wide enough that they never share the sort's line, and share theirs. */
   .payments-selects > .select,
   .payments-selects > .category-filter {
-    flex: 1 1 0;
+    flex: 1 1 40%;
   }
 }
 
@@ -574,7 +625,8 @@
   .payments tr.day-row {
     grid-template-areas: none;
     grid-template-columns: minmax(0, 1fr) auto;
-    padding-top: 14px;
+    min-height: 0;
+    padding: 14px 0 6px;
     border-top: 0;
   }
 
@@ -594,6 +646,11 @@
   .facts,
   .summary .facts {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  /* What was kept goes under the money in it was kept of, to savings on its left. */
+  .summary .facts > .fact-kept {
+    order: 1;
   }
 
   .receipt {
@@ -630,9 +687,11 @@
     padding: 10px 8px 8px;
   }
 
+  /* Small enough that the lengths and the stepper share a 360px screen's row. */
   .main > .toolbar .segmented button {
     min-height: 30px;
-    padding: 0 8px;
+    padding: 0 7px;
+    font-size: 14px;
   }
 
   .main > .toolbar .stepper {
@@ -641,8 +700,8 @@
   }
 
   .main > .toolbar .stepper button {
-    width: 32px;
-    height: 32px;
+    width: 30px;
+    height: 30px;
   }
 
   .main > .toolbar .stepper .today-link {
@@ -672,30 +731,40 @@
     display: none;
   }
 
-  /* Two lines per payment: store and amount, then the date or time and the category. On a phone the list is for
-     fixing categories and labelling: no ticks and no search link on each row (the store's dialog has the search), but
-     the # to add a label stays, as in the latest payments. A tap on the row opens its category. */
+  /* Two lines per payment, as in a bank's app: the store and the amount, then the category's name and the time (or
+     the date) under them, and the category's emoji in a circle tinted in its colour on the left. On a phone the lists
+     are for fixing categories: a tap anywhere on a payment opens its sheet, which holds its labels too, so a row has
+     no tick, no search link and no # (the store's dialog has the search). */
   .payments tr {
+    position: relative;
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     grid-template-areas:
       'store amount'
-      'meta meta';
+      'category day';
     align-items: center;
-    gap: 6px 12px;
-    padding: 12px 0;
+    gap: 2px 12px;
+    min-height: 58px;
+    padding: 10px 0 10px 46px;
     border-top: 1px solid var(--line);
   }
 
   /* No tick column on a phone: the match's bar goes on the row itself. */
   .payments tr.is-match {
-    padding-left: 10px;
+    padding-left: 56px;
     box-shadow: inset 3px 0 var(--accent);
+  }
+
+  .payments tr.is-match .category-button-icon {
+    left: 10px;
   }
 
   .payments .payment-pick,
   .payments .pick-all,
-  .payments .web-search {
+  .payments .web-search,
+  .payments tr .label-add,
+  .latest li .label-add,
+  .payments .day-strip {
     display: none;
   }
 
@@ -706,12 +775,15 @@
 
   /* The table's cells only: the overview and the calendar list payments with the same classes, in their own grids. */
   .payments .payment-day {
-    grid-area: meta;
+    grid-area: day;
     width: auto;
+    justify-self: end;
+    font-size: 12px;
   }
 
   .payments .payment-store {
     grid-area: store;
+    min-width: 0;
   }
 
   .payments .payment-amount {
@@ -719,26 +791,67 @@
     width: auto;
   }
 
-  /* The category shares the second line with the time, on its right: it never widens the amount's column, so a
-     wide category leaves the store's name its room. */
   .payments .payment-category {
-    grid-area: meta;
+    grid-area: category;
     width: auto;
-    max-width: calc(100% - 96px);
-    justify-self: end;
+    min-width: 0;
   }
 
-  .category-button {
-    min-height: 28px;
-    padding: 0 6px;
-    font-size: 12px;
+  .latest li {
+    position: relative;
+    min-height: 54px;
+    padding-left: 46px;
   }
 
-  /* The category is what a payment is opened for: a pill that looks like it can be tapped. */
-  .payments .category-button {
-    min-height: 32px;
-    padding: 0 12px;
+  /* The category: its name in small grey text, its emoji in the row's circle. The whole row opens it. */
+  .payments .category-button,
+  .latest .category-button {
+    gap: 2px;
+    min-height: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--muted);
     font-size: 13px;
+    font-weight: 400;
+  }
+
+  .payments .category-button-icon,
+  .latest .category-button-icon {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--cat, var(--cat-grey)) var(--tint), var(--surface));
+    font-size: 17px;
+    transform: translateY(-50%);
+  }
+
+  /* A guess to check: the circle gets the dashed outline the pill has on a computer. */
+  .category-button.is-unsure .category-button-icon {
+    border: 1.5px dashed var(--cat, var(--axis));
+    background: var(--surface);
+  }
+
+  /* A pending payment: its amount in grey and "pending" after its category, no tag. */
+  .payments .tag.is-pending,
+  .latest .tag.is-pending {
+    display: none;
+  }
+
+  .category-button-pending {
+    display: inline;
+    flex: none;
+    white-space: nowrap;
+  }
+
+  .payments tr.is-pending .payment-amount,
+  .latest li.is-pending .payment-amount {
+    color: var(--muted);
   }
 
   .payments .tag {
@@ -748,16 +861,8 @@
     vertical-align: 1px;
   }
 
-  /* Sort and the switches on one line, under the total; the switches keep their icons only. */
-  .payments .card-head > .segmented {
-    margin-left: 0;
-  }
-
-  .payments .card-head > .segmented + .list-switches {
-    margin-left: auto;
-  }
-
-  .payments .card-head > .segmented button {
+  /* The sort and the switches, opened by Filters: on one line, the switches with their icons only. */
+  .payments-selects > .segmented button {
     padding: 0 8px;
   }
 

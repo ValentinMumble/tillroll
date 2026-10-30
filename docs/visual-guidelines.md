@@ -106,7 +106,8 @@ shows, then the actions as `.link-button`s at the right end (`.card-actions` whe
 ### Dialogs
 
 - Every dialog is a `<dialog className="dialog ...">` opened through `useDialog()` (it opens as a modal, Escape
-  closes it, and the focus lands on the first field). They are all the same size: 720px wide at most and 860px tall at most, less 16px on each side on a
+  or a click outside it on the dimmed page closes it, and the focus lands on the first field). Never open a modal
+  any other way: it would miss these. They are all the same size: 720px wide at most and 860px tall at most, less 16px on each side on a
   small screen. Never set a width on one dialog.
 - Every dialog has a **✕ in its top right corner**, right after the `h2` in the `.dialog-head`:
   ```tsx
@@ -156,9 +157,10 @@ The overview answers "how is this month going?" first, above all on a phone, so 
 1. The receipt: what the period has cost so far, against last month at the same point, and time against money as two
    rings (`PaceRings`): how much of a usual period was spent outside, how much of the period has gone inside, with what
    is left per day beside them. The balances (owner only) fill the space on its right: their total, then each bank's
-   balance from its last sync. Under 720px they come last in the receipt, after the facts. The facts are five, in one
-   row (two columns on a phone): payments, per day, money in, what was kept of it with its share (or what was spent
-   beyond it), and what went to savings.
+   balance from its last sync. Under 720px they come last in the receipt, after the facts. The facts are four, in one
+   row (two columns on a phone): payments with what a day cost beside them, money in, what was kept of it with its
+   share (or what was spent beyond it), and what went to savings. On a phone what was kept sits under money in. A fifth
+   figure joins one of these, never a new tile.
 2. The prompts, when there is something to do: stores to sort, payments to check.
 3. The latest payments, whole days only (at least the last 3 days, and more days until there are at least 8
    payments), under day headings like the payment list's ("Today", "Yesterday", "Mon 12 Oct"), with what
@@ -177,9 +179,15 @@ The overview answers "how is this month going?" first, above all on a phone, so 
   side, their facts, the trains) and Fun stats (the playful facts and hobbies). The sidebar shows the two groups under
   small headings like a card's title; the phone's tab bar holds Overview, Payments, Categories and Stores, and its
   ⋯ menu the rest. An old address keeps working: #savings opens Money.
-- On a phone the main jobs are fixing categories and labelling: a tap on a payment opens the category sheet, and
-  each row keeps its # to add a label (as in the latest payments). Keep rows light otherwise (no ticks, no search
-  link); the rest lives in the sheet or the store's dialog.
+- On a phone the main jobs are fixing categories and labelling: a tap anywhere on a payment opens its sheet, which
+  holds its labels too. So a row is light, the same in the payment list and the latest payments, as in a bank's app:
+  the category's emoji in a circle tinted in its colour on the left, the store and the amount, then the category's
+  name and the time in small grey text under them. No pill, no tick, no search link, no #. A pending payment has its
+  amount in grey and "pending" after its category instead of a tag. Day headings drop their colour strip.
+- On a phone the payment list has one row of controls above it: the search, "to check" and Filters, which opens the
+  sort, the switches, the category and the bank under them, with a count of the ones not at their usual setting.
+- On a phone the period bar is one row: the lengths on the left, the stepper on the right. Keep it narrow enough for
+  a 360px screen.
 - Anything a row's buttons do on a computer must also be reachable from the sheet or the store's dialog: the sheet
   for one payment holds its labels too.
 - The home-screen app has no browser around it, so it has its own pull to refresh at the top of the page
