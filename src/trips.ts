@@ -3,7 +3,7 @@ import {money} from './format';
 import {addDays, dayLabel} from './periods';
 import type {Row} from './rows';
 import type {Fact} from './stats';
-import type {CategoryKey, Trip, Trips} from './types';
+import type {CategoryKey, Trip, TripPlace, Trips} from './types';
 
 /** The key a label is marked as a trip under, whatever its capitals; none when it is no trip. */
 export function tripKeyOf(trips: Trips, label: string) {
@@ -74,6 +74,8 @@ export interface TripSummary {
   sparse: boolean;
   /** What it cost by category, the biggest first. */
   categories: [CategoryKey, number][];
+  /** Where it went, when set (for the map). */
+  place: TripPlace | null;
 }
 
 /** Every trip with payments (rows of one currency), the latest first: what it cost, over how many days, on what. */
@@ -96,6 +98,7 @@ export function tripSummaries(rows: Row[], trips: Trips): TripSummary[] {
         paidDays,
         sparse: days >= 3 && paidDays < days * 0.4,
         categories: [...categories].filter(([, value]) => value > 0).sort((first, second) => second[1] - first[1]),
+        place: trip.place ?? null,
       };
     })
     .filter(summary => summary.payments > 0 && summary.total > 0)

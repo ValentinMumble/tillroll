@@ -71,6 +71,15 @@ shows, then the actions as `.link-button`s at the right end (`.card-actions` whe
 - Money that goes both ways (what a period kept or spent beyond what came in, what a month put aside or took back
   from savings) is a bar up from a middle line or down below it. Savings' "Put aside" chart is violet both ways, and
   its tooltip splits a month by account.
+- Where it went (Money in and out, for a month or a year) is a flow: what came in on the left (pay in
+  `--bar-strong`, other money in in `--bar`, what was taken from savings or the balance in grey) runs through one
+  `--axis` pool to each category in its colour, to savings and to what is left (`--bar`) on the right. Bands are the
+  part's colour at 30% (55% hovered), every part is named with its amount beside it, and its tooltip gives its share.
+  Six categories at most; the rest, and any under 3% of the spending, join a grey "Other spending".
+- The trips map (Fun stats, above the trips side by side) is Leaflet on CARTO's light or dark tiles, as the page is:
+  a violet bubble a trip (`--bar` at 55%, a `--bar-strong` ring), its area as big as what the trip cost, a tooltip
+  like `ChartTip`, and a click shows the trip's payments. It opens on the trips in and around Europe. A trip's place
+  is set in its dialog (a name, found with OpenStreetMap); a note under the map counts the trips with none.
 - Trips side by side (Fun stats) are one bar each, as long as the trip cost against the biggest, split by category in
   the categories' colours with 2px gaps; categories under 8% of a trip join one grey "Other" part. Each part has its
   tooltip, the categories are named under the bars, the list sorts by Latest, Biggest or A day, and a trip's name
@@ -146,12 +155,17 @@ The overview answers "how is this month going?" first, above all on a phone, so 
 1. The receipt: what the period has cost so far, against last month at the same point, and time against money as two
    rings (`PaceRings`): how much of a usual period was spent outside, how much of the period has gone inside, with what
    is left per day beside them. The balances (owner only) fill the space on its right: their total, then each bank's
-   balance from its last sync. Under 720px they come last in the receipt, after the facts.
+   balance from its last sync. Under 720px they come last in the receipt, after the facts. The facts are five, in one
+   row (two columns on a phone): payments, per day, money in, what was kept of it with its share (or what was spent
+   beyond it), and what went to savings.
 2. The prompts, when there is something to do: stores to sort, payments to check.
 3. The latest payments, whole days only (at least the last 3 days, and more days until there are at least 8
    payments), under day headings like the payment list's ("Today", "Yesterday", "Mon 12 Oct"), with what
    went out that day on the right when it had more than one payment.
-4. Everything else: the period chart, top categories and stores, budgets, money in and out, fixed and flexible,
+4. For a year only, "Your 2025": the year in a few numbers, as the fun stats' tiles (what it cost against the
+   year before, what was kept when the pay is in the data, the biggest month, top category and places, new places,
+   trips, trains, the biggest day and the dearest weekday).
+5. Everything else: the period chart, top categories and stores, budgets, money in and out, fixed and flexible,
    regular payments, insights.
 
 ## Phone (560px and below)

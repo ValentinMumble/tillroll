@@ -73,6 +73,14 @@ export type Labels = Record<string, string[]>;
 export interface Trip {
   from?: string;
   to?: string;
+  /** Where it went, for the trips map: a place's name and where it is. */
+  place?: TripPlace;
+}
+
+export interface TripPlace {
+  name: string;
+  lat: number;
+  lon: number;
 }
 
 /** The labels marked as trips, by label as written (matched without minding capitals). */

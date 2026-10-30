@@ -6,7 +6,7 @@ import {dayLabel} from '../periods';
 import type {Row} from '../rows';
 import {paymentCount} from '../text';
 import {dayCount, tripCandidates, tripDays} from '../trips';
-import type {Labels, Trip} from '../types';
+import type {Labels, Trip, TripPlace} from '../types';
 import {useDialog} from '../useDialog';
 
 interface Props {
@@ -22,18 +22,43 @@ interface Props {
   onClose: () => void;
 }
 
+/** A place's name and where it is, from OpenStreetMap's search (Nominatim): the first match, or none. */
+async function findPlace(query: string): Promise<TripPlace | null> {
+  const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=${encodeURIComponent(query)}`;
+  const response = await fetch(url, {headers: {Accept: 'application/json'}});
+  if (!response.ok) return null;
+  const [found] = (await response.json()) as {name?: string; lat: string; lon: string}[];
+  if (!found) return null;
+  return {name: found.name || query, lat: Number(found.lat), lon: Number(found.lon)};
+}
+
 /**
- * A trip, opened from its label: its first and last days (its payments' own unless set here) and the payments on
- * those days that do not have its label yet, by day, to tick and label in one go. Nothing is ticked by itself: the
- * unlikely ones (a place also paid in the two months around the trip) are dimmed, and one link ticks the likely ones.
- * "Not a trip" makes it a plain label again.
+ * A trip, opened from its label: its first and last days (its payments' own unless set here), where it went (for the
+ * trips map, found by name with OpenStreetMap), and the payments on those days that do not have its label yet, by
+ * day, to tick and label in one go. Nothing is ticked by itself: the unlikely ones (a place also paid in the two
+ * months around the trip) are dimmed, and one link ticks the likely ones. "Not a trip" makes it a plain label again.
  */
 export function TripDialog({label, trip, rows, currency, categories, onSave, onLabels, onClose}: Props) {
   const {ref: dialogRef, onKeyDown: onDialogKeyDown, close: closeDialog} = useDialog();
   const auto = useMemo(() => tripDays(rows, label), [rows, label]);
   const [from, setFrom] = useState(trip.from ?? auto.from);
   const [to, setTo] = useState(trip.to ?? auto.to);
+  const [place, setPlace] = useState<TripPlace | null>(trip.place ?? null);
+  const [placeText, setPlaceText] = useState(trip.place?.name ?? '');
+  const [finding, setFinding] = useState<'idle' | 'busy' | 'none'>('idle');
   const valid = Boolean(from && to && from <= to);
+
+  async function find() {
+    if (!placeText.trim()) return;
+    setFinding('busy');
+    try {
+      const found = await findPlace(placeText.trim());
+      setPlace(found);
+      setFinding(found ? 'idle' : 'none');
+    } catch {
+      setFinding('none');
+    }
+  }
   const candidates = useMemo(
     () => (valid ? tripCandidates(rows, label, from, to) : []),
     [rows, label, from, to, valid],
@@ -55,7 +80,7 @@ export function TripDialog({label, trip, rows, currency, categories, onSave, onL
   function save() {
     if (!valid) return;
     // Days that are the payments' own are not kept: they follow the payments.
-    onSave({...(from !== auto.from ? {from} : {}), ...(to !== auto.to ? {to} : {})});
+    onSave({...(from !== auto.from ? {from} : {}), ...(to !== auto.to ? {to} : {}), ...(place ? {place} : {})});
     if (chosen.length) onLabels(Object.fromEntries(chosen.map(({row}) => [row.id, withLabel(row.labels, label)])));
     closeDialog();
   }
@@ -118,6 +143,42 @@ export function TripDialog({label, trip, rows, currency, categories, onSave, onL
               Back to its payments' days
             </button>
           )}
+        </div>
+        <div className="trip-place">
+          <label className="field">
+            Place
+            <input
+              className="text-input"
+              value={placeText}
+              placeholder="A town or a region"
+              onChange={event => {
+                setPlaceText(event.target.value);
+                setFinding('idle');
+                if (!event.target.value.trim()) setPlace(null);
+              }}
+              // Enter finds the place, it does not save the trip.
+              onKeyDown={event => {
+                if (event.key !== 'Enter') return;
+                event.preventDefault();
+                void find();
+              }}
+            />
+          </label>
+          <button
+            type="button"
+            className="button"
+            disabled={!placeText.trim() || finding === 'busy'}
+            onClick={() => void find()}
+          >
+            {finding === 'busy' ? 'Finding…' : 'Find'}
+          </button>
+          <p className="hint">
+            {finding === 'none'
+              ? 'No place of that name: try a town nearby.'
+              : place
+                ? `On the trips map: ${place.name}.`
+                : 'For the trips map, found with OpenStreetMap.'}
+          </p>
         </div>
         <section className="trip-candidates" aria-labelledby="trip-candidates-title">
           <h3 id="trip-candidates-title">On those days, without the label</h3>

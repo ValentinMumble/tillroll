@@ -1,15 +1,18 @@
 import {useState} from 'react';
+import type {Categories} from '../categories';
 import {money} from '../format';
 import {compactPeriodLabel, type Grain, periodLabel} from '../periods';
 import {type Report, rollingAverage, trendOf} from '../report';
 import {ChartSpan} from './ChartSpan';
 import {ChartTip} from './ChartTip';
+import {FlowChart} from './FlowChart';
 import {TrendLine} from './TrendLine';
 
 interface Props {
   report: Report;
   grain: Grain;
   currency: string;
+  categories: Categories;
   /** What the period put in savings accounts, less what it took back. */
   toSavings: number;
   /** How far back its columns go, shared with the month chart (see ChartSpan). */
@@ -19,10 +22,11 @@ interface Props {
 
 /**
  * Money in and out: what came in (pay, money from others; not refunds or moves between one's own accounts), what was
- * spent, and what was kept, with its share of what came in. Under it, what each of the chart's periods kept: a bar up,
- * or down when the period spent more than came in; then the pay in each of them, with its trend.
+ * spent, and what was kept, with its share of what came in. For a month or a year, where it went (see FlowChart).
+ * Under it, what each of the chart's periods kept: a bar up, or down when the period spent more than came in; then the
+ * pay in each of them, with its trend.
  */
-export function MoneyFlow({report, grain, currency, toSavings, span, onSpan}: Props) {
+export function MoneyFlow({report, grain, currency, categories, toSavings, span, onSpan}: Props) {
   // The kept and pay columns under the pointer (or tapped), with a tooltip like the month chart's.
   const [hoveredKept, setHoveredKept] = useState<number | null>(null);
   const [hoveredPay, setHoveredPay] = useState<number | null>(null);
@@ -87,6 +91,16 @@ export function MoneyFlow({report, grain, currency, toSavings, span, onSpan}: Pr
           <dd>{money(Math.abs(toSavings), currency)}</dd>
         </div>
       </dl>
+      {grain !== 'all' && moneyIn >= 0.5 && (
+        <FlowChart
+          moneyIn={moneyIn}
+          pay={report.series.find(item => item.period === report.period)?.pay ?? 0}
+          spent={report.current.categories}
+          toSavings={toSavings}
+          currency={currency}
+          categories={categories}
+        />
+      )}
       <div
         className="flow-chart"
         role="img"

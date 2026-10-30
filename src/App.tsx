@@ -551,6 +551,7 @@ export default function App() {
                 toSavings={toSavings}
                 chartSpan={chartSpan}
                 onChartSpan={changeChartSpan}
+                trips={data?.trips ?? {}}
               />
             )}
             {tab === 'calendar' && (

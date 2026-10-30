@@ -3,7 +3,7 @@ import type {Grain} from '../periods';
 import type {Report} from '../report';
 import type {Row} from '../rows';
 import type {Tab} from '../tabs';
-import type {Balance, Budgets, CategoryKey, Labels} from '../types';
+import type {Balance, Budgets, CategoryKey, Labels, Trips} from '../types';
 import {Balances} from './Balances';
 import {CategoryBreakdown, type Focus, StoreBreakdown} from './Breakdown';
 import {ChartSpan} from './ChartSpan';
@@ -15,6 +15,7 @@ import {MoneyFlow} from './MoneyFlow';
 import {PeriodChart} from './PeriodChart';
 import {RegularPayments} from './RegularPayments';
 import {Summary} from './Summary';
+import {YourYear} from './YourYear';
 
 interface Props {
   report: Report;
@@ -52,12 +53,14 @@ interface Props {
   /** How far back the period chart goes: 1, 2 or 3 times its usual length. */
   chartSpan: number;
   onChartSpan: (span: number) => void;
+  /** The labels marked as trips, for a year's facts. */
+  trips: Trips;
 }
 
 /**
  * The overview, in a fixed order (see docs/visual-guidelines.md): the period so far, the balances, what is waiting to
- * be sorted or checked, the latest payments, then the period chart, top categories and stores, budgets, money in and
- * out, fixed and flexible, regular payments and insights.
+ * be sorted or checked, the latest payments, the year in a few numbers (a year only), then the period chart, top
+ * categories and stores, budgets, money in and out, fixed and flexible, regular payments and insights.
  */
 export function Overview({
   report,
@@ -89,6 +92,7 @@ export function Overview({
   toSavings,
   chartSpan,
   onChartSpan,
+  trips,
 }: Props) {
   const breakdown = {report, categories, currency, focus, onFocus};
   return (
@@ -139,6 +143,18 @@ export function Overview({
         allRows={allRows}
         onPayback={onPayback}
       />
+      {grain === 'year' && (
+        <YourYear
+          year={period}
+          rows={allRows}
+          moneyIn={report.current.moneyIn}
+          toSavings={toSavings}
+          trips={trips}
+          currency={currency}
+          categories={categories}
+          ongoing={report.ongoing}
+        />
+      )}
       <section className="card period-card">
         <header className="card-head">
           <h2>
@@ -185,6 +201,7 @@ export function Overview({
         report={report}
         grain={grain}
         currency={currency}
+        categories={categories}
         toSavings={toSavings}
         span={chartSpan}
         onSpan={onChartSpan}

@@ -117,6 +117,102 @@
   margin: 0 0 18px;
 }
 
+/* Where it went: what came in, on the left, flows through one pool to each category, savings and what is left. */
+.sankey {
+  margin: 0 0 22px;
+}
+
+.sankey figcaption {
+  margin-bottom: 10px;
+  color: var(--ink-soft);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.sankey-body {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) minmax(0, 1fr);
+}
+
+.sankey-svg {
+  display: block;
+  width: 100%;
+  overflow: hidden;
+}
+
+.sankey-part {
+  --cat: var(--cat-grey);
+  cursor: pointer;
+}
+
+.sankey-part.is-pay {
+  --cat: var(--bar-strong);
+}
+
+.sankey-part.is-in,
+.sankey-part.is-save,
+.sankey-part.is-left {
+  --cat: var(--bar);
+}
+
+.sankey-band {
+  fill: color-mix(in srgb, var(--cat) 30%, transparent);
+  transition: fill 0.15s;
+}
+
+.sankey-part.is-hovered .sankey-band {
+  fill: color-mix(in srgb, var(--cat) 55%, transparent);
+}
+
+.sankey-node {
+  fill: var(--cat);
+}
+
+.sankey-pool {
+  fill: var(--axis);
+}
+
+.sankey-labels {
+  position: relative;
+}
+
+/* One line a part: its name, then its amount at the side nearest the bars or at the far right. */
+.sankey-label {
+  position: absolute;
+  right: 8px;
+  left: 0;
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  transform: translateY(-50%);
+  font-size: 12px;
+  line-height: 1.3;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.sankey-labels.is-out .sankey-label {
+  right: 0;
+  left: 8px;
+}
+
+.sankey-name {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ink-soft);
+  text-overflow: ellipsis;
+}
+
+.sankey-value {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.sankey-label.is-hovered .sankey-name {
+  color: var(--ink);
+}
+
 .flow-chart {
   display: grid;
   grid-auto-columns: minmax(0, 1fr);

@@ -576,7 +576,8 @@
     grid-column: 2;
   }
 
-  .facts {
+  .facts,
+  .summary .facts {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 

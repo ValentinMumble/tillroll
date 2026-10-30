@@ -11,6 +11,7 @@ import {daysLabel, tripFacts, type TripSummary, tripSummaries} from '../trips';
 import type {Trips} from '../types';
 import {BarStrip} from './BarStrip';
 import {ChartTip} from './ChartTip';
+import {TripMap} from './TripMap';
 
 interface Props {
   /** The payments of one currency, all time. */
@@ -27,7 +28,7 @@ interface Props {
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 /** The facts as a grid of tiles: an icon, what it is, the big value, a line of detail. */
-function FactList({facts}: {facts: Fact[]}) {
+export function FactList({facts}: {facts: Fact[]}) {
   return (
     <ul className="facts-grid">
       {facts.map(fact => (
@@ -295,6 +296,7 @@ export function FunStats({rows, currency, categories, trips, onOpenLabel}: Props
               : 'Pick "Make it a trip" on a label in Labels, on the Categories tab: each trip gets a line here.'}
           </span>
         </header>
+        {tripList.length > 0 && <TripMap trips={tripList} currency={currency} onOpen={onOpenLabel} />}
         {tripList.length > 0 && (
           <TripList trips={tripList} currency={currency} categories={categories} onOpen={onOpenLabel} />
         )}

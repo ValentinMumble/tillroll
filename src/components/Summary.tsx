@@ -22,7 +22,8 @@ interface Props {
 /**
  * The receipt's total: what the period cost, against the usual period or the previous one so far, how far into the
  * period it is, time against money as two rings, and a strip of the categories' colours, each as long as its share.
- * The balances fill the space beside them.
+ * The balances fill the space beside them. Under it, the facts: payments, a day, money in, what was kept of it (its
+ * share), and what went to savings.
  */
 export function Summary({report, period, grain, currency, categories, toSavings, balances}: Props) {
   const {current, baseline, ongoing} = report;
@@ -43,6 +44,8 @@ export function Summary({report, period, grain, currency, categories, toSavings,
   const days = daysBetween(report.from, ongoing ? today() : report.to);
   const pace = report.pace;
   const left = pace ? pace.days - pace.spent.length : 0;
+  // What the period kept of what came in (Money in and out's figure), or spent beyond it.
+  const kept = current.moneyIn - current.total;
   return (
     <div className="summary">
       <div className="summary-main">
@@ -122,12 +125,19 @@ export function Summary({report, period, grain, currency, categories, toSavings,
           <dd>{money(current.total / days, currency)}</dd>
         </div>
         <div>
-          <dt>{toSavings < 0 ? 'Taken from savings' : 'To savings'}</dt>
-          <dd>{money(Math.abs(toSavings), currency)}</dd>
-        </div>
-        <div>
           <dt>Money in</dt>
           <dd>{money(current.moneyIn, currency)}</dd>
+        </div>
+        <div>
+          <dt>{kept < 0 ? 'Spent beyond money in' : 'Kept'}</dt>
+          <dd>
+            {money(Math.abs(kept), currency)}
+            {kept > 0 && <span className="muted"> · {Math.round((kept / current.moneyIn) * 100)}%</span>}
+          </dd>
+        </div>
+        <div>
+          <dt>{toSavings < 0 ? 'Taken from savings' : 'To savings'}</dt>
+          <dd>{money(Math.abs(toSavings), currency)}</dd>
         </div>
       </dl>
     </div>

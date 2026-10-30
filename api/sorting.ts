@@ -163,20 +163,44 @@ const PARTS: Record<string, (body: Record<string, unknown>) => Promise<unknown>>
     });
   },
 
-  /** { label, trip: {from?, to?} }: marks a label as a trip, with its days when set by hand; a null trip unmarks it. */
+  /**
+   * { label, trip: {from?, to?, place?} }: marks a label as a trip, with its days when set by hand and where it went;
+   * a null trip unmarks it.
+   */
   async trips({label, trip}) {
     const isDay = (value: unknown) =>
       value === undefined || (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value));
-    const days = trip as {from?: unknown; to?: unknown} | null;
+    const isPlace = (value: unknown) => {
+      if (value === undefined) return true;
+      const place = value as {name?: unknown; lat?: unknown; lon?: unknown} | null;
+      return (
+        typeof place === 'object' &&
+        place !== null &&
+        typeof place.name === 'string' &&
+        place.name.trim().length > 0 &&
+        place.name.length <= 80 &&
+        typeof place.lat === 'number' &&
+        Math.abs(place.lat) <= 90 &&
+        typeof place.lon === 'number' &&
+        Math.abs(place.lon) <= 180
+      );
+    };
+    const days = trip as {from?: unknown; to?: unknown; place?: unknown} | null;
     const valid =
       typeof label === 'string' &&
       label.trim().length > 0 &&
       label.length <= 40 &&
-      (days === null || (typeof days === 'object' && isDay(days.from) && isDay(days.to)));
-    if (!valid) throw new HttpError(400, 'Expected a label and its trip days');
+      (days === null || (typeof days === 'object' && isDay(days.from) && isDay(days.to) && isPlace(days.place)));
+    if (!valid) throw new HttpError(400, 'Expected a label, its trip days and its place');
     if (days === null) return redis().hdel(TRIPS, label);
-    const {from, to} = days as {from?: string; to?: string};
-    return redis().hset(TRIPS, {[label]: {...(from ? {from} : {}), ...(to ? {to} : {})}});
+    const {from, to, place} = days as {from?: string; to?: string; place?: {name: string; lat: number; lon: number}};
+    return redis().hset(TRIPS, {
+      [label]: {
+        ...(from ? {from} : {}),
+        ...(to ? {to} : {}),
+        ...(place ? {place: {name: place.name.trim(), lat: place.lat, lon: place.lon}} : {}),
+      },
+    });
   },
 
   /** { category, amount }: a category's monthly budget; null takes it off. */
