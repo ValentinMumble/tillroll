@@ -225,10 +225,17 @@ export function Savings({rows, currency, values, holders, balances, onSave, char
   const [value, setValue] = useState('');
   // The total: each account's value now, estimated from its latest value typed. One with no value yet is left out,
   // and named.
-  const latest = accounts.map(account => {
-    const typed = byDate(values[account.key]?.values ?? []).at(-1);
-    return {account, typed, estimate: typed ? estimateNow(account, typed) : null};
-  });
+  // An account emptied (its value now under €1, its last move money taken out) is closed: it leaves the total's list
+  // and has no card, but its past stays in the net worth's months and in what was put aside.
+  const latest = accounts
+    .map(account => {
+      const typed = byDate(values[account.key]?.values ?? []).at(-1);
+      return {account, typed, estimate: typed ? estimateNow(account, typed) : null};
+    })
+    .filter(
+      ({account, estimate}) => !(estimate && Math.abs(estimate.value) < 1 && (account.moves[0]?.amount ?? 0) > 0),
+    );
+  const open = latest.map(item => item.account);
   const valued = latest.filter(item => item.estimate !== null);
   const missing = latest.filter(item => item.estimate === null).map(item => item.account.name);
   const total = valued.reduce((sum, item) => sum + (item.estimate?.value ?? 0), 0);
@@ -338,7 +345,7 @@ export function Savings({rows, currency, values, holders, balances, onSave, char
           </p>
         </section>
       )}
-      {accounts.map(account => (
+      {open.map(account => (
         <AccountCard
           key={account.key}
           account={account}
