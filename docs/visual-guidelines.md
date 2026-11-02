@@ -161,15 +161,20 @@ The overview answers "how is this month going?" first, above all on a phone, so 
    row (two columns on a phone): payments with what a day cost beside them, money in, what was kept of it with its
    share (or what was spent beyond it), and what went to savings. On a phone what was kept sits under money in. A fifth
    figure joins one of these, never a new tile.
-2. The prompts, when there is something to do: stores to sort, payments to check.
+2. The prompts, when there is something to do: stores to sort, payments to check. Each opens its deck, one store
+   or one payment at a time (the payments to check start on "This payment" for a transfer to someone, else on
+   "Whole store"); the payments' deck links to the same payments in the list.
 3. The latest payments, whole days only (at least the last 3 days, and more days until there are at least 8
    payments), under day headings like the payment list's ("Today", "Yesterday", "Mon 12 Oct"), with what
    went out that day on the right when it had more than one payment. They show everything that moved, money in
    and moves between my accounts too, with no switches: those are the payment list's.
-4. For a year only, "Your 2025": the year in a few numbers, as the fun stats' tiles (what it cost against the
+4. For the month going on only, "Still to come": the regular payments not charged yet this month, soonest first,
+   each on its usual day ("about 5 Nov", or "was due 2 Nov" with a "late" tag), what they come to, and what the
+   bank accounts hold once they are paid (owner only).
+5. For a year only, "Your 2025": the year in a few numbers, as the fun stats' tiles (what it cost against the
    year before, what was kept when the pay is in the data, the biggest month, top category and places, new places,
    trips, trains, the biggest day and the dearest weekday).
-5. Everything else: the period chart, top categories and stores, budgets, fixed and flexible, regular payments,
+6. Everything else: the period chart, top categories and stores, budgets, fixed and flexible, regular payments,
    insights. Money in and out lives in Money, above the savings.
 
 ## Phone (560px and below)

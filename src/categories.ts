@@ -219,6 +219,16 @@ export type Basis = 'picked' | 'kind' | 'keyword' | 'code' | 'broad-code' | 'tra
 /** The guesses worth a look by hand (see the sorting deck). */
 export const UNSURE: Basis[] = ['none', 'broad-code', 'transfer'];
 
+/** Why a guess is one, after "Keep in …" in the sorting deck and the payments to check. */
+export const REASON: Partial<Record<Basis, string>> = {
+  none: 'no clue from the bank',
+  'broad-code': 'guessed from a broad shop code',
+  transfer: 'a transfer to someone',
+  keyword: 'guessed from its name',
+  code: 'guessed from its shop code',
+  kind: 'guessed from the kind of payment',
+};
+
 /** A Revolut account or pocket in another currency, or the same one: "To EUR Sous", "From SEK". */
 const CURRENCY_ACCOUNT = /^(to|from) (EUR|USD|GBP|SEK|NOK|DKK|CHF|PLN|CZK|HUF|RON|JPY|CAD|AUD)\b/i;
 

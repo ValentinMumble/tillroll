@@ -389,6 +389,7 @@
 
 .sorter-store {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 6px;
   padding: 16px;
   border-radius: 14px;
@@ -496,9 +497,15 @@
   justify-self: start;
 }
 
+/* The guess to keep, with why it is one: it wraps on a narrow screen, never wider than the card. */
 .sorter-keep {
+  display: block;
   justify-self: start;
+  max-width: 100%;
   margin-top: 4px;
+  padding: 8px 16px;
+  text-align: left;
+  white-space: normal;
 }
 
 .sorter-reason {

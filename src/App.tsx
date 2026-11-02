@@ -21,6 +21,7 @@ import {PullToRefresh} from './components/PullToRefresh';
 import {Savings} from './components/Savings';
 import {Sidebar} from './components/Sidebar';
 import {OverviewSkeleton} from './components/Skeleton';
+import {CheckDeck} from './components/CheckDeck';
 import {Sorter} from './components/Sorter';
 import {StoreDialog} from './components/StoreDialog';
 import {StoreEditor} from './components/StoreEditor';
@@ -56,7 +57,9 @@ type Dialog =
   /** The duplicates deck keeps the pairs it opened with, and starts at `position` when it comes back to one. */
   | {type: 'duplicates'; pairs: Pair[]; position?: number}
   /** The sorting deck keeps the list of stores it opened with. */
-  | {type: 'sort'; queues: {unsure: StoreToSort[]; automatic: StoreToSort[]}};
+  | {type: 'sort'; queues: {unsure: StoreToSort[]; automatic: StoreToSort[]}}
+  /** The period's payments to check, one at a time, by id. */
+  | {type: 'check'; ids: string[]};
 
 /** Where the page is: its view, and the filter of the payment list. One step of the browser's history each. */
 interface Place {
@@ -544,6 +547,15 @@ export default function App() {
                 }}
                 onSelectPeriod={selectChartPeriod}
                 onSort={openSorter}
+                onCheck={() =>
+                  setDialog({
+                    type: 'check',
+                    ids: periodRows
+                      .filter(isUnsure)
+                      .sort((first, second) => first.amount - second.amount)
+                      .map(row => row.id),
+                  })
+                }
                 onOpenStore={store => setDialog({type: 'store', store})}
                 onEditCategories={() => setDialog({type: 'categories', store: null})}
                 onEditStores={() => setDialog({type: 'stores', store: null})}
@@ -774,6 +786,20 @@ export default function App() {
           onPick={(storeKey, category) => void changeCategory(storeKey, category)}
           onNewCategory={(storeKey, label, icon) => void addCategoryFor(storeKey, label, icon)}
           onRename={(storeKey, name, newName) => void renameStore(storeKey, name, newName)}
+          onClose={() => setDialog(null)}
+        />
+      )}
+      {dialog?.type === 'check' && (
+        <CheckDeck
+          ids={dialog.ids}
+          rows={periodRows}
+          categories={categories}
+          showBanks={showBanks}
+          onPick={(row, category, scope) => void categorize([row], category, scope)}
+          onShowList={() => {
+            setDialog(null);
+            focusOn({type: 'check'});
+          }}
           onClose={() => setDialog(null)}
         />
       )}

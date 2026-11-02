@@ -1,5 +1,5 @@
 import {type KeyboardEvent, useEffect, useRef, useState} from 'react';
-import {type Basis, type Categories, DEFAULT_ICON, oneIcon} from '../categories';
+import {type Categories, DEFAULT_ICON, oneIcon, REASON} from '../categories';
 import {money} from '../format';
 import {dayLabel} from '../periods';
 import type {StoreToSort} from '../rows';
@@ -22,15 +22,6 @@ interface Props {
   onRename: (storeKey: string, name: string, newName: string) => void;
   onClose: () => void;
 }
-
-const REASON: Partial<Record<Basis, string>> = {
-  none: 'no clue from the bank',
-  'broad-code': 'guessed from a broad shop code',
-  transfer: 'a transfer to someone',
-  keyword: 'guessed from its name',
-  code: 'guessed from its shop code',
-  kind: 'guessed from the kind of payment',
-};
 
 /**
  * One store at a time, biggest first: one tap files all its payments, past and future. Keep accepts the guess.
