@@ -1,8 +1,7 @@
 import type {Categories} from '../categories';
 import type {Grain} from '../periods';
-import {type Report, stillToCome} from '../report';
+import type {Report} from '../report';
 import type {Row} from '../rows';
-import {bankBalances} from '../savings';
 import type {Tab} from '../tabs';
 import type {Balance, Budgets, CategoryKey, Labels, Trips} from '../types';
 import {Balances} from './Balances';
@@ -14,7 +13,6 @@ import {Insights} from './Insights';
 import {LatestPayments} from './LatestPayments';
 import {PeriodChart} from './PeriodChart';
 import {RegularPayments} from './RegularPayments';
-import {StillToCome} from './StillToCome';
 import {Summary} from './Summary';
 import {YourYear} from './YourYear';
 
@@ -62,9 +60,8 @@ interface Props {
 
 /**
  * The overview, in a fixed order (see docs/visual-guidelines.md): the period so far, the balances, what is waiting to
- * be sorted or checked, the latest payments, the regular payments still to come (the month going on only), the year
- * in a few numbers (a year only), then the period chart, top categories and stores, budgets, fixed and flexible,
- * regular payments and insights. Money in and out is in Money.
+ * be sorted or checked, the latest payments, the year in a few numbers (a year only), then the period chart, top
+ * categories and stores, budgets, fixed and flexible, regular payments and insights. Money in and out is in Money.
  */
 export function Overview({
   report,
@@ -100,8 +97,6 @@ export function Overview({
   trips,
 }: Props) {
   const breakdown = {report, categories, currency, focus, onFocus};
-  const upcoming = grain === 'month' && report.ongoing ? stillToCome(report.subscriptions, allRows, period) : [];
-  const banks = [...bankBalances(balances, currency).values()];
   return (
     <>
       <section className="receipt">
@@ -149,12 +144,6 @@ export function Overview({
         onSeeAll={onSeeAllPayments}
         allRows={allRows}
         onPayback={onPayback}
-      />
-      <StillToCome
-        upcoming={upcoming}
-        currency={currency}
-        balance={banks.length ? banks.reduce((sum, balance) => sum + balance.amount, 0) : null}
-        onOpenStore={onOpenStore}
       />
       {grain === 'year' && (
         <YourYear

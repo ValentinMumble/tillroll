@@ -310,29 +310,6 @@ export function findSubscriptions(rows: Row[], month: string, categories: Catego
   return found.sort((first, second) => second.monthly - first.monthly);
 }
 
-/** A regular payment not charged yet this month, and the day it should come (before today: it is late). */
-export interface Upcoming {
-  item: Subscription;
-  date: string;
-}
-
-/**
- * The regular payments of `month` (see findSubscriptions) still to come: no money out at their store, in their
- * category, this month yet. Found in 3 of the 4 months up to this one, each was charged last month, so it should
- * come on the same day of this month. Soonest first.
- */
-export function stillToCome(subscriptions: Subscription[], rows: Row[], month: string): Upcoming[] {
-  const charged = new Set(
-    rowsBetween(rows, periodStart(month, 'month'), periodEnd(month, 'month'))
-      .filter(row => row.amount < 0)
-      .map(row => `${row.storeKey}|${row.category}`),
-  );
-  return subscriptions
-    .filter(item => !charged.has(item.key))
-    .map(item => ({item, date: item.next}))
-    .sort((first, second) => (first.date < second.date ? -1 : first.date > second.date ? 1 : 0));
-}
-
 /**
  * A pace's three amounts: spent so far, the usual period by the same day (while the period is going, else none) and
  * the usual whole period (none without earlier periods).

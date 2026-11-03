@@ -1,6 +1,6 @@
 import {describe, expect, it} from 'vitest';
 import {categoriesFrom} from './categories';
-import {buildReport, rollingAverage, stillToCome, trendOf} from './report';
+import {buildReport, rollingAverage, trendOf} from './report';
 import {toRows} from './rows';
 import type {Transaction} from './types';
 
@@ -59,23 +59,5 @@ describe('the chart periods', () => {
   it('says where the month still going should land, never under what it cost so far', () => {
     expect(october?.projected).not.toBeNull();
     expect(october?.projected ?? 0).toBeGreaterThanOrEqual(october?.total ?? 0);
-  });
-});
-
-describe('stillToCome', () => {
-  // A streaming service on the 10th and a gym on the 3rd, from July; in November only the gym has come so far.
-  const transactions: Transaction[] = [];
-  for (const month of ['2026-07', '2026-08', '2026-09', '2026-10']) {
-    transactions.push(payment({description: 'Netflix', amount: -12.99, date: `${month}-10`}));
-    transactions.push(payment({description: 'Gym', amount: -30, date: `${month}-03`}));
-  }
-  transactions.push(payment({description: 'Gym', amount: -30, date: '2026-11-03'}));
-  const rows = rowsOf(transactions);
-  const report = buildReport(rows, '2026-11', 'month', '2026-11-08', categories);
-
-  it('lists the regular payments not charged yet this month, on their usual day', () => {
-    expect(stillToCome(report.subscriptions, rows, '2026-11').map(entry => [entry.item.store, entry.date])).toEqual([
-      ['Netflix', '2026-11-10'],
-    ]);
   });
 });
