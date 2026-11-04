@@ -32,8 +32,8 @@ that come back every month.
 
 The screenshots show the sample data (Try it with sample data on the first screen), in your theme, light or dark.
 
-Seven views, under a period bar that stays at the top: in a sidebar on wide screens; on a phone, a tab bar holds
-Overview, Categories, Stores and Payments, and the ⋯ menu opens the Calendar, Savings and Fun stats:
+Eight views, under a period bar that stays at the top: in a sidebar on wide screens; on a phone, a tab bar holds
+Overview, Payments, Categories and Stores, and the ⋯ menu opens the Calendar, Money, Trips and Fun stats:
 
 - **Overview**: the total and the chart, the top categories and stores, the latest payments (each with its category to
   change) and a few quiet notes on what stands out.
@@ -47,15 +47,16 @@ Overview, Categories, Stores and Payments, and the ⋯ menu opens the Calendar, 
   month by month, its average and where the money went over the last twelve months.
 - **Stores**: with a search, a pencil on each store (name and category, the stores merged into it, look-alikes to merge
   in), and the **possible duplicates** deck.
-- **Payments**: the total, by day like a bank statement or by amount or store, with a search and a category filter.
-- **Savings**: each account money is put aside in, found from the money moved to and from it (an assurance vie,
-  a livret, Revolut's savings): what went in and out month by month and year by year. Its value, typed now and then
-  from its app or statement, shows how much it grew beyond what was paid in. An account no payment shows (a livret at
-  another bank) can be added by hand. Open Banking only reaches payment accounts, so an assurance vie or a livret
-  cannot be connected itself.
-- **Fun stats**: an average day by weekday, spending by hour (when the payments have times), the biggest day, the
-  weekend share, the longest runs with and without spending, the most loyal store, coffees, the typical payment,
-  the payday effect.
+- **Payments**: the total, by day like a bank statement or by amount or store, with a search and filters by category
+  (one or more) and by bank.
+- **Money**: what came in, what went out and what each period kept, what went to savings, and each savings account
+  (an assurance vie, a livret, Revolut's savings): what went in and out, and, from a value typed now and then, how much
+  it grew. An account no payment shows can be added by hand; a closed one leaves the list. Open Banking only reaches
+  payment accounts, so an assurance vie or a livret cannot be connected itself.
+- **Trips**: the labels marked as trips, on a map and side by side (what each cost, by category and by day), then the
+  train tickets.
+- **Fun stats**: your year in a few numbers, an average day by weekday, spending by hour, the biggest day, the longest
+  runs with and without spending, the most loyal store, coffees, hobbies, the payday effect.
 
 A payment shows its time when the source gives one: statements do, while Revolut's Open Banking feed only gives the
 day it was booked (sometimes the day after the payment). A small search link beside a store's name looks it up on
@@ -68,7 +69,8 @@ account, a loan and its charges, sort themselves. Ticking
 payments (shift-click for a run) gives one category or one label to all of them. **Stores to sort** goes through the
 stores Tillroll is unsure about (no clue from the bank, only the broad shop merchant code, or a transfer to someone),
 or every store still on a guessed category, biggest first: Keep accepts the guess, one tap on a category files the
-store, and on a keyboard 1 to 9 pick a category and Enter keeps.
+store, and on a keyboard 1 to 9 pick a category and Enter keeps. **Payments to check**, on the Overview, does the same
+one payment at a time.
 
 **Editing.** Edit categories renames a category, changes its icon or whether it counts as spending, and adds new ones.
 Edit stores lists every store: rename it, pick its category, or tick the ones that are the same place to merge them
@@ -82,6 +84,9 @@ Each one is matched with the payment it gives back (the latest one at that store
 amount first), and that payment then costs what is left, in its own week and month: a flight refunded in April makes
 March cheaper, not April. Payments shows "refund of 12 Mar" on the refund and "refunded" on the payment. A refund with
 no payment found lowers the spending of the week it came in.
+
+**Paybacks** are money in that pays a payment back (a friend's share, something sold later): link it by hand, and the
+payment costs that much less in its own month.
 
 **Left out of every total**, spending and money in or out alike:
 
@@ -100,7 +105,7 @@ so they follow to every device; a visitor's stay in their browser.
 ## On the iPhone
 
 In Safari, Share, then Add to Home Screen: Tillroll opens full screen like an app, with a tab bar for its four
-sections (Overview, Categories, Stores, Payments). A home-screen app keeps its own cookies, apart from Safari's: the
+sections (Overview, Payments, Categories, Stores). A home-screen app keeps its own cookies, apart from Safari's: the
 owner enters their key once there, through the Owner key link at the bottom of the page.
 
 ## Several banks
@@ -170,16 +175,15 @@ few background syncs a day (often 4); syncs you start from the page do not count
 
 ## How it works
 
-- `api/`: Vercel functions. `login` and `logout` start and end owner mode, `connect` starts the bank authorization, `callback` takes the bank's answer and runs the
-  first sync, `sync` runs a sync (the daily cron or the owner's page), `data` returns the owner's transactions, `rules`
-  saves a category picked for a store, `categories` saves the categories changed or added, `merges` merges or
-  separates stores, `labels` saves the labels of payments, `payment-categories` the categories picked for single
-  payments, `distinct` the pairs of stores marked not the same, `import` saves the owner's statement rows, `disconnect` ends the access.
+- `api/`: Vercel functions. `login` and `logout` start and end owner mode, `banks` lists the banks for the picker,
+  `connect` starts the bank authorization, `callback` takes the bank's answer and runs the first sync, `sync` runs a
+  sync (the daily cron or the owner's page), `data` returns the owner's transactions, `sorting` saves the owner's
+  choices (categories per store and per payment, categories, merges, labels, trips, stores marked not the same,
+  savings values, budgets), `import` saves the owner's statement rows, `disconnect` ends the access.
   `_lib/bank.ts` talks to Enable Banking: requests are signed with the application's key (an RS256 token made with
   `node:crypto`, no library).
 - Redis keys, all `tillroll:*`: the bank session, the booked transactions by id, the pending ones from the last sync,
-  the category picked per store and per payment, the categories changed or added, the stores merged, the labels, the
-  pairs of stores marked not the same and the time of the last sync.
+  the owner's choices saved by `sorting`, and the time of the last sync.
 - `src/`: the React page. `statement.ts` reads the Revolut files, `stores.ts` and `categories.ts` name and sort the
   payments, `rows.ts` turns them into rows (moves between one's own accounts and refunds paired), `report.ts` builds
   the totals, the chart series and the insights, `sample.ts` makes the sample data. `useData.ts` holds the data and
