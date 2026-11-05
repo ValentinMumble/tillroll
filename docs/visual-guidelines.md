@@ -200,6 +200,9 @@ The overview answers "how is this month going?" first, above all on a phone, so 
   (`PullToRefresh`): it syncs the banks for the owner and loads the page again for anyone else.
 - So the home-screen app's header has no Sync button: a pull syncs, and "Sync now" stays in the ⋯ menu. A Safari tab
   keeps the button, since Safari's own pull only reloads the page.
+- Once payments are on screen, new ones on their way (the owner's first load after the copy kept on the device, or a
+  sync) show as the logo's bars shortening and growing back in turn (`<Logo busy>`), never a spinner or a banner over
+  the page. The skeleton is only for a first load with nothing kept.
 
 ## Words
 

@@ -9,6 +9,8 @@ interface Props {
   /** Stores with an unsure category: the deck that sorts them. */
   toSort: number;
   onSort: () => void;
+  /** New payments are on their way: the logo moves. */
+  fetching?: boolean;
   /** The account part at the bottom: source, sync, import, owner links. */
   children: ReactNode;
 }
@@ -20,11 +22,11 @@ const GROUPS: TabGroup[] = ['spending', 'more'];
  * The wide-screen navigation: the views in two groups under small headings (Spending, with the stores to sort at its
  * end, then More), then the account.
  */
-export function Sidebar({tab, onTab, toSort, onSort, children}: Props) {
+export function Sidebar({tab, onTab, toSort, onSort, fetching = false, children}: Props) {
   return (
     <aside className="sidebar">
       <a className="brand" href="/">
-        <Logo />
+        <Logo busy={fetching} />
         Tillroll
       </a>
       <nav className="side-nav" aria-label="Views">

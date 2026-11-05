@@ -34,6 +34,38 @@
   stroke-linecap: round;
 }
 
+/* While new payments come in, the bars shorten to a dot and grow back, one after the other. */
+.brand-mark.is-busy path {
+  stroke-dasharray: 24 40;
+  animation: brand-print 1.2s ease-in-out infinite;
+}
+
+.brand-mark.is-busy path:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.brand-mark.is-busy path:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes brand-print {
+  50% {
+    stroke-dasharray: 0 40;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brand-mark.is-busy path {
+    animation-name: brand-fade;
+  }
+}
+
+@keyframes brand-fade {
+  50% {
+    opacity: 0.35;
+  }
+}
+
 .top-actions {
   display: flex;
   flex-wrap: wrap;

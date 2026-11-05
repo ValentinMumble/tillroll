@@ -110,6 +110,7 @@ export default function App() {
     isOwner,
     data,
     loading,
+    fetching,
     notice,
     setNotice,
     busy,
@@ -368,7 +369,7 @@ export default function App() {
   const header = (
     <header className="top">
       <a className="brand" href="/">
-        <Logo />
+        <Logo busy={fetching} />
         Tillroll
       </a>
       <div className="top-actions">
@@ -487,7 +488,7 @@ export default function App() {
 
   return (
     <div className="shell">
-      <Sidebar tab={tab} onTab={openTab} toSort={toSort.length} onSort={openSorter}>
+      <Sidebar tab={tab} onTab={openTab} toSort={toSort.length} onSort={openSorter} fetching={fetching}>
         {status && <p className="status">{status}</p>}
         <div className="side-actions">
           {syncAction}
@@ -504,6 +505,9 @@ export default function App() {
         />
         {header}
         {noticeBar}
+        <p className="visually-hidden" role="status">
+          {fetching ? 'Getting new payments' : ''}
+        </p>
         <Toolbar
           grain={grain}
           onGrain={changeGrain}

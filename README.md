@@ -100,7 +100,8 @@ payment costs that much less in its own month.
 
 **Labels** go on single payments: the # next to a booked payment adds one (with the labels already in use offered). A
 pending payment gets a new id once the bank books it, so it has no #. The owner's choices are kept in the site store,
-so they follow to every device; a visitor's stay in their browser.
+so they follow to every device; a visitor's stay in their browser. The owner's page opens at once on the copy kept
+on the device, and the logo's bars move while the new payments come in.
 
 ## On the iPhone
 

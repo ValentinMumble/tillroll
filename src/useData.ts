@@ -140,6 +140,8 @@ export function useData({focus, setFocus, resetView}: View) {
   const [isOwner, setIsOwner] = useState(isOwnerBrowser);
   const [data, setData] = useState<Data | null>(() => (isOwnerBrowser() ? null : localData()));
   const [loading, setLoading] = useState(isOwner);
+  // The owner's first load, from the saved copy to the fresh data and the sync it may need.
+  const [starting, setStarting] = useState(isOwner);
   const [notice, setNotice] = useState<Notice | null>(noticeFromAddress);
   const [busy, setBusy] = useState<string | null>(null);
 
@@ -198,31 +200,35 @@ export function useData({focus, setFocus, resetView}: View) {
     if (!isOwner || started.current) return;
     started.current = true;
     const start = async () => {
-      // The data kept on this device from the last visit shows at once; the fresh data replaces it when it comes.
-      const cached = await loadCachedOwnerData();
-      if (cached) {
-        setData(fromOwner(cached));
-        setLoading(false);
-      }
-      // A key from a #owner= address or the footer becomes the year-long cookie, then leaves the page's storage.
-      const key = pendingOwnerKey();
-      if (key) {
-        try {
-          await signIn(key);
-          forgetOwnerKey();
-        } catch (error) {
-          if (error instanceof RequestError && error.status === 403) {
-            leaveOwnerMode('This owner key is not valid: you see the public version.');
-            return;
+      try {
+        // The data kept on this device from the last visit shows at once; the fresh data replaces it when it comes.
+        const cached = await loadCachedOwnerData();
+        if (cached) {
+          setData(fromOwner(cached));
+          setLoading(false);
+        }
+        // A key from a #owner= address or the footer becomes the year-long cookie, then leaves the page's storage.
+        const key = pendingOwnerKey();
+        if (key) {
+          try {
+            await signIn(key);
+            forgetOwnerKey();
+          } catch (error) {
+            if (error instanceof RequestError && error.status === 403) {
+              leaveOwnerMode('This owner key is not valid: you see the public version.');
+              return;
+            }
           }
         }
+        const owner = await loadOwner();
+        // A sync when a bank with access was last synced more than 6 hours ago.
+        const stale = (owner?.connections ?? []).some(
+          item => !item.expired && (!item.syncedAt || Date.now() - Date.parse(item.syncedAt) > SYNC_AFTER),
+        );
+        if (stale) await sync();
+      } finally {
+        setStarting(false);
       }
-      const owner = await loadOwner();
-      // A sync when a bank with access was last synced more than 6 hours ago.
-      const stale = (owner?.connections ?? []).some(
-        item => !item.expired && (!item.syncedAt || Date.now() - Date.parse(item.syncedAt) > SYNC_AFTER),
-      );
-      if (stale) await sync();
     };
     void start();
   }, [isOwner, leaveOwnerMode, loadOwner, sync]);
@@ -614,6 +620,8 @@ export function useData({focus, setFocus, resetView}: View) {
     isOwner,
     data,
     loading,
+    /** New payments are on their way: the first load or a sync. */
+    fetching: starting || busy === 'sync',
     notice,
     setNotice,
     busy,
