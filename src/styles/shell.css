@@ -152,6 +152,41 @@
   backdrop-filter: var(--blur);
 }
 
+/* A phone's moving logo once the header has scrolled away (FetchingMark): a small circle hanging under the period
+   bar, like the pull to refresh one. Wide screens have the sidebar's logo. */
+.fetching-mark {
+  display: none;
+}
+
+@media (max-width: 960px) {
+  .fetching-mark {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--surface);
+    box-shadow: var(--shadow);
+    translate: -50% 4px;
+    pointer-events: none;
+    animation: fetching-mark-in 0.2s ease-out;
+  }
+
+  .fetching-mark .brand-mark {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+@keyframes fetching-mark-in {
+  from {
+    opacity: 0;
+  }
+}
+
 /* Wide screens: the sidebar has the brand, the account, the links and the stores to sort. */
 .main > .top,
 .main > .foot,

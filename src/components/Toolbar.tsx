@@ -1,4 +1,5 @@
 import {compactPeriodLabel, type Grain, periodLabel} from '../periods';
+import {FetchingMark} from './FetchingMark';
 
 interface Props {
   grain: Grain;
@@ -12,6 +13,8 @@ interface Props {
   currencies: string[];
   currency: string;
   onCurrency: (currency: string) => void;
+  /** New payments are on their way: on a phone, the moving logo hangs under the bar once the header is gone. */
+  fetching?: boolean;
 }
 
 /** Each length with its name, and a shorter one for phones. */
@@ -24,7 +27,8 @@ const GRAINS: [Grain, string, string][] = [
 
 /** The one row of controls: the length of the period, which one, and the currency when there are several. */
 export function Toolbar(props: Props) {
-  const {grain, onGrain, period, onStep, canGoBack, canGoForward, onToday, currencies, currency, onCurrency} = props;
+  const {grain, onGrain, period, onStep, canGoBack, canGoForward, onToday, currencies, currency, onCurrency, fetching} =
+    props;
   const label = (
     <>
       <span className="long">{periodLabel(period, grain)}</span>
@@ -90,6 +94,7 @@ export function Toolbar(props: Props) {
           ))}
         </select>
       )}
+      {fetching && <FetchingMark />}
     </div>
   );
 }

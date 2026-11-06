@@ -519,6 +519,7 @@ export default function App() {
           currencies={currencies}
           currency={currency}
           onCurrency={changeCurrency}
+          fetching={fetching}
         />
 
         <main className="view">

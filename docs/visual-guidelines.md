@@ -202,7 +202,8 @@ The overview answers "how is this month going?" first, above all on a phone, so 
   keeps the button, since Safari's own pull only reloads the page.
 - Once payments are on screen, new ones on their way (the owner's first load after the copy kept on the device, or a
   sync) show as the logo's bars shortening and growing back in turn (`<Logo busy>`), never a spinner or a banner over
-  the page. The skeleton is only for a first load with nothing kept.
+  the page. The skeleton is only for a first load with nothing kept. On a phone, once the header has scrolled away,
+  the moving logo hangs in a small circle under the period bar (`FetchingMark`), so it stays in view.
 
 ## Words
 
