@@ -1,11 +1,19 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
-  <!-- Tillroll's iPhone home screen icon: a lowercase t, white on black, full bleed (iOS rounds the corners). The t is
-       Space Grotesk Bold's own outline (glyph "t", 1000 units to the em, y up), flipped and centred. The app itself
-       keeps the coloured bars and the full name. Render it to public/ with design/render-icons.sh. -->
+  <!-- Tillroll's iPhone home screen icon: a lowercase t in San Francisco Bold, white, beside the app's three coloured
+       bars, on black, full bleed (iOS rounds the corners). The t is the system's own type, so render it on a Mac:
+       design/render-icons.sh draws it to public/ with headless Chrome. -->
   <rect width="1024" height="1024" fill="#000000" />
-  <path
-    transform="translate(512 512) scale(0.9 -0.9) translate(-219 -325)"
+  <text
+    x="165"
+    y="800"
     fill="#ffffff"
-    d="M260 0Q211 0 180.5 30.5Q150 61 150 112V392H26V496H150V650H276V496H412V392H276V134Q276 104 304 104H400V0Z"
-  />
+    font-family="-apple-system, BlinkMacSystemFont, system-ui, sans-serif"
+    font-size="900"
+    font-weight="700"
+  >t</text>
+  <g fill="none" stroke-linecap="round" stroke-width="64">
+    <path d="M558 380H818" stroke="#2a78d6" />
+    <path d="M558 512H728" stroke="#eb6834" />
+    <path d="M558 644H778" stroke="#1baf7a" />
+  </g>
 </svg>
