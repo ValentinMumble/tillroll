@@ -463,17 +463,14 @@
   text-align: right;
 }
 
-/* Liquid Glass, the same recipe as Chords' and Statva's tab bars: a see-through capsule with a light top edge, a
-   hairline outline and a soft shadow. Clearer than the dialogs' glass (half the page's colour, a light blur), so what
+/* Liquid glass, the same recipe as the docks of Statva, Chords and hk: the page's colour at 30%,
+   a sheen across the top, a bright rim above and below, a hairline and a soft shadow, over a light blur, so what
    scrolls under it shows through, as under iOS 26's tab bar. */
 .glass {
-  background: color-mix(in srgb, var(--page) 50%, transparent);
-  -webkit-backdrop-filter: blur(12px) saturate(180%);
-  backdrop-filter: blur(12px) saturate(180%);
-  box-shadow:
-    inset 0 1px 0 var(--glass-edge),
-    0 0 0 0.5px var(--ring),
-    var(--lift);
+  background: var(--dock-sheen), color-mix(in srgb, var(--page) 30%, transparent);
+  -webkit-backdrop-filter: blur(14px) saturate(190%);
+  backdrop-filter: blur(14px) saturate(190%);
+  box-shadow: var(--dock-edge);
 }
 
 @media (prefers-reduced-transparency: reduce) {

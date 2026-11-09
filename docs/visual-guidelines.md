@@ -31,8 +31,10 @@ live in `src/styles/`, one file per area, imported in order by `src/index.css` (
 - Glass is for what floats over moving content only (the tab bar, dialogs, menus, the selection bar):
   `--glass-strong` with `backdrop-filter: var(--blur)`, a light top edge, as iOS 26's bars. The period bar at the top
   takes the page's own colour, like the status bar above it, and blurs what passes under it. The tab bar's lens is
-  neutral grey, only the chosen tab is blue. The tab bar is the clearest glass (half the page's colour, a light blur),
-  so what scrolls under it shows through, as under iOS 26's tab bar. With "Reduce transparency" on, glass turns solid.
+  neutral grey, only the chosen tab is blue. The tab bar is the clearest glass, the same recipe as the docks of
+  Statva, Chords and hk: the page's colour at 30%, a sheen across the top, a bright rim above and below, a light blur
+  (`--dock-sheen`, `--dock-edge`), so what scrolls under it shows through, as under iOS 26's tab bar. With "Reduce
+  transparency" on, glass turns solid.
 - Text keeps 4.5:1 on the page and on a card: check any new colour against both.
 
 ## Type
