@@ -66,7 +66,6 @@
      what the bank wrote. */
   --font-body: -apple-system, BlinkMacSystemFont, system-ui, 'Segoe UI', Roboto, sans-serif;
   --font-mono: ui-monospace, 'IBM Plex Mono', Menlo, monospace;
-  --font-brand: 'Space Grotesk', var(--font-body);
   --radius: 20px;
 }
 

@@ -9,13 +9,12 @@
   padding: 18px 0;
 }
 
-/* The name, set in Space Grotesk lowercase beside the mark. */
+/* The name, bold and lowercase beside the mark, in the system's type like everything else. */
 .brand {
   display: inline-flex;
   align-items: center;
   gap: 9px;
   color: var(--ink);
-  font-family: var(--font-brand);
   font-weight: 700;
   font-size: 21px;
   letter-spacing: -0.02em;

@@ -986,17 +986,16 @@
   }
 }
 
-/* The iPhone look, wherever the tab bar shows: the view's name as a large title, and taps that dim what they press. */
+/* The iPhone look, wherever the tab bar shows: a large title in the wordmark's type (the app's name on the overview,
+   the view's name elsewhere), and taps that dim what they press. */
 @media (max-width: 960px) {
-  .brand.is-title {
+  .main > .top > .brand {
     gap: 10px;
-    font-family: var(--font-body);
-    text-transform: none;
     font-size: 32px;
     line-height: 1.1;
   }
 
-  .brand.is-title .brand-mark {
+  .main > .top > .brand .brand-mark {
     width: 26px;
     height: 26px;
   }

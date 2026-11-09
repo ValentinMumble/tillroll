@@ -44,8 +44,8 @@ live in `src/styles/`, one file per area, imported in order by `src/index.css` (
   `src/format.ts`.
 - What the bank wrote (a payment's raw text): the system's monospaced type (SF Mono, IBM Plex Mono elsewhere,
   `--font-mono`). Amounts, days and times stay in the body type with even-width digits.
-- Space Grotesk (`--font-brand`) is for the wordmark only, in lowercase: tillroll. The phone's large titles are the
-  view's name in the body type.
+- The wordmark is the system's type too, bold and lowercase: tillroll. The phone's large titles match it: tillroll
+  on the overview, the view's name in lowercase on the others (payments, categories).
 - In the app the logo is three bars in `--cat-1`, `--cat-2` and `--cat-3` beside the full name
   (`src/components/Logo.tsx`), and the browser tab shows the bars (`public/favicon.svg`).
 - The app icon (the iPhone's home screen and the web app, `public/apple-touch-icon.png` and `public/icon.png`) is a
@@ -193,8 +193,9 @@ The overview answers "how is this month going?" first, above all on a phone, so 
 ## Phone (560px and below)
 
 - Wide screens (over 960px) pick the view in the sidebar; narrower ones in the frosted tab bar at the bottom.
-- Wherever the tab bar shows, Tillroll also behaves like an iPhone app (the last part of `shell.css`): the view's
-  name as a large title in the header next to the logo, and taps that dim a button or grey a row while pressed.
+- Wherever the tab bar shows, Tillroll also behaves like an iPhone app (the last part of `shell.css`): a large title
+  in the header next to the logo (the wordmark, tillroll, on the overview; the view's name on the others), and taps
+  that dim a button or grey a row while pressed.
 - The views come in two groups. Spending: Overview, Payments, Categories, Stores, Calendar (where the money goes,
   period by period). More: Money (money in and out, then net worth and savings), Trips (the map, the trips side by
   side, their facts, the trains) and Fun stats (the playful facts and hobbies). The sidebar shows the two groups under
