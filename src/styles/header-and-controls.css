@@ -34,6 +34,11 @@
   stroke-linecap: round;
 }
 
+/* Pulling to refresh (PullToRefresh) shortens the bars as the finger comes down, to dots at the line. */
+.is-pulling .brand-mark path {
+  stroke-dasharray: calc(24 * (1 - var(--pull))) 40;
+}
+
 /* While new payments come in, the bars shorten to a dot and grow back, one after the other. */
 .brand-mark.is-busy path {
   stroke-dasharray: 24 40;

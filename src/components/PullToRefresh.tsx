@@ -1,7 +1,7 @@
-import {useEffect, useRef, useState} from 'react';
+import {useEffect, useRef} from 'react';
 import {isHomeScreenApp} from '../device';
 
-/** How far the circle comes down (half the finger's drag) before letting go refreshes. */
+/** How far to pull (half the finger's drag) before letting go refreshes. */
 const THRESHOLD = 64;
 
 interface Props {
@@ -10,12 +10,11 @@ interface Props {
 }
 
 /**
- * Pull to refresh, in the home-screen app only: at the top of the page, a drag down brings a circle that turns as it
- * comes; let go past the line and it spins while the refresh runs. Never under an open dialog.
+ * Pull to refresh, in the home-screen app only, with the logo as its only sign: at the top of the page, a drag down
+ * shortens the logo's bars (--pull on the page, from 0 to 1), down to dots at the line; let go there and they move
+ * while the refresh runs. Never under an open dialog.
  */
 export function PullToRefresh({onRefresh}: Props) {
-  const [pull, setPull] = useState(0);
-  const [refreshing, setRefreshing] = useState(false);
   // The latest refresh, so the touch listeners added once always call it.
   const refresh = useRef(onRefresh);
   useEffect(() => {
@@ -24,10 +23,16 @@ export function PullToRefresh({onRefresh}: Props) {
 
   useEffect(() => {
     if (!isHomeScreenApp()) return;
+    const page = document.documentElement;
     let startY: number | null = null;
     let distance = 0;
     let busy = false;
 
+    function show(pull: number) {
+      if (pull > 0) page.style.setProperty('--pull', String(Math.min(pull / THRESHOLD, 1)));
+      else page.style.removeProperty('--pull');
+      page.classList.toggle('is-pulling', pull > 0);
+    }
     function onStart(event: TouchEvent) {
       if (busy || window.scrollY > 0 || event.touches.length !== 1 || document.querySelector('dialog[open]')) return;
       startY = event.touches[0].clientY;
@@ -37,24 +42,19 @@ export function PullToRefresh({onRefresh}: Props) {
       const drag = event.touches[0].clientY - startY;
       // A drag up, or the page scrolling after all: no pull.
       distance = drag > 0 && window.scrollY <= 0 ? Math.min(drag / 2, THRESHOLD * 1.4) : 0;
-      setPull(distance);
+      show(distance);
     }
     async function onEnd() {
       if (startY === null) return;
       startY = null;
-      if (distance < THRESHOLD) {
-        setPull(0);
-        return;
-      }
+      show(0);
+      if (distance < THRESHOLD) return;
       busy = true;
-      setRefreshing(true);
       try {
         await refresh.current();
       } finally {
         busy = false;
         distance = 0;
-        setRefreshing(false);
-        setPull(0);
       }
     }
     const end = () => void onEnd();
@@ -63,6 +63,7 @@ export function PullToRefresh({onRefresh}: Props) {
     window.addEventListener('touchend', end);
     window.addEventListener('touchcancel', end);
     return () => {
+      show(0);
       window.removeEventListener('touchstart', onStart);
       window.removeEventListener('touchmove', onMove);
       window.removeEventListener('touchend', end);
@@ -70,22 +71,5 @@ export function PullToRefresh({onRefresh}: Props) {
     };
   }, []);
 
-  if (pull === 0 && !refreshing) return null;
-  const ready = refreshing || pull >= THRESHOLD;
-  return (
-    <div
-      className={`pull-refresh${ready ? ' is-ready' : ''}${refreshing ? ' is-refreshing' : ''}`}
-      style={{transform: `translate(-50%, ${refreshing ? THRESHOLD : pull}px)`}}
-      role="status"
-    >
-      <span
-        className="pull-refresh-icon"
-        aria-hidden="true"
-        style={refreshing ? undefined : {rotate: `${pull * 4}deg`}}
-      >
-        ↻
-      </span>
-      <span className="visually-hidden">{refreshing ? 'Refreshing' : ready ? 'Let go to refresh' : ''}</span>
-    </div>
-  );
+  return null;
 }

@@ -219,7 +219,9 @@ The overview answers "how is this month going?" first, above all on a phone, so 
   matching what is typed (starting with it first), the most used while it is empty, six at most. Never a browser
   datalist, which a phone hardly shows.
 - The home-screen app has no browser around it, so it has its own pull to refresh at the top of the page
-  (`PullToRefresh`): it syncs the banks for the owner and loads the page again for anyone else.
+  (`PullToRefresh`): it syncs the banks for the owner and loads the page again for anyone else. The logo's bars are
+  its only sign: they shorten as the finger pulls, down to dots at the line, then move while the sync runs. The
+  logo is the one loader, never a spinner or a second circle.
 - So the home-screen app's header has no Sync button: a pull syncs, and "Sync now" stays in the ⋯ menu. A Safari tab
   keeps the button, since Safari's own pull only reloads the page.
 - Once payments are on screen, new ones on their way (the owner's first load after the copy kept on the device, or a
