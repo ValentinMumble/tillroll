@@ -6,7 +6,7 @@ import {givenBack, givenTitle, isListed, isIncoming, isUnsure, type Row, topCate
 import type {CategoryKey, Labels} from '../types';
 import {BankBadge} from './BankBadge';
 import {CategorySheet, MOST_USED} from './CategorySheet';
-import {LabelOptions, PaymentLabels} from './PaymentLabels';
+import {PaymentLabels} from './PaymentLabels';
 import {PaidBackBy, PaybackPicker} from './PaybackPicker';
 import {RefundTags} from './RefundTags';
 import {opensCategory} from '../device';
@@ -134,7 +134,7 @@ export function LatestPayments({
                       </span>
                     )}
                     <RefundTags row={row} givenBack={given} onOpen={() => setSheet(row)} />
-                    <PaymentLabels row={row} onLabels={onLabels} onFocusLabel={onFocusLabel} />
+                    <PaymentLabels row={row} names={labelNames} onLabels={onLabels} onFocusLabel={onFocusLabel} />
                   </span>
                 </span>
                 <span className="latest-day">{row.time}</span>
@@ -167,7 +167,6 @@ export function LatestPayments({
           })}
         </ul>
       )}
-      {latest.length > 0 && <LabelOptions names={labelNames} />}
       {sheet && (
         <CategorySheet
           title={sheet.store}
@@ -211,6 +210,7 @@ export function LatestPayments({
             <PaymentLabels
               // The payment as it is now: labels added in the sheet show at once.
               row={rows.find(row => row.id === sheet.id) ?? sheet}
+              names={labelNames}
               onLabels={onLabels}
               onFocusLabel={label => {
                 setSheet(null);

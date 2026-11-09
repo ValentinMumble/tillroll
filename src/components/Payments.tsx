@@ -29,7 +29,7 @@ import type {Focus} from './Breakdown';
 import {CategoryFilter} from './CategoryFilter';
 import {CategorySheet, MOST_USED, type Scope} from './CategorySheet';
 import {ListSwitches} from './ListSwitches';
-import {LabelOptions, PaymentLabels} from './PaymentLabels';
+import {PaymentLabels} from './PaymentLabels';
 import {PaidBackBy, PaybackPicker} from './PaybackPicker';
 import {RefundTags} from './RefundTags';
 import {WebSearch} from './WebSearch';
@@ -717,7 +717,7 @@ export function Payments({
                         )}
                         {isUnsure(row) && <span className="tag is-check">to check</span>}
                         <RefundTags row={row} givenBack={given} onOpen={() => setSheet([row])} />
-                        <PaymentLabels row={row} onLabels={onLabels} onFocusLabel={onFocusLabel} />
+                        <PaymentLabels row={row} names={labelNames} onLabels={onLabels} onFocusLabel={onFocusLabel} />
                       </span>
                     </td>
                     <td className="payment-category">
@@ -802,7 +802,6 @@ export function Payments({
           </button>
         </div>
       )}
-      <LabelOptions names={labelNames} />
       {sheet && (
         <CategorySheet
           title={sheet.length === 1 ? sheet[0].store : `${sheet.length} payments`}
@@ -848,6 +847,7 @@ export function Payments({
               <PaymentLabels
                 // The payment as it is now: labels added in the sheet show at once.
                 row={rows.find(row => row.id === sheet[0].id) ?? sheet[0]}
+                names={labelNames}
                 onLabels={onLabels}
                 onFocusLabel={label => {
                   setSheet(null);

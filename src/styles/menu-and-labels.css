@@ -197,6 +197,43 @@
   font-size: 13px;
 }
 
+/* The labels in use that match what is typed, as chips to tap: beside the field in a row, under it in the sheet. */
+.label-suggestions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+.label-suggestion {
+  max-width: 100%;
+  overflow: hidden;
+  padding: 3px 10px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--fill);
+  color: var(--ink);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.label-suggestion:hover {
+  background: var(--fill-strong);
+}
+
+.sheet-labels .label-suggestions {
+  flex-basis: 100%;
+  margin-left: 0;
+}
+
+.sheet-labels .label-suggestion {
+  padding: 6px 12px;
+  font-size: 14px;
+}
+
 /* In the category sheet: the payment's labels in a row, the # always shown (a phone has no hover), the field wider. */
 .sheet-labels {
   display: flex;

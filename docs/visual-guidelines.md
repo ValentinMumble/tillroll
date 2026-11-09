@@ -49,9 +49,9 @@ live in `src/styles/`, one file per area, imported in order by `src/index.css` (
 - In the app the logo is three bars in `--cat-1`, `--cat-2` and `--cat-3` beside the full name
   (`src/components/Logo.tsx`), and the browser tab shows the bars (`public/favicon.svg`).
 - The app icon (the iPhone's home screen and the web app, `public/apple-touch-icon.png` and `public/icon.png`) is a
-  lowercase t, white on black, full bleed (iOS rounds it): Space Grotesk Bold's own outline of the letter. Only the
-  icon uses the t. It is drawn in `design/app-icon.svg`: change that, then run `sh design/render-icons.sh` (headless
-  Chrome) to render both PNGs.
+  lowercase t in San Francisco Bold, white, beside the three coloured bars, on black, full bleed (iOS rounds it). Only
+  the icon uses the t. It is drawn in `design/app-icon.svg`: change that, then run `sh design/render-icons.sh`
+  (headless Chrome) on a Mac, where the system type is San Francisco, to render both PNGs.
 
 ## Shape and space
 
@@ -215,6 +215,9 @@ The overview answers "how is this month going?" first, above all on a phone, so 
   a 360px screen.
 - Anything a row's buttons do on a computer must also be reachable from the sheet or the store's dialog: the sheet
   for one payment holds its labels too.
+- A label field offers the labels in use as chips to tap, under it in the sheet and beside it in a row: the ones
+  matching what is typed (starting with it first), the most used while it is empty, six at most. Never a browser
+  datalist, which a phone hardly shows.
 - The home-screen app has no browser around it, so it has its own pull to refresh at the top of the page
   (`PullToRefresh`): it syncs the banks for the owner and loads the page again for anyone else.
 - So the home-screen app's header has no Sync button: a pull syncs, and "Sync now" stays in the ⋯ menu. A Safari tab

@@ -1,43 +1,47 @@
 import {useContext, useState} from 'react';
 import {tidyLabel, withLabel, withoutLabel} from '../labels';
 import type {Row} from '../rows';
+import {plain} from '../text';
 import {TripLabels} from '../tripLabels';
 import type {Labels} from '../types';
 
-/** The list of labels in use that a label field offers while typing. */
-const LABEL_OPTIONS = 'tillroll-labels';
-
-/** The labels in use, offered by every label field of the view. Render it once per view. */
-export function LabelOptions({names}: {names: string[]}) {
-  return (
-    <datalist id={LABEL_OPTIONS}>
-      {names.map(label => (
-        <option key={label} value={label} />
-      ))}
-    </datalist>
-  );
-}
+/** How many labels in use the field offers at once. */
+const SUGGESTIONS = 6;
 
 interface Props {
   row: Row;
+  /** Every label in use, most used first: the field offers them. */
+  names: string[];
   onLabels: (changes: Labels) => void;
   onFocusLabel: (label: string) => void;
 }
 
 /**
  * A payment's labels: a chip each (a click shows every payment with it, × takes it off), then a # that opens a
- * field to add one, offering the labels in use.
+ * field to add one. Under the field, the labels in use that match what is typed (the most used ones while it is
+ * empty) wait to be tapped.
  */
-export function PaymentLabels({row, onLabels, onFocusLabel}: Props) {
+export function PaymentLabels({row, names, onLabels, onFocusLabel}: Props) {
   // The label being typed, while the field is open.
   const [text, setText] = useState<string | null>(null);
   const trips = useContext(TripLabels);
 
-  function add() {
-    const label = tidyLabel(text ?? '');
+  function add(typed = text ?? '') {
+    const label = tidyLabel(typed);
     if (label) onLabels({[row.id]: withLabel(row.labels, label)});
     setText(null);
   }
+
+  // The labels in use this payment has not got, matching what is typed: the ones starting with it first.
+  const typed = plain(tidyLabel(text ?? ''));
+  const suggestions =
+    text === null
+      ? []
+      : names
+          .filter(label => !row.labels.some(item => item.toLowerCase() === label.toLowerCase()))
+          .filter(label => plain(label).includes(typed) && plain(label) !== typed)
+          .sort((first, second) => Number(!plain(first).startsWith(typed)) - Number(!plain(second).startsWith(typed)))
+          .slice(0, SUGGESTIONS);
 
   return (
     <>
@@ -70,7 +74,6 @@ export function PaymentLabels({row, onLabels, onFocusLabel}: Props) {
         >
           <input
             className="text-input"
-            list={LABEL_OPTIONS}
             aria-label={`Label for this payment at ${row.store}`}
             placeholder="Label"
             value={text}
@@ -102,6 +105,15 @@ export function PaymentLabels({row, onLabels, onFocusLabel}: Props) {
         >
           #
         </button>
+      )}
+      {suggestions.length > 0 && (
+        <span className="label-suggestions" role="group" aria-label="Labels in use">
+          {suggestions.map(label => (
+            <button key={label} type="button" className="label-suggestion" onClick={() => add(label)}>
+              {trips.has(label.toLowerCase()) ? label : `# ${label}`}
+            </button>
+          ))}
+        </span>
       )}
     </>
   );
