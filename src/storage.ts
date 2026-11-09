@@ -3,6 +3,7 @@ import type {
   Budgets,
   CategoryEdit,
   CategoryKey,
+  EarlierRules,
   Labels,
   Merges,
   Paybacks,
@@ -19,6 +20,7 @@ import type {
  */
 const DATA = 'tillroll.data';
 const RULES = 'tillroll.rules';
+const EARLIER_RULES = 'tillroll.earlier-rules';
 const CATEGORIES = 'tillroll.categories';
 const MERGES = 'tillroll.merges';
 const LABELS = 'tillroll.labels';
@@ -68,6 +70,7 @@ export const saveLocalData = (data: LocalData | null) => write(DATA, data);
 export function loadLocalSorting() {
   return {
     rules: read<Rules>(RULES) ?? {},
+    earlierRules: read<EarlierRules>(EARLIER_RULES) ?? {},
     categories: read<CategoryEdit[]>(CATEGORIES) ?? [],
     merges: read<Merges>(MERGES) ?? {},
     labels: read<Labels>(LABELS) ?? {},
@@ -83,6 +86,7 @@ export function loadLocalSorting() {
 export function saveLocalSorting(
   sorting: {
     rules?: Rules;
+    earlierRules?: EarlierRules;
     categories?: CategoryEdit[];
     merges?: Merges;
     labels?: Labels;
@@ -97,6 +101,7 @@ export function saveLocalSorting(
   if (sorting === null) {
     for (const key of [
       RULES,
+      EARLIER_RULES,
       CATEGORIES,
       MERGES,
       LABELS,
@@ -118,6 +123,7 @@ export function saveLocalSorting(
   if (sorting.labels) write(LABELS, sorting.labels);
   if (sorting.trips) write(TRIPS, sorting.trips);
   if (sorting.rules) write(RULES, sorting.rules);
+  if (sorting.earlierRules) write(EARLIER_RULES, sorting.earlierRules);
   if (sorting.categories) write(CATEGORIES, sorting.categories);
   if (sorting.merges) write(MERGES, sorting.merges);
 }

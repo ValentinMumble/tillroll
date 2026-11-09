@@ -99,7 +99,8 @@ function compare(first: Row, second: Row, {key, descending}: PaymentSort) {
 
 /**
  * The period's payments, by date, amount or store, with a search and a category filter. A payment's category is a
- * button: it asks whether the choice is for its store (every payment there) or for this payment only. Ticking
+ * button: it asks whether the choice is for its store (every payment there, or from this one on) or for this payment
+ * only. Ticking
  * payments (shift-click for a run) gives one category or one label to all of them.
  */
 export function Payments({
@@ -355,6 +356,12 @@ export function Payments({
     : sheet.length === 1
       ? [
           {key: 'store', label: 'Whole store', hint: `Every payment at ${sheet[0].store}, past and future`},
+          {
+            key: 'from',
+            label: 'From here on',
+            hint: `This payment and the later ones at ${sheet[0].store}: the earlier ones keep their category`,
+            once: true,
+          },
           {
             key: 'payment',
             label: 'This payment',

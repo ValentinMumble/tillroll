@@ -14,6 +14,7 @@ import {
   savePaybacks,
   savePaymentCategories,
   saveRule,
+  saveRuleFrom,
   saveSavingsValues,
   signIn,
   signOut,
@@ -39,6 +40,7 @@ import type {
   CategoryEdit,
   CategoryKey,
   Connection,
+  EarlierRules,
   Labels,
   Merges,
   Paybacks,
@@ -55,6 +57,8 @@ export interface Data {
   source: 'sample' | 'statement' | 'owner';
   transactions: Transaction[];
   rules: Rules;
+  /** The categories stores had before a day, when changed from one payment on. */
+  earlierRules: EarlierRules;
   categories: CategoryEdit[];
   merges: Merges;
   labels: Labels;
@@ -86,6 +90,7 @@ function fromOwner(owner: OwnerData): Data {
     source: 'owner',
     ...owner,
     rules: owner.rules ?? {},
+    earlierRules: owner.earlierRules ?? {},
     categories: owner.categories ?? [],
     merges: owner.merges ?? {},
     labels: owner.labels ?? {},
@@ -241,6 +246,7 @@ export function useData({focus, setFocus, resetView}: View) {
     );
     return toRows(transactions, {
       rules: data.rules,
+      earlierRules: data.earlierRules,
       categories,
       merges: data.merges,
       labels: data.labels,
@@ -296,12 +302,21 @@ export function useData({focus, setFocus, resetView}: View) {
     }
   }
 
+  /** The stores' earlier categories dropped: a category for a whole store covers its past payments too. */
+  function withoutEarlier(earlierRules: EarlierRules, storeKeys: string[]) {
+    if (!storeKeys.some(key => earlierRules[key])) return earlierRules;
+    const kept = {...earlierRules};
+    for (const key of storeKeys) delete kept[key];
+    return kept;
+  }
+
   async function changeCategory(storeKey: string, category: CategoryKey | null) {
     if (!data) return;
     const rules = {...data.rules};
     if (category) rules[storeKey] = category;
     else delete rules[storeKey];
-    await change({rules}, () => saveRule(storeKey, category));
+    const earlierRules = withoutEarlier(data.earlierRules, [storeKey]);
+    await change({rules, earlierRules}, () => saveRule(storeKey, category));
   }
 
   /** The category list as the editor leaves it. */
@@ -353,12 +368,44 @@ export function useData({focus, setFocus, resetView}: View) {
 
   /**
    * The category of some payments: for their stores (every payment there, past and future, and the payments given
-   * back to their store), or for these payments only. null goes back to the automatic category.
+   * back to their store), for their stores from these payments on (the earlier ones keep the category they had), or
+   * for these payments only. null goes back to the automatic category.
    */
   async function categorize(targets: Row[], category: CategoryKey | null, scope: string) {
     if (!data) return;
     const paymentCategories = {...data.paymentCategories};
     const paymentChanges: Record<string, CategoryKey | null> = {};
+    if (scope === 'from') {
+      const rules = {...data.rules};
+      const earlierRules = {...data.earlierRules};
+      // Each store from its first payment among these on.
+      const firsts = new Map<string, string>();
+      for (const row of targets) {
+        const first = firsts.get(row.storeKey);
+        if (!first || row.date < first) firsts.set(row.storeKey, row.date);
+      }
+      for (const [key, day] of firsts) {
+        const history = earlierRules[key] ?? [];
+        // What the store had just before that day, kept for the payments before it.
+        const before = history.find(item => day < item.until)?.category ?? rules[key] ?? null;
+        const kept = history.filter(item => item.until <= day);
+        const earlier = before === category ? kept : [...kept, {until: day, category: before}];
+        if (earlier.length) earlierRules[key] = earlier;
+        else delete earlierRules[key];
+        if (category) rules[key] = category;
+        else delete rules[key];
+      }
+      for (const row of targets) {
+        if (!paymentCategories[row.id]) continue;
+        delete paymentCategories[row.id];
+        paymentChanges[row.id] = null;
+      }
+      await change({rules, earlierRules, paymentCategories}, async () => {
+        await Promise.all([...firsts.keys()].map(key => saveRuleFrom(key, category, earlierRules[key] ?? [])));
+        if (Object.keys(paymentChanges).length) await savePaymentCategories(paymentChanges);
+      });
+      return;
+    }
     if (scope === 'payment') {
       for (const row of targets) {
         if (category) paymentCategories[row.id] = category;
@@ -379,7 +426,8 @@ export function useData({focus, setFocus, resetView}: View) {
       delete paymentCategories[row.id];
       paymentChanges[row.id] = null;
     }
-    await change({rules, paymentCategories}, async () => {
+    const earlierRules = withoutEarlier(data.earlierRules, stores);
+    await change({rules, earlierRules, paymentCategories}, async () => {
       await Promise.all(stores.map(key => saveRule(key, category)));
       if (Object.keys(paymentChanges).length) await savePaymentCategories(paymentChanges);
     });
@@ -483,10 +531,13 @@ export function useData({focus, setFocus, resetView}: View) {
     const category = data.rules[storeKey];
     const moveCategory = Boolean(category) && newKey !== storeKey && !data.rules[newKey];
     const rules = moveCategory ? {...data.rules, [newKey]: category} : data.rules;
+    // The categories it had before a day move with it.
+    const carried = moveCategory ? data.earlierRules[storeKey] : undefined;
+    const earlierRules = carried ? {...data.earlierRules, [newKey]: carried} : data.earlierRules;
     if (focus?.type === 'store' && focus.key === storeKey) setFocus({type: 'store', key: newKey, name: newName});
-    await change({merges, rules}, async () => {
+    await change({merges, rules, earlierRules}, async () => {
       await Promise.all([...freed.map(key => saveMerge(key, null)), saveMerge(storeKey, newName)]);
-      if (moveCategory) await saveRule(newKey, category);
+      if (moveCategory) await (carried ? saveRuleFrom(newKey, category, carried) : saveRule(newKey, category));
     });
   }
 
@@ -499,11 +550,16 @@ export function useData({focus, setFocus, resetView}: View) {
     const rules = {...data.rules};
     if (category) rules[newKey] = category;
     else delete rules[newKey];
+    // A rename alone keeps the categories the store had before a day; a new category covers every payment.
+    const carried = renamed && category === (data.rules[storeKey] ?? null) ? data.earlierRules[storeKey] : undefined;
+    const earlierRules = carried
+      ? {...data.earlierRules, [newKey]: carried}
+      : withoutEarlier(data.earlierRules, [newKey]);
     if (focus?.type === 'store' && focus.key === storeKey) setFocus({type: 'store', key: newKey, name: newName});
-    await change({merges, rules}, async () => {
+    await change({merges, rules, earlierRules}, async () => {
       await Promise.all(freed.map(key => saveMerge(key, null)));
       if (renamed) await saveMerge(storeKey, newName);
-      await saveRule(newKey, category);
+      await (carried ? saveRuleFrom(newKey, category, carried) : saveRule(newKey, category));
     });
   }
 
@@ -532,6 +588,7 @@ export function useData({focus, setFocus, resetView}: View) {
         const sorting = data
           ? {
               rules: data.rules,
+              earlierRules: data.earlierRules,
               categories: data.categories,
               merges: data.merges,
               labels: data.labels,

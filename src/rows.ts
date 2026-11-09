@@ -2,7 +2,7 @@ import {type Basis, type Categories, categoryOf, guessCategory, LEFT_OUT, namesM
 import {addDays, shiftPeriod} from './periods';
 import {storeKey, storeName} from './stores';
 import {plain} from './text';
-import type {CategoryKey, Labels, Merges, Paybacks, PaymentCategories, Rules, Transaction} from './types';
+import type {CategoryKey, EarlierRules, Labels, Merges, Paybacks, PaymentCategories, Rules, Transaction} from './types';
 
 /**
  * The payments as Tillroll reads them: each transaction with its store (merges followed) and category, paired with the
@@ -55,6 +55,8 @@ export interface Row extends Transaction {
 /** How payments are sorted: categories picked per store, the categories themselves, stores merged. */
 export interface Sorting {
   rules: Rules;
+  /** The categories stores had before a day (see EarlierRules). */
+  earlierRules?: EarlierRules;
   categories: Categories;
   merges: Merges;
   labels: Labels;
@@ -425,7 +427,7 @@ function matchRefunds(rows: Row[], categories: Categories) {
 
 export function toRows(
   transactions: Transaction[],
-  {rules, categories, merges, labels, paymentCategories, paybacks = {}, me = []}: Sorting,
+  {rules, earlierRules = {}, categories, merges, labels, paymentCategories, paybacks = {}, me = []}: Sorting,
 ): Row[] {
   const rows: Row[] = transactions.map(transaction => {
     const ownStore = storeName(transaction.description);
@@ -458,15 +460,17 @@ export function toRows(
       store = name;
       key = next;
     }
-    // A category picked for this payment wins over its store's.
+    // A category picked for this payment wins over its store's, the one the store had on its day.
     const own = paymentCategories[transaction.id];
     const ownCategory = Boolean(own && categories.byKey[own]);
+    const day = paidOn(transaction);
+    const earlier = earlierRules[key]?.find(item => day < item.until);
     const {category, basis} = ownCategory
       ? {category: own, basis: 'picked' as const}
-      : categoryOf(transaction, key, rules, categories, me);
+      : categoryOf(transaction, earlier ? (earlier.category ?? undefined) : rules[key], categories, me);
     return {
       ...transaction,
-      date: paidOn(transaction),
+      date: day,
       store,
       storeKey: key,
       ownStore,

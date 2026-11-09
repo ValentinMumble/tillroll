@@ -15,6 +15,8 @@ export const TRANSACTIONS = 'tillroll:transactions';
 export const PENDING = 'tillroll:pending-by-bank';
 /** Categories picked by hand, by store key. */
 export const RULES = 'tillroll:rules';
+/** The categories a store had before a day, by store key (see EarlierRules in src/types.ts). */
+export const EARLIER_RULES = 'tillroll:earlier-rules';
 /** Categories changed or added by hand (a list of CategoryEdit). */
 export const CATEGORIES = 'tillroll:categories';
 /** Pairs of stores marked "not the same" in the duplicates deck ("<key>|<key>", keys sorted). */

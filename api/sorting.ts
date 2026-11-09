@@ -5,6 +5,7 @@ import {
   BUDGETS,
   CATEGORIES,
   DISTINCT,
+  EARLIER_RULES,
   LABELS,
   MERGES,
   PAYBACKS,
@@ -68,12 +69,46 @@ async function savePerPayment(
 }
 
 const PARTS: Record<string, (body: Record<string, unknown>) => Promise<unknown>> = {
-  /** { store, category }: the category of a store, picked by hand. A null category drops the choice. */
+  /**
+   * { store, category }: the category of a store, picked by hand, for all its payments: the categories it had before a
+   * day go. A null category drops the choice.
+   */
   async rules({store: storeKey, category}) {
     if (!isStoreKey(storeKey)) throw new HttpError(400, 'Expected a store');
+    if (category !== null && !isCategoryKey(category)) throw new HttpError(400, 'Expected a category');
+    await redis().hdel(EARLIER_RULES, storeKey);
     if (category === null) return redis().hdel(RULES, storeKey);
-    if (!isCategoryKey(category)) throw new HttpError(400, 'Expected a category');
     return redis().hset(RULES, {[storeKey]: category});
+  },
+
+  /**
+   * { store, category, earlier }: the category of a store from one payment on, and the categories it keeps before
+   * (see EarlierRules). A null category drops the choice from then on.
+   */
+  async 'earlier-rules'({store: storeKey, category, earlier}) {
+    const valid =
+      isStoreKey(storeKey) &&
+      (category === null || isCategoryKey(category)) &&
+      Array.isArray(earlier) &&
+      earlier.length <= 50 &&
+      earlier.every(
+        item =>
+          typeof item === 'object' &&
+          item !== null &&
+          typeof item.until === 'string' &&
+          /^\d{4}-\d{2}-\d{2}$/.test(item.until) &&
+          (item.category === null || isCategoryKey(item.category)),
+      );
+    if (!valid) throw new HttpError(400, 'Expected a store, its category and the ones it had before');
+    const store = redis();
+    const list = (earlier as {until: string; category: string | null}[]).map(({until, category: before}) => ({
+      until,
+      category: before,
+    }));
+    if (list.length) await store.hset(EARLIER_RULES, {[storeKey]: list});
+    else await store.hdel(EARLIER_RULES, storeKey);
+    if (category === null) return store.hdel(RULES, storeKey);
+    return store.hset(RULES, {[storeKey]: category});
   },
 
   /** { categories }: the categories changed or added by hand, all of them at once. */
@@ -231,7 +266,7 @@ const PARTS: Record<string, (body: Record<string, unknown>) => Promise<unknown>>
 };
 
 /**
- * PUT /api/sorting?part=<rules|categories|merges|payment-categories|labels|trips|distinct|savings-values|budgets>, with
+ * PUT /api/sorting?part=<rules|earlier-rules|categories|merges|payment-categories|labels|trips|distinct|savings-values|budgets>, with
  * that part's body.
  */
 export function PUT(request: Request) {

@@ -1,5 +1,5 @@
 import type {CSSProperties} from 'react';
-import type {BuiltInCategory, CategoryEdit, CategoryKey, Rules, Transaction} from './types';
+import type {BuiltInCategory, CategoryEdit, CategoryKey, Transaction} from './types';
 import {plain} from './text';
 
 export interface Category extends CategoryEdit {
@@ -341,15 +341,16 @@ export function guessCategory(transaction: Transaction, me: string[] = []) {
   return guessWithBasis(transaction, me).category;
 }
 
-/** The category picked by hand for the store, if it still exists, or the guess; and what it comes from. */
+/**
+ * The category picked by hand for the payment's store (the one it had on that day), if it still exists, or the guess;
+ * and what it comes from.
+ */
 export function categoryOf(
   transaction: Transaction,
-  key: string,
-  rules: Rules,
+  picked: CategoryKey | undefined,
   categories: Categories,
   me: string[] = [],
 ): {category: CategoryKey; basis: Basis} {
-  const picked = rules[key];
   if (!picked || !categories.byKey[picked]) return guessWithBasis(transaction, me);
   // Money in that is no refund (a salary, a sale) stays money in, from a store filed under spending too.
   if (categories.byKey[picked].spending && transaction.amount > 0 && transaction.kind === 'income') {

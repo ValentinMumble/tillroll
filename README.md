@@ -63,7 +63,8 @@ day it was booked (sometimes the day after the payment). A small search link bes
 Google, for names that say nothing.
 
 **Categorizing.** A payment's category is a button: it asks whether the choice is for its store (every payment there,
-past and future) or for this payment only (an Amazon gift among household shopping, marked with a dot). Once two payments of a store
+past and future), for its store from this payment on (the earlier ones keep theirs), or for this payment only (an
+Amazon gift among household shopping, marked with a dot). Once two payments of a store
 and amount have the same category of their own, the next ones of that amount take it too: two monthly transfers to one
 account, a loan and its charges, sort themselves. Ticking
 payments (shift-click for a run) gives one category or one label to all of them. **Stores to sort** goes through the

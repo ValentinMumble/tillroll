@@ -174,6 +174,12 @@ export function LatestPayments({
           scopes={[
             {key: 'store', label: 'Whole store', hint: `Every payment at ${sheet.store}, past and future`},
             {
+              key: 'from',
+              label: 'From here on',
+              hint: `This payment and the later ones at ${sheet.store}: the earlier ones keep their category`,
+              once: true,
+            },
+            {
               key: 'payment',
               label: 'This payment',
               hint: `This payment only: the others at ${sheet.store} keep theirs`,

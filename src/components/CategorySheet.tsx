@@ -15,12 +15,14 @@ export interface Scope {
   label: string;
   /** What the choice changes, said in full under the switch. */
   hint: string;
+  /** A rare choice, never the one the sheet starts on next time. */
+  once?: boolean;
 }
 
 interface Props {
   title: string;
   detail: string;
-  /** Where the choice applies, the first one picked to start with: two, side by side. */
+  /** Where the choice applies, the first one picked to start with: two or three, side by side. */
   scopes: Scope[];
   categories: Categories;
   /** The category now, outlined. */
@@ -132,7 +134,7 @@ export function CategorySheet({
                 aria-pressed={scope === item.key}
                 onClick={() => {
                   setScope(item.key);
-                  saveSheetScope(item.key);
+                  if (!item.once) saveSheetScope(item.key);
                 }}
               >
                 {item.label}

@@ -65,6 +65,12 @@ export type BuiltInCategory =
 /** The category picked by hand for a store or payee, by store key (see src/stores.ts). */
 export type Rules = Record<string, CategoryKey>;
 
+/**
+ * The categories a store had before its category was changed from one payment on ("From here on"), by store key: oldest
+ * first, each for the payments made before its day. A null category is Tillroll's own guess.
+ */
+export type EarlierRules = Record<string, {until: string; category: CategoryKey | null}[]>;
+
 /** A category picked for one payment only (an Amazon gift among household shopping), by transaction id. */
 export type PaymentCategories = Record<string, CategoryKey>;
 

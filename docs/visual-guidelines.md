@@ -215,6 +215,9 @@ The overview answers "how is this month going?" first, above all on a phone, so 
   a 360px screen.
 - Anything a row's buttons do on a computer must also be reachable from the sheet or the store's dialog: the sheet
   for one payment holds its labels too.
+- The category sheet for one payment asks where the choice applies in one switch, equal parts side by side: Whole
+  store, From here on, This payment, with a line under it saying what changes. It starts on the choice picked last,
+  never on From here on (a rare choice that leaves the earlier payments as they were).
 - A label field offers the labels in use as chips to tap, under it in the sheet and beside it in a row: the ones
   matching what is typed (starting with it first), the most used while it is empty, six at most. Never a browser
   datalist, which a phone hardly shows.

@@ -4,6 +4,7 @@ import type {
   CategoryEdit,
   CategoryKey,
   Connection,
+  EarlierRules,
   Labels,
   Merges,
   Paybacks,
@@ -50,6 +51,7 @@ export function signOut() {
 export interface OwnerData {
   transactions: Transaction[];
   rules: Rules;
+  earlierRules: EarlierRules;
   categories: CategoryEdit[];
   merges: Merges;
   labels: Labels;
@@ -93,6 +95,14 @@ export function disconnectBank(bank: string) {
 
 export function saveRule(store: string, category: CategoryKey | null) {
   return request<{ok: true}>('/api/sorting?part=rules', {method: 'PUT', body: JSON.stringify({store, category})});
+}
+
+/** A store's category from one payment on, and the categories it keeps before (see EarlierRules). */
+export function saveRuleFrom(store: string, category: CategoryKey | null, earlier: EarlierRules[string]) {
+  return request<{ok: true}>('/api/sorting?part=earlier-rules', {
+    method: 'PUT',
+    body: JSON.stringify({store, category, earlier}),
+  });
 }
 
 export function saveCategories(categories: CategoryEdit[]) {

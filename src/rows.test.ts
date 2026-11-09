@@ -303,3 +303,36 @@ describe('days and picks', () => {
     expect(row(third).basis).toBe('picked');
   });
 });
+
+describe('A store category from one payment on', () => {
+  const categories = categoriesFrom([]);
+  const sorted = (transactions: Transaction[], rules: Record<string, string>, earlierRules = {}) => {
+    const rows = toRows(transactions, {rules, earlierRules, categories, merges: {}, labels: {}, paymentCategories: {}});
+    return (transaction: Transaction) => rows.find(row => row.id === transaction.id) as Row;
+  };
+
+  it('keeps the earlier category for the payments before its day', () => {
+    const old = payment({description: 'Cat Sitter', amount: -20, date: '2026-10-01'});
+    const sameDay = payment({description: 'Cat Sitter', amount: -20, date: '2026-11-05'});
+    const later = payment({description: 'Cat Sitter', amount: -20, date: '2026-11-20'});
+    const key = sorted([old], {})(old).storeKey;
+    const row = sorted(
+      [old, sameDay, later],
+      {[key]: 'health'},
+      {[key]: [{until: '2026-11-05', category: 'groceries'}]},
+    );
+    expect(row(old).category).toBe('groceries');
+    expect(row(sameDay).category).toBe('health');
+    expect(row(later).category).toBe('health');
+    expect(row(old).basis).toBe('picked');
+  });
+
+  it('goes back to the guess before its day when the store had no category then', () => {
+    const old = payment({description: 'Cat Sitter', amount: -20, date: '2026-10-01', kind: 'transfer'});
+    const later = payment({description: 'Cat Sitter', amount: -20, date: '2026-11-20', kind: 'transfer'});
+    const key = sorted([old], {})(old).storeKey;
+    const row = sorted([old, later], {[key]: 'health'}, {[key]: [{until: '2026-11-05', category: null}]});
+    expect(row(old).category).toBe('transfers');
+    expect(row(later).category).toBe('health');
+  });
+});
