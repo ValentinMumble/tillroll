@@ -207,7 +207,10 @@ export function psuHeaders(request: Request, required: string[]) {
   return Object.fromEntries(Object.entries(values).filter((entry): entry is [string, string] => Boolean(entry[1])));
 }
 
-/** An account's balance, the booked one first, or null when the bank gives none. */
+/**
+ * An account's balance, the booked one first, or null when the bank gives none. Every balance the bank sent comes
+ * along by type: a forecast one may already take off what a deferred debit card will cost at its next debit.
+ */
 export async function fetchBalance(uid: string, headers: Record<string, string>) {
   const answer = await call<{balances?: BankBalance[]}>(`/accounts/${uid}/balances`, {headers});
   const rank = (balance: BankBalance) => {
@@ -218,7 +221,12 @@ export async function fetchBalance(uid: string, headers: Record<string, string>)
   const amount = Number(best?.balance_amount.amount);
   if (!best || !Number.isFinite(amount)) return null;
   const date = best.reference_date ?? best.last_change_date_time ?? new Date().toISOString();
-  return {amount, currency: best.balance_amount.currency, date: date.slice(0, 10)};
+  const byType: Record<string, number> = {};
+  for (const balance of answer.balances ?? []) {
+    const value = Number(balance.balance_amount.amount);
+    if (Number.isFinite(value)) byType[balance.balance_type] = value;
+  }
+  return {amount, currency: best.balance_amount.currency, date: date.slice(0, 10), byType};
 }
 
 /** All transactions of an account since a day, or as far back as the bank allows when there is no day. */

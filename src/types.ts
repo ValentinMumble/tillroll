@@ -41,6 +41,8 @@ export interface Balance {
   amount: number;
   /** The day the bank gives it for. */
   date: string;
+  /** Every balance the bank sent, by type (CLBD booked, XPCD expected, ITAV available...), from syncs since Nov 2026. */
+  byType?: Record<string, number>;
 }
 
 export type BuiltInCategory =
