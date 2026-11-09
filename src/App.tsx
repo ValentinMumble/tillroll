@@ -366,12 +366,22 @@ export default function App() {
   const footnote = isOwner
     ? 'Owner view: your synced account and statements, kept in the site store.'
     : 'Tillroll reads Revolut statements in your browser. Nothing you import leaves it.';
+  // With payments to show, the header (a phone's) names the view in large type, as an iPhone app does; the first
+  // screen keeps the app's name.
+  const title = hasData ? TABS.find(item => item.key === tab)?.label : undefined;
   const header = (
     <header className="top">
-      <a className="brand" href="/">
-        <Logo busy={fetching} />
-        Tillroll
-      </a>
+      {title ? (
+        <h1 className="brand is-title">
+          <Logo busy={fetching} />
+          {title}
+        </h1>
+      ) : (
+        <a className="brand" href="/">
+          <Logo busy={fetching} />
+          Tillroll
+        </a>
+      )}
       <div className="top-actions">
         {/* The owner's sync status names every bank: too long for a phone's header, it opens the ⋯ menu there. */}
         {!isOwner && status && <span className="status">{status}</span>}

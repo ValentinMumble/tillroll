@@ -86,7 +86,7 @@
   min-width: 24px;
   padding: 1px 8px;
   border-radius: 999px;
-  background: var(--accent);
+  background: var(--accent-fill);
   color: var(--on-accent);
   font-size: 12px;
   font-weight: 600;
@@ -169,7 +169,7 @@
     height: 36px;
     border-radius: 50%;
     background: var(--surface);
-    box-shadow: var(--shadow);
+    box-shadow: var(--lift);
     translate: -50% 4px;
     pointer-events: none;
     animation: fetching-mark-in 0.2s ease-out;
@@ -251,8 +251,8 @@
   min-width: 18px;
   padding: 0 5px;
   border-radius: 999px;
-  background: var(--accent);
-  color: var(--surface);
+  background: var(--accent-fill);
+  color: var(--on-accent);
   font-size: 11px;
   font-weight: 600;
   line-height: 18px;
@@ -983,5 +983,88 @@
 
   .selection-bar {
     bottom: calc(80px + env(safe-area-inset-bottom));
+  }
+}
+
+/* The iPhone look, wherever the tab bar shows: the view's name as a large title, and taps that dim what they press. */
+@media (max-width: 960px) {
+  .brand.is-title {
+    gap: 10px;
+    font-family: var(--font-body);
+    text-transform: none;
+    font-size: 32px;
+    line-height: 1.1;
+  }
+
+  .brand.is-title .brand-mark {
+    width: 26px;
+    height: 26px;
+  }
+
+  button,
+  a,
+  .payments tr,
+  .latest li {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  button {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  button:not(.tab):not(:disabled):active {
+    opacity: 0.55;
+  }
+
+  .payments tbody tr:not(.day-row):active,
+  .latest li:active {
+    background: color-mix(in srgb, var(--ink) 6%, transparent);
+  }
+}
+
+/* On a phone a dialog is a sheet: it rises from the bottom edge, full width with round top corners, under a grabber;
+   dragging its top down closes it (useDialog), and so do its ✕ and a tap above it. */
+@media (max-width: 560px) {
+  .dialog {
+    width: 100%;
+    max-width: 100%;
+    max-height: calc(100dvh - env(safe-area-inset-top) - 12px);
+    margin: auto 0 0;
+    padding-bottom: env(safe-area-inset-bottom);
+    border-radius: 28px 28px 0 0;
+    overscroll-behavior: contain;
+    animation: sheet-up 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+
+  .dialog::before {
+    content: '';
+    flex: none;
+    align-self: center;
+    width: 36px;
+    height: 5px;
+    margin-top: 6px;
+    border-radius: 999px;
+    background: var(--axis);
+  }
+
+  .dialog-head {
+    padding-top: 10px;
+  }
+
+  .dialog-close {
+    top: 4px;
+  }
+}
+
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dialog {
+    animation: none;
   }
 }

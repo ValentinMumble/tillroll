@@ -1,49 +1,52 @@
-/* Colors as roles, in Liquid Glass over a dusk wallpaper: frosted cards over a soft haze of lilac, pink and blue light,
-   violet for actions and for the charts of a single series (stepped for each theme); up and down use the fixed status
-   colors and always come with an arrow. Text keeps 4.5:1 on the glass and on the bare wallpaper. */
+/* Colors as roles, in iOS's system colours: the grouped grey page, plain white cards (dark grey on black in dark
+   mode) with no shadow, the system blue for actions and for the charts of a single series, iOS's greys for secondary
+   text, fills and hairlines; what floats over moving content (bars, dialogs, menus) is frosted glass, as in iOS 26.
+   Up and down use iOS's red and green and always come with an arrow. Where iOS's own value is too faint for text
+   (the blue, the red and the green in light mode, the secondary grey), the colour is the nearest shade with 4.5:1 on
+   the page and on a card. */
 :root {
   color-scheme: light;
-  --page: #f5f4f8;
-  /* The wallpaper, still behind everything (body::before), and the glass over it: cards see-through with a light top
-     edge and a hairline; what floats over moving content (bars, dialogs, menus) is more opaque and blurs. The glows
-     stay off the top quarter of the screen, so the period bar and the status bar meet plain page there. */
-  --wall:
-    radial-gradient(90% 55% at 0% 55%, #ecebf1 0, transparent 60%),
-    radial-gradient(80% 55% at 100% 70%, #fae7ee 0, transparent 60%),
-    radial-gradient(90% 60% at 35% 105%, #e0ebfb 0, transparent 60%), var(--page);
-  --glass: rgba(255, 255, 255, 0.66);
-  --glass-strong: rgba(255, 255, 255, 0.88);
-  --glass-edge: rgba(255, 255, 255, 0.75);
-  --glass-line: rgba(255, 255, 255, 0.45);
-  /* Light catching the top left of a card, fading by the middle. */
-  --glass-sheen: linear-gradient(155deg, rgba(255, 255, 255, 0.25), rgba(255, 255, 255, 0) 50%);
-  --blur: blur(28px) saturate(120%);
-  /* What floats above the page (the tab bar) casts this shadow. */
-  --lift: 0 10px 30px rgba(0, 0, 0, 0.14);
+  --page: #f2f2f7;
+  --wall: var(--page);
+  --glass: #ffffff;
+  --glass-strong: rgba(255, 255, 255, 0.82);
+  --glass-edge: rgba(255, 255, 255, 0.6);
+  --glass-line: rgba(0, 0, 0, 0.06);
+  --glass-sheen: none;
+  --blur: blur(24px) saturate(180%);
+  /* What floats above the page (the tab bar, a loader's circle) casts this shadow. */
+  --lift: 0 8px 30px rgba(0, 0, 0, 0.12);
   --surface: #ffffff;
-  --surface-sunk: #ece9f8;
-  --ink: #1e1838;
-  --ink-soft: #4a4470;
-  --muted: #5a5480;
-  --line: #e6e2f6;
-  --axis: #cbc5e6;
-  --ring: rgba(30, 24, 56, 0.1);
-  --bar: #8b77ea;
-  --bar-strong: #5b3fd4;
-  --accent: #5b3fd4;
+  --surface-sunk: #e5e5ea;
+  /* iOS's fills for controls (buttons, fields, chips), stronger while pointed at, and the segmented control's track
+     and chosen thumb. */
+  --fill: rgba(118, 118, 128, 0.12);
+  --fill-strong: rgba(120, 120, 128, 0.2);
+  --track: var(--fill);
+  --thumb: #ffffff;
+  --ink: #000000;
+  --ink-soft: #3c3c43;
+  --muted: #6c6c70;
+  --line: #dcdce0;
+  --axis: #c7c7cc;
+  --ring: rgba(0, 0, 0, 0.1);
+  --bar: #6aa8f0;
+  --bar-strong: #006ae0;
+  --accent: #006ae0;
+  /* A filled control (a primary button, a count) under white text. */
+  --accent-fill: #006ae0;
   --on-accent: #ffffff;
-  --up: #d03b3b;
-  --down: #006300;
-  --shadow:
-    inset 0 1px 0 var(--glass-edge), inset 0 0 0 1px var(--glass-line), 0 0 0 0.5px rgba(30, 24, 56, 0.06),
-    0 10px 30px rgba(30, 24, 56, 0.1);
-  /* The calendar's single violet ramp, from a little (light) to a lot (dark); step 0 is a day with nothing spent. */
+  --up: #d70015;
+  --down: #1e7b34;
+  /* Cards sit flat on the page, as iOS's grouped lists do. */
+  --shadow: 0 0 0 transparent;
+  /* The calendar's single blue ramp, from a little (light) to a lot (dark); step 0 is a day with nothing spent. */
   --heat-0: var(--surface-sunk);
-  --heat-1: #ddd5fb;
-  --heat-2: #c4b6f7;
-  --heat-3: #a08cf0;
-  --heat-4: #7f66e6;
-  --heat-5: #5b3fd4;
+  --heat-1: #dcebfc;
+  --heat-2: #b5d4fa;
+  --heat-3: #7fb4f5;
+  --heat-4: #3d8deb;
+  --heat-5: #006ae0;
   /* The categories' colours: the eight hues of the categorical palette, in their validated order, and a grey for Cash,
      Other and what is not spending. Text never wears them: they go on dots, bars and tints. */
   --cat-1: #2a78d6;
@@ -59,8 +62,10 @@
   --trip: color-mix(in srgb, var(--cat-2) 70%, var(--surface));
   /* How much of a category's colour tints its pill. */
   --tint: 16%;
-  --font-body: 'DM Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --font-mono: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+  /* The system's own type, San Francisco on Apple devices, as in an iPhone or Mac app; its monospaced cousin for
+     what the bank wrote. */
+  --font-body: -apple-system, BlinkMacSystemFont, system-ui, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: ui-monospace, 'IBM Plex Mono', Menlo, monospace;
   --font-brand: 'Space Grotesk', var(--font-body);
   --radius: 20px;
 }
@@ -68,40 +73,46 @@
 @media (prefers-color-scheme: dark) {
   :root {
     color-scheme: dark;
-    --page: #111018;
-    --wall:
-      radial-gradient(90% 55% at 0% 55%, #1a1a22 0, transparent 60%),
-      radial-gradient(80% 55% at 100% 70%, #23161e 0, transparent 60%),
-      radial-gradient(90% 60% at 35% 105%, #0f1e33 0, transparent 60%), var(--page);
-    --glass: rgba(27, 26, 39, 0.6);
-    --glass-strong: rgba(27, 26, 39, 0.88);
-    --glass-edge: rgba(255, 255, 255, 0.12);
-    --glass-line: rgba(255, 255, 255, 0.05);
-    --lift: 0 10px 30px rgba(0, 0, 0, 0.5);
-    --glass-sheen: linear-gradient(155deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0) 50%);
-    --surface: #1b1a27;
-    --surface-sunk: #25232f;
-    --ink: #ebe8fb;
-    --ink-soft: #c4bfe0;
-    --muted: #a39dc6;
-    --line: #2a2836;
-    --axis: #3a3850;
+    --page: #000000;
+    --wall: var(--page);
+    /* Cards in a deep indigo, a little darker than iOS's #1c1c1e grey, with a faint light edge as iOS 26's widgets
+       have; the greys around them lean indigo to match. */
+    --glass: #121228;
+    --glass-strong: rgba(18, 18, 40, 0.8);
+    --glass-edge: rgba(255, 255, 255, 0.1);
+    --glass-line: rgba(255, 255, 255, 0.06);
+    --lift: 0 8px 30px rgba(0, 0, 0, 0.5);
+    --glass-sheen: none;
+    --shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07), inset 0 0 0 0.5px rgba(255, 255, 255, 0.06);
+    --surface: #121228;
+    --surface-sunk: #1c1c3a;
+    --fill: rgba(118, 118, 128, 0.24);
+    --fill-strong: rgba(120, 120, 128, 0.36);
+    /* The segmented control's chosen part is a piece of card: the card's indigo, raised from a track darker than
+       what it sits on. */
+    --track: rgba(0, 0, 0, 0.35);
+    --thumb: #121228;
+    --ink: #ffffff;
+    --ink-soft: #d8d8ee;
+    --muted: #a2a2c4;
+    --line: #25254a;
+    --axis: #33335c;
     --ring: rgba(255, 255, 255, 0.1);
-    --bar: #5a48b0;
-    --bar-strong: #9b85ff;
-    --accent: #a995ff;
-    --on-accent: #120f22;
-    --up: #e66767;
-    --down: #0ca30c;
-    --shadow:
-      inset 0 1px 0 var(--glass-edge), inset 0 0 0 1px var(--glass-line), 0 0 0 0.5px rgba(255, 255, 255, 0.06),
-      0 10px 30px rgba(0, 0, 0, 0.35);
+    --bar: #1f5fae;
+    --bar-strong: #4da3ff;
+    /* iOS's brighter blue (its high-contrast one), which stands out on the indigo cards. */
+    --accent: #409cff;
+    /* iOS's dark blue is too light under white text: a filled control takes a deeper one. */
+    --accent-fill: #0a6cd8;
+    --on-accent: #ffffff;
+    --up: #ff453a;
+    --down: #30d158;
     /* On the dark surface the ramp runs the other way: a lot is the brightest. */
-    --heat-1: #2d2557;
-    --heat-2: #3f3380;
-    --heat-3: #5a48b0;
-    --heat-4: #7d68e0;
-    --heat-5: #b3a5ff;
+    --heat-1: #102a4a;
+    --heat-2: #14437a;
+    --heat-3: #1a5fad;
+    --heat-4: #2f80e0;
+    --heat-5: #64abff;
     --cat-1: #3987e5;
     --cat-2: #d95926;
     --cat-3: #199e70;

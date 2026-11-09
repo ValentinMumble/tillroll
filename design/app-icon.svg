@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <!-- Tillroll's iPhone home screen icon: a lowercase t, white on black, full bleed (iOS rounds the corners). The t is
+       Space Grotesk Bold's own outline (glyph "t", 1000 units to the em, y up), flipped and centred. The app itself
+       keeps the coloured bars and the full name. Render it to public/ with design/render-icons.sh. -->
+  <rect width="1024" height="1024" fill="#000000" />
+  <path
+    transform="translate(512 512) scale(0.9 -0.9) translate(-219 -325)"
+    fill="#ffffff"
+    d="M260 0Q211 0 180.5 30.5Q150 61 150 112V392H26V496H150V650H276V496H412V392H276V134Q276 104 304 104H400V0Z"
+  />
+</svg>

@@ -9,7 +9,7 @@
   padding: 18px 0;
 }
 
-/* The name, set in Space Grotesk beside the mark. */
+/* The name, set in Space Grotesk lowercase beside the mark. */
 .brand {
   display: inline-flex;
   align-items: center;
@@ -19,6 +19,7 @@
   font-weight: 700;
   font-size: 21px;
   letter-spacing: -0.02em;
+  text-transform: lowercase;
   text-decoration: none;
 }
 
@@ -87,17 +88,18 @@
   justify-content: center;
   min-height: 38px;
   padding: 0 16px;
-  border: 1px solid var(--line);
+  border: 1px solid transparent;
   border-radius: 999px;
-  background: var(--surface);
-  font-weight: 500;
+  background: var(--fill);
+  color: var(--accent);
+  font-weight: 600;
   font-size: 14px;
   cursor: pointer;
   white-space: nowrap;
 }
 
 .button:hover:not(:disabled) {
-  border-color: var(--axis);
+  background: var(--fill-strong);
 }
 
 .button:disabled {
@@ -106,14 +108,16 @@
 }
 
 .button.is-primary {
-  background: var(--accent);
-  border-color: var(--accent);
+  background: var(--accent-fill);
   color: var(--on-accent);
+}
+
+.button.is-primary:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent-fill) 88%, var(--ink));
 }
 
 .button.is-quiet {
   background: transparent;
-  border-color: transparent;
   color: var(--ink-soft);
 }
 
@@ -133,9 +137,9 @@
   min-height: 38px;
   max-width: 100%;
   padding: 0 30px 0 10px;
-  border: 1px solid var(--line);
+  border: 1px solid transparent;
   border-radius: 10px;
-  background-color: var(--surface);
+  background-color: var(--fill);
   background-image:
     linear-gradient(45deg, transparent 50%, var(--ink-soft) 50%),
     linear-gradient(135deg, var(--ink-soft) 50%, transparent 50%);
@@ -262,11 +266,13 @@
   gap: 12px;
 }
 
+/* iOS's segmented control: a grey track, the chosen part on a raised thumb. */
 .segmented {
   display: inline-flex;
   padding: 3px;
   border-radius: 999px;
-  background: var(--surface-sunk);
+  background: var(--track);
+  box-shadow: inset 0 0 0 1px var(--glass-line);
 }
 
 .segmented button {
@@ -281,9 +287,12 @@
 }
 
 .segmented button[aria-pressed='true'] {
-  background: var(--surface);
+  background: var(--thumb);
   color: var(--ink);
-  box-shadow: 0 1px 3px var(--ring);
+  box-shadow:
+    inset 0 1px 0 var(--glass-edge),
+    0 3px 8px rgba(0, 0, 0, 0.12),
+    0 3px 1px rgba(0, 0, 0, 0.04);
 }
 
 .stepper {
@@ -295,9 +304,10 @@
 .stepper button {
   width: 36px;
   height: 36px;
-  border: 1px solid var(--line);
+  border: 0;
   border-radius: 50%;
-  background: var(--surface);
+  background: var(--fill);
+  color: var(--accent);
   font-size: 18px;
   line-height: 1;
   cursor: pointer;

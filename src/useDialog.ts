@@ -1,5 +1,11 @@
 import {type KeyboardEvent, useEffect, useRef} from 'react';
 
+/** Where dialogs are sheets from the bottom (the phone rules in shell.css). */
+const SHEET = '(max-width: 560px)';
+/** How far down from a sheet's top edge a drag can start, and how far it must go to close the sheet. */
+const SHEET_HANDLE = 64;
+const SHEET_CLOSE = 100;
+
 /**
  * A modal dialog, open as soon as it shows. Escape closes it from anywhere inside, even from a search field (Safari
  * keeps the key for one); a field that uses Escape itself (cancelling a rename) calls preventDefault to keep it open.
@@ -35,11 +41,45 @@ export function useDialog() {
       if (pressedOutside && event.target === dialog && outside(event)) dialog.close();
       pressedOutside = false;
     };
+    // On a phone the dialog is a sheet from the bottom: dragged down by its top (the grabber and the title), it follows
+    // the finger, and let go far enough it slides away and closes.
+    let startY: number | null = null;
+    let drag = 0;
+    const onTouchStart = (event: TouchEvent) => {
+      const touch = event.touches[0];
+      if (!window.matchMedia(SHEET).matches || event.touches.length !== 1 || dialog.scrollTop > 0) return;
+      if (touch.clientY - dialog.getBoundingClientRect().top > SHEET_HANDLE) return;
+      startY = touch.clientY;
+      dialog.style.transition = 'none';
+    };
+    const onTouchMove = (event: TouchEvent) => {
+      if (startY === null) return;
+      drag = Math.max(0, event.touches[0].clientY - startY);
+      dialog.style.translate = `0 ${drag}px`;
+    };
+    const onTouchEnd = () => {
+      if (startY === null) return;
+      startY = null;
+      dialog.style.transition = 'translate 0.25s ease-out';
+      if (drag > SHEET_CLOSE) {
+        dialog.style.translate = '0 100%';
+        window.setTimeout(() => dialog.close(), 200);
+      } else dialog.style.translate = '';
+      drag = 0;
+    };
     dialog.addEventListener('pointerdown', onPointerDown);
     dialog.addEventListener('click', onClick);
+    dialog.addEventListener('touchstart', onTouchStart, {passive: true});
+    dialog.addEventListener('touchmove', onTouchMove, {passive: true});
+    dialog.addEventListener('touchend', onTouchEnd);
+    dialog.addEventListener('touchcancel', onTouchEnd);
     return () => {
       dialog.removeEventListener('pointerdown', onPointerDown);
       dialog.removeEventListener('click', onClick);
+      dialog.removeEventListener('touchstart', onTouchStart);
+      dialog.removeEventListener('touchmove', onTouchMove);
+      dialog.removeEventListener('touchend', onTouchEnd);
+      dialog.removeEventListener('touchcancel', onTouchEnd);
     };
   }, []);
 

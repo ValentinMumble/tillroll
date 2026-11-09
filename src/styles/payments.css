@@ -16,9 +16,9 @@
   gap: 6px;
   min-height: 30px;
   padding: 0 12px;
-  border: 1px solid var(--axis);
+  border: 1px solid transparent;
   border-radius: 999px;
-  background: var(--surface-sunk);
+  background: var(--fill);
   font-size: 13px;
   cursor: pointer;
 }
@@ -63,7 +63,7 @@
 .payment-day {
   width: 72px;
   color: var(--muted);
-  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
   font-size: 13px;
   white-space: nowrap;
 }
@@ -458,7 +458,6 @@
 
 .payment-amount {
   width: 110px;
-  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
   text-align: right;
   white-space: nowrap;

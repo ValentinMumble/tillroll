@@ -146,7 +146,7 @@
   height: 40px;
   border-radius: 50%;
   background: var(--surface);
-  box-shadow: var(--shadow);
+  box-shadow: var(--lift);
   color: var(--muted);
   font-size: 20px;
   pointer-events: none;
@@ -196,7 +196,7 @@
   height: 30px;
   padding: 0 8px;
   border-radius: 999px;
-  background: var(--accent);
+  background: var(--accent-fill);
   color: var(--on-accent);
   font-size: 14px;
   font-weight: 700;

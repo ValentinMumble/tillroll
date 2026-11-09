@@ -241,8 +241,8 @@
 
 .payment-time {
   color: var(--muted);
-  font-family: var(--font-mono);
   font-size: 12px;
+  font-variant-numeric: tabular-nums;
 }
 
 /* The Google search link beside a store's name; in the payment list it shows on hover where there is a mouse. */

@@ -15,33 +15,47 @@ live in `src/styles/`, one file per area, imported in order by `src/index.css` (
   `--tint`). Text never wears them: it stays in `--ink`, `--ink-soft` or `--muted`.
 - Never let colour carry meaning alone: a category's colour always comes with its emoji or its name, and up or down
   (`--up` red for more spending, `--down` green for less) always comes with an arrow.
-- The theme is **Liquid Glass over a dusk wallpaper**: a soft haze of lilac, pink and blue on a near-neutral page
-  (`--wall`, still behind the page), violet (`--accent`) for actions only. Charts of a single series use the one violet (`--bar`, `--bar-strong` for the fixed part of a column). The
-  calendar uses the violet ramp `--heat-0` to `--heat-5`.
-- Glass: a card is `--glass` under `--glass-sheen` (see-through, light catching its top left, no blur: nothing moves
-  behind it). What floats over moving content (the tab bar, dialogs, menus, the selection bar) is `--glass-strong`
-  with `backdrop-filter: var(--blur)`. Both have the bright top edge and inner rim of `--shadow`. The period bar at the
-  top takes the page's own colour, like the status bar above it (near black in dark mode), and blurs what passes
-  under it. Violet stays off the glass: the tab bar's lens is neutral grey, only the chosen tab's icon is violet. Controls inside (fields, buttons, chips) stay solid
-  `--surface`. With "Reduce transparency" on, glass turns solid and the wallpaper goes.
-- Text keeps 4.5:1 both on the glass and on the bare wallpaper (the header and the sidebar sit on it): check any new
-  wallpaper or glass value against the wallpaper's brightest spots.
+- The theme is **iOS**, on every screen: the grouped grey page (`--page`, black in dark mode), plain white cards
+  (`--glass`; in dark mode a deep indigo a little darker than iOS's grey, with a faint light edge, its greys leaning
+  indigo) with no shadow, the system blue (`--accent`) for actions only, and iOS's
+  greys for secondary text (`--muted`), hairlines (`--line`) and control fills. Charts of a single series use the
+  blue (`--bar`, `--bar-strong` for the fixed part of a column). The calendar uses the blue ramp `--heat-0` to
+  `--heat-5`.
+- Where iOS's own colour is too faint for text (its blue, red and green in light mode, its secondary grey), the token
+  is the nearest shade with 4.5:1 on the page and on a card. A filled control under white text (a primary button, a
+  count) takes `--accent-fill`, a deeper blue in dark mode, where iOS's light blue would fall short.
+- Controls are iOS's: buttons, fields, selects, chips and the stepper sit on a grey fill (`--fill`, `--fill-strong`
+  while pointed at) with no border; a plain button's text is blue, a primary one is blue with white text. The
+  segmented control is a grey track (`--track`) with the chosen part on a raised thumb (`--thumb`); in dark mode the
+  thumb is the cards' indigo on a darker track.
+- Glass is for what floats over moving content only (the tab bar, dialogs, menus, the selection bar):
+  `--glass-strong` with `backdrop-filter: var(--blur)`, a light top edge, as iOS 26's bars. The period bar at the top
+  takes the page's own colour, like the status bar above it, and blurs what passes under it. The tab bar's lens is
+  neutral grey, only the chosen tab is blue. With "Reduce transparency" on, glass turns solid.
+- Text keeps 4.5:1 on the page and on a card: check any new colour against both.
 
 ## Type
 
-- Body: DM Sans, 15px, line height 1.5.
+- Body: the system's own type (San Francisco on Apple devices, `--font-body`), 15px, line height 1.5, on every screen.
 - Hints and secondary facts: `.hint` or `.muted`, 13px, `--muted`.
-- Card titles: `.card h2`, 13px, 600, uppercase, letter spacing 0.08em, `--ink-soft`.
+- Card titles: `.card h2`, 20px, bold, sentence case, `--ink`, like an iOS app's section titles.
 - Dialog titles: 18px.
 - Amounts in tables and lists: `font-variant-numeric: tabular-nums`. Always format money with `money()` from
   `src/format.ts`.
-- What the bank wrote (a payment's raw text): IBM Plex Mono (`--font-mono`).
-- Space Grotesk (`--font-brand`) is for the "Tillroll" wordmark only. The logo is three bars in `--cat-1`, `--cat-2`
-  and `--cat-3` (`src/components/Logo.tsx`, `public/favicon.svg`).
+- What the bank wrote (a payment's raw text): the system's monospaced type (SF Mono, IBM Plex Mono elsewhere,
+  `--font-mono`). Amounts, days and times stay in the body type with even-width digits.
+- Space Grotesk (`--font-brand`) is for the wordmark only, in lowercase: tillroll. The phone's large titles are the
+  view's name in the body type.
+- In the app the logo is three bars in `--cat-1`, `--cat-2` and `--cat-3` beside the full name
+  (`src/components/Logo.tsx`), and the browser tab shows the bars (`public/favicon.svg`).
+- The app icon (the iPhone's home screen and the web app, `public/apple-touch-icon.png` and `public/icon.png`) is a
+  lowercase t, white on black, full bleed (iOS rounds it): Space Grotesk Bold's own outline of the letter. Only the
+  icon uses the t. It is drawn in `design/app-icon.svg`: change that, then run `sh design/render-icons.sh` (headless
+  Chrome) to render both PNGs.
 
 ## Shape and space
 
-- Cards: `.card`, 20px padding, `--radius` (20px), `--shadow`.
+- Cards: `.card`, 20px padding, `--radius` (20px), flat on the page (`--shadow` is none).
 - Dialogs: 24px radius, 20px side padding.
 - Buttons and chips are pills (radius 999px). Text fields and selects have a 10px radius and are at least 38px tall.
 - At phone width keep a 16px gutter on each side and never scroll the page sideways.
@@ -69,7 +83,7 @@ shows, then the actions as `.link-button`s at the right end (`.card-actions` whe
 - A category's or a store's small trend line in the lists curves through its periods with a soft fill in its colour. The period
   still going joins it dashed, and a faint dashed line marks its usual (its tooltip gives the amount).
 - Money that goes both ways (what a period kept or spent beyond what came in, what a month put aside or took back
-  from savings) is a bar up from a middle line or down below it. Savings' "Put aside" chart is violet both ways, and
+  from savings) is a bar up from a middle line or down below it. Savings' "Put aside" chart is blue both ways, and
   its tooltip splits a month by account.
 - Where it went (Money in and out, for a month or a year) is a flow: what came in on the left (pay in
   `--bar-strong`, other money in in `--bar`, what was taken from savings or the balance in grey) runs through one
@@ -77,7 +91,7 @@ shows, then the actions as `.link-button`s at the right end (`.card-actions` whe
   part's colour at 30% (55% hovered), every part is named with its amount beside it, and its tooltip gives its share.
   Six categories at most; the rest, and any under 3% of the spending, join a grey "Other spending".
 - The trips map (Trips, above the trips side by side) is Leaflet on Esri's light or dark grey tiles (no key), as the page is:
-  a violet bubble a trip (`--bar` at 55%, a `--bar-strong` ring), its area as big as what the trip cost, a tooltip
+  a blue bubble a trip (`--bar` at 55%, a `--bar-strong` ring), its area as big as what the trip cost, a tooltip
   like `ChartTip`, and a click shows the trip's payments. It opens on the trips in and around Europe. A trip's place
   is set in its dialog (a name, found with OpenStreetMap); a note under the map counts the trips with none.
 - Trips side by side (Trips) are one bar each, as long as the trip cost against the biggest, split by category in
@@ -107,8 +121,10 @@ shows, then the actions as `.link-button`s at the right end (`.card-actions` whe
 
 - Every dialog is a `<dialog className="dialog ...">` opened through `useDialog()` (it opens as a modal, Escape
   or a click outside it on the dimmed page closes it, and the focus lands on the first field). Never open a modal
-  any other way: it would miss these. They are all the same size: 720px wide at most and 860px tall at most, less 16px on each side on a
-  small screen. Never set a width on one dialog.
+  any other way: it would miss these. They are all the same size: 720px wide at most and 860px tall at most. Never set
+  a width on one dialog.
+- On a phone (560px and below) every dialog is an iPhone sheet: full width from the bottom edge, round top corners, a
+  grabber on top. Dragging its top down closes it (`useDialog`), like the ✕ and a tap above it.
 - Every dialog has a **✕ in its top right corner**, right after the `h2` in the `.dialog-head`:
   ```tsx
   <button type="button" className="dialog-close" aria-label="Close" onClick={closeDialog}>
@@ -177,6 +193,8 @@ The overview answers "how is this month going?" first, above all on a phone, so 
 ## Phone (560px and below)
 
 - Wide screens (over 960px) pick the view in the sidebar; narrower ones in the frosted tab bar at the bottom.
+- Wherever the tab bar shows, Tillroll also behaves like an iPhone app (the last part of `shell.css`): the view's
+  name as a large title in the header next to the logo, and taps that dim a button or grey a row while pressed.
 - The views come in two groups. Spending: Overview, Payments, Categories, Stores, Calendar (where the money goes,
   period by period). More: Money (money in and out, then net worth and savings), Trips (the map, the trips side by
   side, their facts, the trains) and Fun stats (the playful facts and hobbies). The sidebar shows the two groups under
