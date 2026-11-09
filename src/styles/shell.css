@@ -463,16 +463,23 @@
   text-align: right;
 }
 
-/* Liquid Glass, the same recipe as Chords' and Statva's tab bars: a frosted, see-through capsule with a light top edge,
-   a hairline outline and a soft shadow (with less saturation here, so the colours under it stay calm). */
+/* Liquid Glass, the same recipe as Chords' and Statva's tab bars: a see-through capsule with a light top edge, a
+   hairline outline and a soft shadow. Clearer than the dialogs' glass (half the page's colour, a light blur), so what
+   scrolls under it shows through, as under iOS 26's tab bar. */
 .glass {
-  background: color-mix(in srgb, var(--page) 75%, transparent);
-  -webkit-backdrop-filter: var(--blur);
-  backdrop-filter: var(--blur);
+  background: color-mix(in srgb, var(--page) 50%, transparent);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  backdrop-filter: blur(12px) saturate(180%);
   box-shadow:
     inset 0 1px 0 var(--glass-edge),
     0 0 0 0.5px var(--ring),
     var(--lift);
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .glass {
+    background: var(--surface);
+  }
 }
 
 @media (max-width: 720px) {
@@ -1023,7 +1030,7 @@
 }
 
 /* On a phone a dialog is a sheet: it rises from the bottom edge, full width with round top corners, under a grabber;
-   dragging its top down closes it (useDialog), and so do its ✕ and a tap above it. */
+   pulling it down from anywhere while scrolled to its top closes it (useDialog), and so do its ✕ and a tap above it. */
 @media (max-width: 560px) {
   .dialog {
     width: 100%;

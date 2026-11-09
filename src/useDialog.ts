@@ -2,9 +2,17 @@ import {type KeyboardEvent, useEffect, useRef} from 'react';
 
 /** Where dialogs are sheets from the bottom (the phone rules in shell.css). */
 const SHEET = '(max-width: 560px)';
-/** How far down from a sheet's top edge a drag can start, and how far it must go to close the sheet. */
-const SHEET_HANDLE = 64;
+/** How far a sheet must be pulled down to close. */
 const SHEET_CLOSE = 100;
+
+/** True when something between the touch and the dialog (the dialog too) is scrolled down: a pull scrolls it back up. */
+function scrolledDown(target: EventTarget | null, dialog: HTMLDialogElement) {
+  for (let node = target instanceof Element ? target : null; node; node = node.parentElement) {
+    if (node.scrollTop > 0) return true;
+    if (node === dialog) break;
+  }
+  return false;
+}
 
 /**
  * A modal dialog, open as soon as it shows. Escape closes it from anywhere inside, even from a search field (Safari
@@ -41,25 +49,39 @@ export function useDialog() {
       if (pressedOutside && event.target === dialog && outside(event)) dialog.close();
       pressedOutside = false;
     };
-    // On a phone the dialog is a sheet from the bottom: dragged down by its top (the grabber and the title), it follows
-    // the finger, and let go far enough it slides away and closes.
-    let startY: number | null = null;
+    // On a phone the dialog is a sheet from the bottom: pulled down from anywhere while what is under the finger is
+    // scrolled to its top, it follows the finger, and let go far enough it slides away and closes. The first move
+    // decides: down, the sheet follows (and the page under it never scrolls); up or sideways, the content scrolls.
+    let start: {left: number; top: number} | null = null;
+    let dragging = false;
     let drag = 0;
     const onTouchStart = (event: TouchEvent) => {
-      const touch = event.touches[0];
-      if (!window.matchMedia(SHEET).matches || event.touches.length !== 1 || dialog.scrollTop > 0) return;
-      if (touch.clientY - dialog.getBoundingClientRect().top > SHEET_HANDLE) return;
-      startY = touch.clientY;
-      dialog.style.transition = 'none';
+      start = null;
+      dragging = false;
+      if (!window.matchMedia(SHEET).matches || event.touches.length !== 1) return;
+      if (scrolledDown(event.target, dialog)) return;
+      start = {left: event.touches[0].clientX, top: event.touches[0].clientY};
     };
     const onTouchMove = (event: TouchEvent) => {
-      if (startY === null) return;
-      drag = Math.max(0, event.touches[0].clientY - startY);
+      if (start === null) return;
+      const down = event.touches[0].clientY - start.top;
+      if (!dragging) {
+        if (down <= 0 || down < Math.abs(event.touches[0].clientX - start.left)) {
+          start = null;
+          return;
+        }
+        dragging = true;
+        dialog.style.transition = 'none';
+      }
+      if (event.cancelable) event.preventDefault();
+      drag = Math.max(0, down);
       dialog.style.translate = `0 ${drag}px`;
     };
     const onTouchEnd = () => {
-      if (startY === null) return;
-      startY = null;
+      const wasDragging = dragging;
+      start = null;
+      dragging = false;
+      if (!wasDragging) return;
       dialog.style.transition = 'translate 0.25s ease-out';
       if (drag > SHEET_CLOSE) {
         dialog.style.translate = '0 100%';
@@ -70,7 +92,7 @@ export function useDialog() {
     dialog.addEventListener('pointerdown', onPointerDown);
     dialog.addEventListener('click', onClick);
     dialog.addEventListener('touchstart', onTouchStart, {passive: true});
-    dialog.addEventListener('touchmove', onTouchMove, {passive: true});
+    dialog.addEventListener('touchmove', onTouchMove, {passive: false});
     dialog.addEventListener('touchend', onTouchEnd);
     dialog.addEventListener('touchcancel', onTouchEnd);
     return () => {

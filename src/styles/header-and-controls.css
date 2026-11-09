@@ -22,6 +22,11 @@
   text-decoration: none;
 }
 
+/* A view's large title (Payments, Categories) keeps its capital: only the wordmark is lowercase. */
+h1.brand {
+  text-transform: none;
+}
+
 .brand-mark {
   flex: none;
   width: 24px;

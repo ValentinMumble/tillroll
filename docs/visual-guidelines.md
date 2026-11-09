@@ -31,7 +31,8 @@ live in `src/styles/`, one file per area, imported in order by `src/index.css` (
 - Glass is for what floats over moving content only (the tab bar, dialogs, menus, the selection bar):
   `--glass-strong` with `backdrop-filter: var(--blur)`, a light top edge, as iOS 26's bars. The period bar at the top
   takes the page's own colour, like the status bar above it, and blurs what passes under it. The tab bar's lens is
-  neutral grey, only the chosen tab is blue. With "Reduce transparency" on, glass turns solid.
+  neutral grey, only the chosen tab is blue. The tab bar is the clearest glass (half the page's colour, a light blur),
+  so what scrolls under it shows through, as under iOS 26's tab bar. With "Reduce transparency" on, glass turns solid.
 - Text keeps 4.5:1 on the page and on a card: check any new colour against both.
 
 ## Type
@@ -44,8 +45,8 @@ live in `src/styles/`, one file per area, imported in order by `src/index.css` (
   `src/format.ts`.
 - What the bank wrote (a payment's raw text): the system's monospaced type (SF Mono, IBM Plex Mono elsewhere,
   `--font-mono`). Amounts, days and times stay in the body type with even-width digits.
-- The wordmark is the system's type too, bold and lowercase: tillroll. The phone's large titles match it: tillroll
-  on the overview, the view's name in lowercase on the others (payments, categories).
+- The wordmark is the system's type too, bold and lowercase: tillroll. The phone's large titles match its type:
+  tillroll on the overview, the view's name with its capital on the others (Payments, Categories).
 - In the app the logo is three bars in `--cat-1`, `--cat-2` and `--cat-3` beside the full name
   (`src/components/Logo.tsx`), and the browser tab shows the bars (`public/favicon.svg`).
 - The app icon (the iPhone's home screen and the web app, `public/apple-touch-icon.png` and `public/icon.png`) is a
@@ -192,7 +193,11 @@ The overview answers "how is this month going?" first, above all on a phone, so 
 
 ## Phone (560px and below)
 
-- Wide screens (over 960px) pick the view in the sidebar; narrower ones in the frosted tab bar at the bottom.
+- Wide screens (over 960px) pick the view in the sidebar; narrower ones in the frosted tab bar at the bottom, or with
+  a sideways swipe on the view: to the left for the next tab, to the right for the one before (`TabBar`). Not from
+  the screen's sides (Safari's back and forward), nor on a field, the map or a row that scrolls sideways.
+- A sheet follows the finger when pulled down from anywhere on it, as long as what is under the finger is scrolled to
+  its top, and closes when let go far enough (`useDialog`). A pull up or sideways scrolls its content as usual.
 - Wherever the tab bar shows, Tillroll also behaves like an iPhone app (the last part of `shell.css`): a large title
   in the header next to the logo (the wordmark, tillroll, on the overview; the view's name on the others), and taps
   that dim a button or grey a row while pressed.
