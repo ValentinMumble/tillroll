@@ -25,6 +25,7 @@ export function PullToRefresh({onRefresh}: Props) {
     if (!isHomeScreenApp()) return;
     const page = document.documentElement;
     let startY: number | null = null;
+    let startX = 0;
     let distance = 0;
     let busy = false;
 
@@ -36,12 +37,14 @@ export function PullToRefresh({onRefresh}: Props) {
     function onStart(event: TouchEvent) {
       if (busy || window.scrollY > 0 || event.touches.length !== 1 || document.querySelector('dialog[open]')) return;
       startY = event.touches[0].clientY;
+      startX = event.touches[0].clientX;
     }
     function onMove(event: TouchEvent) {
       if (startY === null) return;
       const drag = event.touches[0].clientY - startY;
-      // A drag up, or the page scrolling after all: no pull.
-      distance = drag > 0 && window.scrollY <= 0 ? Math.min(drag / 2, THRESHOLD * 1.4) : 0;
+      const across = Math.abs(event.touches[0].clientX - startX);
+      // A drag up, a swipe sideways (to another tab), or the page scrolling after all: no pull.
+      distance = drag > across && window.scrollY <= 0 ? Math.min(drag / 2, THRESHOLD * 1.4) : 0;
       show(distance);
     }
     async function onEnd() {

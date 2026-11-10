@@ -107,7 +107,7 @@ copy kept on the device, and the logo's bars move while the new payments come in
 ## On the iPhone
 
 In Safari, Share, then Add to Home Screen: Tillroll opens full screen like an app, with a tab bar for its four
-sections (Overview, Payments, Categories, Stores), and a swipe sideways moves between them. Tillroll looks like an
+sections (Overview, Payments, Categories, Stores), and a swipe sideways slides between them. Tillroll looks like an
 iOS app on every screen (the system's type, colours and controls); on a phone it also has large titles, and sheets
 that rise from the bottom and close with a swipe down anywhere on them. A home-screen app keeps its own cookies,
 apart from Safari's: the owner enters their key once there, through the Owner key link at the bottom of the page.
