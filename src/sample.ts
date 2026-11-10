@@ -78,7 +78,7 @@ const MONTHLY: {day: number; description: string; amount: number; kind?: Kind}[]
   {day: 15, description: 'BASIC-FIT', amount: -29.99},
   {day: 20, description: 'EDF', amount: -64.3},
   {day: 22, description: 'APPLE.COM/BILL', amount: -2.99},
-  {day: 26, description: 'To EUR Savings', amount: -250, kind: 'transfer'},
+  {day: 26, description: 'To EUR Instant Access Savings', amount: -250, kind: 'transfer'},
   {day: 28, description: 'Payment from Acme SAS', amount: 2950, kind: 'income'},
 ];
 

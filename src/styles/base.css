@@ -38,6 +38,9 @@
   --ring: rgba(0, 0, 0, 0.1);
   --bar: #6aa8f0;
   --bar-strong: #006ae0;
+  /* Money put in savings, stacked on spending in the period chart: a green apart from both blues for every eye (each
+     mode takes its own --cat-3). */
+  --saved: var(--cat-3);
   --accent: #006ae0;
   /* A filled control (a primary button, a count) under white text. */
   --accent-fill: #006ae0;

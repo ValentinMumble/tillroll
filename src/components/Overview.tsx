@@ -51,6 +51,8 @@ interface Props {
   onPayback: (row: Row, paymentId: string | null) => void;
   /** What the period put in savings accounts, less what it took back (a negative amount when it took back more). */
   toSavings: number;
+  /** The same for each of the period chart's columns. */
+  chartSaved: number[];
   /** How far back the period chart goes: 1, 2 or 3 times its usual length. */
   chartSpan: number;
   onChartSpan: (span: number) => void;
@@ -92,6 +94,7 @@ export function Overview({
   onLabels,
   onPayback,
   toSavings,
+  chartSaved,
   chartSpan,
   onChartSpan,
   trips,
@@ -175,6 +178,7 @@ export function Overview({
           currency={currency}
           usual={report.usual}
           categories={categories}
+          saved={chartSaved}
           onSelect={onSelectPeriod}
         />
       </section>

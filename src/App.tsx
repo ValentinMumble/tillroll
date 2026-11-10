@@ -31,7 +31,7 @@ import {TripsView} from './components/TripsView';
 import {isHomeScreenApp} from './device';
 import type {Pair} from './duplicates';
 import {timeAgo} from './format';
-import {type Grain, periodEnd, periodOf, shiftPeriod, today} from './periods';
+import {type Grain, periodEnd, periodOf, periodStart, shiftPeriod, today} from './periods';
 import {savingsAccounts} from './savings';
 import {buildReport} from './report';
 import {isUnsure, rowsBetween, type StoreToSort, storesToSort} from './rows';
@@ -225,6 +225,15 @@ export default function App() {
     () => periodRows.filter(row => savingsMoves.has(row.id)).reduce((sum, row) => sum - row.amount, 0),
     [periodRows, savingsMoves],
   );
+  // The same for each column of the period chart, which stacks it on the column's spending.
+  const chartSaved = useMemo(() => {
+    const moves = currencyRows.filter(row => savingsMoves.has(row.id));
+    return report.series.map(item => {
+      const from = periodStart(item.period, report.chartGrain);
+      const to = periodEnd(item.period, report.chartGrain);
+      return moves.filter(row => row.date >= from && row.date <= to).reduce((sum, row) => sum - row.amount, 0);
+    });
+  }, [currencyRows, savingsMoves, report]);
   const toCheck = useMemo(() => periodRows.filter(isUnsure).length, [periodRows]);
 
   function changeGrain(next: Grain) {
@@ -579,6 +588,7 @@ export default function App() {
                 onLabels={changes => void setLabels(changes)}
                 onPayback={(row, paymentId) => void setPayback(row, paymentId)}
                 toSavings={toSavings}
+                chartSaved={chartSaved}
                 chartSpan={chartSpan}
                 onChartSpan={changeChartSpan}
                 trips={data?.trips ?? {}}

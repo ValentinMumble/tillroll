@@ -14,6 +14,8 @@ interface Props {
   usual: number | null;
   /** For the tooltip's top categories. */
   categories: Categories;
+  /** What each column put in savings, less what it took back (negative when it took back more). */
+  saved?: number[];
   onSelect: (period: string) => void;
 }
 
@@ -34,16 +36,25 @@ function difference(value: number, currency: string) {
 /**
  * Spending per week or month, one column each: its fixed part (decided in advance) darker at the bottom, a tick at
  * what the same period cost a year before, and for the period still going, a dashed outline up to where it should
- * land. The chosen period has a band behind it. The tooltip tells it all, with the period's top categories.
+ * land. What a period put in savings sits on top, in green: where the money went, on one scale. The chosen period has
+ * a band behind it. The tooltip tells it all, with the period's top categories.
  */
-export function PeriodChart({series, selected, grain, currency, usual, categories, onSelect}: Props) {
+export function PeriodChart({series, selected, grain, currency, usual, categories, saved = [], onSelect}: Props) {
   const [hovered, setHovered] = useState<number | null>(null);
   // The trend of the full periods only: its direction in words, its line through each period's average with its
   // neighbours.
   const full = series.map(item => (item.partial ? null : item.total));
   const trend = trendOf(full);
+  // What each column put aside, to stack; a column that took more back has nothing on top (its tooltip says so).
+  const aside = series.map((_item, index) => ((saved[index] ?? 0) >= 0.5 ? saved[index] : 0));
   const ticks = ticksFor(
-    Math.max(1, usual ?? 0, ...series.map(item => Math.max(item.total, item.projected ?? 0, item.lastYear ?? 0))),
+    Math.max(
+      1,
+      usual ?? 0,
+      ...series.map((item, index) =>
+        Math.max(Math.max(item.total, item.projected ?? 0) + aside[index], item.lastYear ?? 0),
+      ),
+    ),
   );
   const top = ticks[ticks.length - 1];
   const height = (value: number) => `${(Math.max(0, value) / top) * 100}%`;
@@ -81,6 +92,9 @@ export function PeriodChart({series, selected, grain, currency, usual, categorie
               .sort((first, second) => second[1] - first[1])
               .slice(0, 3);
             const landing = item.projected !== null && item.projected > item.total + 1 ? item.projected : null;
+            // Savings stack on the spending, or on where a period still going should land.
+            const base = landing ?? item.total;
+            const movedToSavings = saved[index] ?? 0;
             return (
               <button
                 key={item.period}
@@ -89,14 +103,19 @@ export function PeriodChart({series, selected, grain, currency, usual, categorie
                 aria-pressed={item.period === selected}
                 aria-label={`${periodLabel(item.period, grain)}: ${money(item.total, currency)}${
                   item.partial === 'ongoing' ? ' so far' : item.partial === 'first' ? ', partly covered' : ''
-                }`}
+                }${aside[index] > 0 ? `, ${money(aside[index], currency)} to savings` : ''}`}
                 onClick={() => onSelect(item.period)}
                 onMouseEnter={() => setHovered(index)}
                 onFocus={() => setHovered(index)}
                 onBlur={() => setHovered(null)}
               >
                 {landing !== null && <span className="chart-landing" style={{height: height(landing)}} />}
-                <span className={`chart-bar${item.partial ? ' is-partial' : ''}`} style={{height: height(item.total)}}>
+                <span
+                  className={`chart-bar${item.partial ? ' is-partial' : ''}${
+                    aside[index] > 0 && landing === null ? ' is-stacked' : ''
+                  }`}
+                  style={{height: height(item.total)}}
+                >
                   {item.fixed > 0 && item.total > 0 && (
                     <span
                       className="chart-bar-fixed"
@@ -104,6 +123,12 @@ export function PeriodChart({series, selected, grain, currency, usual, categorie
                     />
                   )}
                 </span>
+                {aside[index] > 0 && (
+                  <span
+                    className={`chart-saved${item.partial ? ' is-partial' : ''}`}
+                    style={{bottom: `calc(${height(base)} + 2px)`, height: height(aside[index])}}
+                  />
+                )}
                 {item.lastYear !== null && (
                   <span className="chart-year-before" style={{bottom: height(item.lastYear)}} />
                 )}
@@ -111,7 +136,7 @@ export function PeriodChart({series, selected, grain, currency, usual, categorie
                   <ChartTip
                     column={index}
                     columns={series.length}
-                    bottom={`calc(${height(Math.max(item.total, landing ?? 0))} + 10px)`}
+                    bottom={`calc(${height(base + aside[index])} + 10px)`}
                   >
                     <strong>{periodLabel(item.period, grain)}</strong>
                     <span>
@@ -124,6 +149,12 @@ export function PeriodChart({series, selected, grain, currency, usual, categorie
                       Fixed {money(item.fixed, currency)} · flexible{' '}
                       {money(Math.max(0, item.total - item.fixed), currency)}
                     </span>
+                    {Math.abs(movedToSavings) >= 0.5 && (
+                      <span>
+                        {movedToSavings > 0 ? 'To savings' : 'Taken from savings'}{' '}
+                        {money(Math.abs(movedToSavings), currency)}
+                      </span>
+                    )}
                     {usual !== null && usual > 0 && !item.partial && (
                       <span>{difference(item.total - usual, currency)} than usual</span>
                     )}
@@ -165,6 +196,12 @@ export function PeriodChart({series, selected, grain, currency, usual, categorie
           <span className="chart-key-swatch is-flexible" aria-hidden="true" />
           flexible
         </p>
+        {aside.some(value => value > 0) && (
+          <p className="chart-key">
+            <span className="chart-key-swatch is-saved" aria-hidden="true" />
+            To savings
+          </p>
+        )}
         {series.some(item => item.lastYear !== null) && (
           <p className="chart-key">
             <span className="chart-key-tick" aria-hidden="true" />A year before

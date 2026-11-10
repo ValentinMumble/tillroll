@@ -410,6 +410,30 @@
   pointer-events: none;
 }
 
+/* What the period put in savings: stacked on its spending (or on where a period still going should land) after a 2px
+   gap, in the savings green, on the same scale. Only the top of the stack is rounded. */
+.chart-saved {
+  position: absolute;
+  left: 50%;
+  width: min(24px, 62%);
+  border-radius: 4px 4px 0 0;
+  background: var(--saved);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.chart-saved.is-partial {
+  background: repeating-linear-gradient(
+    135deg,
+    var(--saved) 0 3px,
+    color-mix(in srgb, var(--saved) 40%, transparent) 3px 6px
+  );
+}
+
+.chart-bar.is-stacked {
+  border-radius: 0;
+}
+
 /* Not a full period yet: striped, so it does not read as a drop. */
 .chart-bar.is-partial,
 .chart-key-swatch {
@@ -450,6 +474,10 @@
 .chart-key-swatch.is-flexible {
   margin-left: 4px;
   background: var(--bar);
+}
+
+.chart-key-swatch.is-saved {
+  background: var(--saved);
 }
 
 .chart-key-tick {

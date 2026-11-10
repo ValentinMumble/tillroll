@@ -78,7 +78,10 @@ shows, then the actions as `.link-button`s at the right end (`.card-actions` whe
   (3-month average): up about €95 a month", or "flat").
 - The month chart's columns: the fixed part (`--bar-strong`) at the bottom, flexible above (`--bar`); a short `--ink`
   tick at what the same period cost a year before; for the period still going, a dashed outline up to where it
-  should land. The chosen period has a shaded band behind its column, not a different colour.
+  should land. What a period put in savings is stacked on top (`--saved`, a green apart from both blues for every
+  eye), 2px above the spending or its dashed outline, on the same scale; only the top of the stack is rounded. A
+  period that took more back from savings has nothing on top: its tooltip says how much. The chosen period has a
+  shaded band behind its column, not a different colour.
 - The tooltip says everything a column shows, plus its top three categories. The keys sit in one wrapping row under
   the chart.
 - Every chart's tooltip is a `ChartTip`: the period or part first, in bold, then one line per fact. It shows on
