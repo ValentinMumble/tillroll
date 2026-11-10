@@ -61,13 +61,14 @@ export function PaybackPicker({row, rows, onLink}: Props) {
     .split(/\s+/)
     .map(word => word.replace(/^[-+−]|€/g, ''))
     .filter(Boolean);
-  // Spending with something left to pay back. A search looks at any of it, at any date. Without one, the likely ones
-  // in the months around it: about as much as the money in or more (a friend may round up or add a little: a fifth
-  // more, or €1 on a small one).
+  // Spending with something left to pay back, pending too (a friend may pay their share before the bank books it: the
+  // link moves to the booked payment at the next sync). A search looks at any of it, at any date. Without one, the
+  // likely ones in the months around it: about as much as the money in or more (a friend may round up or add a little:
+  // a fifth more, or €1 on a small one).
   const options = rows
     .filter(payment => {
       const left = -payment.amount - payment.refunded;
-      if (payment.amount >= 0 || !payment.counts || payment.pending || left < 0.005) return false;
+      if (payment.amount >= 0 || !payment.counts || left < 0.005) return false;
       if (words.length > 0) return words.every(word => searchText(payment).includes(word));
       return payment.date >= from && payment.date <= to && row.amount <= left + Math.max(1, left / 5);
     })

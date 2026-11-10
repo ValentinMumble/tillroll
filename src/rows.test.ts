@@ -140,6 +140,14 @@ describe('paybacks', () => {
     expect(row(sale).spend).toBeCloseTo(-200.51);
   });
 
+  it('pays back a payment the bank has not booked yet', () => {
+    const dinner = payment({description: 'Le Comptoir', amount: -84, date: '2026-11-09', pending: true});
+    const share = payment({description: 'Alexandre Mazure', kind: 'income', amount: 42, date: '2026-11-10'});
+    const rows = toRows([dinner, share], sorting({[share.id]: dinner.id}));
+    expect(rows.find(item => item.id === dinner.id)?.spend).toBe(42);
+    expect(rows.find(item => item.id === share.id)?.refundOf).toMatchObject({id: dinner.id, byHand: true});
+  });
+
   it('leaves aside a link to a payment paid back in full already', () => {
     const coffee = payment({description: 'Cafe Pop', amount: -4.5, date: '2026-09-22'});
     const first = payment({description: 'Alexandre Mazure', kind: 'income', amount: 4.5, date: '2026-09-23'});
