@@ -568,7 +568,6 @@
     color: var(--ink);
     font-size: 10px;
     font-weight: 600;
-    letter-spacing: 0.04em;
     cursor: pointer;
     transition:
       color 300ms ease,

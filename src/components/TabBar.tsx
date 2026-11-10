@@ -12,8 +12,8 @@ const SLOP = 10;
 const FOLLOW = 0.5;
 const EDGE_FOLLOW = 0.15;
 /** After a swipe the view leaves to the side, then the next one comes in from the other side. */
-const LEAVE_MS = 140;
-const ENTER_MS = 280;
+const LEAVE_MS = 100;
+const ENTER_MS = 200;
 const EASE_OUT = 'cubic-bezier(0.2, 0.8, 0.2, 1)';
 
 /** What slides with a swipe: the view and its large title. The period bar and the tab bar stay put. */
@@ -35,7 +35,7 @@ function settle() {
     const from = {transform: part.style.transform || 'none', opacity: part.style.opacity || '1'};
     part.style.transform = '';
     part.style.opacity = '';
-    part.animate([from, {transform: 'none', opacity: 1}], {duration: 220, easing: EASE_OUT});
+    part.animate([from, {transform: 'none', opacity: 1}], {duration: 180, easing: EASE_OUT});
   }
 }
 

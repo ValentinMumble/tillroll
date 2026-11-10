@@ -200,8 +200,8 @@ The overview answers "how is this month going?" first, above all on a phone, so 
   the screen's sides (Safari's back and forward), nor on a field, the map or a row that scrolls sideways, nor on a
   view from the ⋯ menu.
 - During a swipe the view and its large title follow the finger at half speed, fading a little (barely moving toward
-  a side with no more tabs), and the page stops scrolling. Let go far enough, they slide out (140ms) and the next
-  tab's slide in from the other side (280ms, the lens's ease); not far enough, they spring back. The period bar and
+  a side with no more tabs), and the page stops scrolling. Let go far enough, they slide out (100ms) and the next
+  tab's slide in from the other side (200ms, the lens's ease); not far enough, they spring back. The period bar and
   the tab bar stay put. Reduce motion: no follow, no slide.
 - A sheet follows the finger when pulled down from anywhere on it, as long as what is under the finger is scrolled to
   its top, and closes when let go far enough (`useDialog`). A pull up or sideways scrolls its content as usual.
