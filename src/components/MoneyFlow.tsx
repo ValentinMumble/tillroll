@@ -21,8 +21,9 @@ interface Props {
 }
 
 /**
- * Money in and out: what came in (pay, money from others; not refunds or moves between one's own accounts), what was
- * spent, and what was kept, with its share of what came in. For a month or a year, where it went (see FlowChart).
+ * Money in and out: what was kept, with its share of what came in and how much of it went to savings. For a month or a
+ * year, where it went (see FlowChart, which names what came in, each category and savings); for all time, what came in
+ * (pay, money from others; not refunds or moves between one's own accounts), what was spent and what went to savings.
  * Under it, what each of the chart's periods kept: a bar up, or down when the period spent more than came in; then the
  * pay in each of them, with its trend.
  */
@@ -34,6 +35,8 @@ export function MoneyFlow({report, grain, currency, categories, toSavings, span,
   const columns = report.series.map(item => ({...item, kept: item.moneyIn - item.total}));
   if (grain === 'week' || columns.every(item => item.moneyIn < 0.5)) return null;
   const kept = moneyIn - spent;
+  // Where it went, for a month or a year that had money in.
+  const showFlow = grain !== 'all' && moneyIn >= 0.5;
   const top = Math.max(1, ...columns.map(item => Math.abs(item.kept)));
   // What usually comes in (the middle of the last three full periods): a period still going that has not had half
   // of it yet is waiting for its pay, not spending beyond it.
@@ -72,26 +75,30 @@ export function MoneyFlow({report, grain, currency, categories, toSavings, span,
             : moneyIn < 0.5
               ? `nothing came in ${words}`
               : kept >= 0
-                ? `kept ${words}, ${Math.round((kept / moneyIn) * 100)}% of what came in`
+                ? `kept ${words}, ${Math.round((kept / moneyIn) * 100)}% of what came in` +
+                  (toSavings >= 0.5 ? `, ${money(Math.min(toSavings, kept), currency)} of it to savings` : '')
                 : `spent beyond what came in ${words}`}
         </span>
         <ChartSpan grain={report.chartGrain} span={span} onChange={onSpan} />
       </header>
-      <dl className="facts">
-        <div>
-          <dt>Came in</dt>
-          <dd>{money(moneyIn, currency)}</dd>
-        </div>
-        <div>
-          <dt>Spent</dt>
-          <dd>{money(spent, currency)}</dd>
-        </div>
-        <div>
-          <dt>{toSavings < 0 ? 'Taken from savings' : 'To savings'}</dt>
-          <dd>{money(Math.abs(toSavings), currency)}</dd>
-        </div>
-      </dl>
-      {grain !== 'all' && moneyIn >= 0.5 && (
+      {/* The flow names each of these with its amount: they stand alone only where there is no flow (all time). */}
+      {!showFlow && (
+        <dl className="facts">
+          <div>
+            <dt>Came in</dt>
+            <dd>{money(moneyIn, currency)}</dd>
+          </div>
+          <div>
+            <dt>Spent</dt>
+            <dd>{money(spent, currency)}</dd>
+          </div>
+          <div>
+            <dt>{toSavings < 0 ? 'Taken from savings' : 'To savings'}</dt>
+            <dd>{money(Math.abs(toSavings), currency)}</dd>
+          </div>
+        </dl>
+      )}
+      {showFlow && (
         <FlowChart
           moneyIn={moneyIn}
           pay={report.series.find(item => item.period === report.period)?.pay ?? 0}

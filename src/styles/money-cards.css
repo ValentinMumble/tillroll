@@ -150,9 +150,12 @@
 }
 
 .sankey-part.is-in,
-.sankey-part.is-save,
 .sankey-part.is-left {
   --cat: var(--bar);
+}
+
+.sankey-part.is-save {
+  --cat: var(--saved);
 }
 
 .sankey-band {
@@ -330,19 +333,19 @@
   background: var(--up);
 }
 
-/* Savings: what a month put aside (up) or took back (down), in the one violet both ways. */
+/* Savings: what a month put aside (up) or took back (down), in the savings gold both ways. */
 .flow-bar.is-saved {
-  background: var(--bar);
+  background: var(--saved);
 }
 
 .flow-bar.is-taken {
   border-radius: 0 0 4px 4px;
-  background: var(--bar);
+  background: var(--saved);
 }
 
 .flow-column.is-hovered .flow-bar.is-saved,
 .flow-column.is-hovered .flow-bar.is-taken {
-  background: var(--bar-strong);
+  background: color-mix(in srgb, var(--saved) 75%, var(--ink));
 }
 
 /* A period still going, or only partly in the data: lighter. */

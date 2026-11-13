@@ -78,25 +78,35 @@ shows, then the actions as `.link-button`s at the right end (`.card-actions` whe
   (3-month average): up about €95 a month", or "flat").
 - The month chart's columns: the fixed part (`--bar-strong`) at the bottom, flexible above (`--bar`); a short `--ink`
   tick at what the same period cost a year before; for the period still going, a dashed outline up to where it
-  should land. What a period put in savings is stacked on top (`--saved`, a green apart from both blues for every
-  eye), 2px above the spending or its dashed outline, on the same scale; only the top of the stack is rounded. A
+  should land. What a period put in savings is stacked on top (`--saved`, the savings gold: no category and neither
+  blue comes near it, for any eye), 2px above the spending or its dashed outline, on the same scale; only the top of the stack is rounded. A
   period that took more back from savings has nothing on top: its tooltip says how much. The chosen period has a
   shaded band behind its column, not a different colour.
 - The tooltip says everything a column shows, plus its top three categories. The keys sit in one wrapping row under
   the chart.
-- Every chart's tooltip is a `ChartTip`: the period or part first, in bold, then one line per fact. It shows on
-  hover, and a tap shows and hides it on a phone. Never a `title` on a column.
+- Every chart's tooltip is a `ChartTip`: the period or part first, in bold, then one line per fact, as wide as its text. It
+  shows on hover, and a tap shows and hides it on a phone. Never a `title` on a column.
 - A category's or a store's small trend line in the lists curves through its periods with a soft fill in its colour. The period
   still going joins it dashed, and a faint dashed line marks its usual (its tooltip gives the amount).
 - Money that goes both ways (what a period kept or spent beyond what came in, what a month put aside or took back
-  from savings) is a bar up from a middle line or down below it. Savings' "Put aside" chart is blue both ways, and
-  its tooltip splits a month by account.
+  from savings) is a bar up from a middle line or down below it. Savings' "Put aside" chart is gold (`--saved`) both
+  ways, and its tooltip splits a month by account.
 - A savings account's value over time is a smooth line through the values typed (`monotonePath`: it never swings
-  past a value nor folds back where values sit a day apart). Under it, the 6 latest values, newest first, then
-  "Show all 9".
+  past a value nor folds back where values sit a day apart), dots at least 4% of the width apart. It goes back 3
+  months, 1 year or all the way (a year-end value from a statement would squeeze the latest into a corner), opening on
+  the shortest range with two values. The values typed fold under "Values typed (11)", open while there is none: the 6
+  latest, newest first, then "Show all 11".
+- Money shows each figure once. Money in and out's header says what was kept and how much of it went to savings; its
+  three figures (came in, spent, to savings) stand alone only for all time, since the flow names them for a month or a
+  year. One Net worth card lists each bank and each savings account (≈ when estimated). Put aside alone shows savings
+  month by month; an account card gives what was paid in, in all and year by year, in one line.
+- An assurance vie with statements (`StatementSection`) adds, under its value chart: a table year by year (paid in,
+  fees, interest after social charges, its value at the year's end, what it grew), its funds at the latest statement
+  (6, then "Show all 34 funds"), and every line of the statements, folded. Its growth counts from the first payment
+  when the statements start at nothing.
 - Where it went (Money in and out, for a month or a year) is a flow: what came in on the left (pay in
   `--bar-strong`, other money in in `--bar`, what was taken from savings or the balance in grey) runs through one
-  `--axis` pool to each category in its colour, to savings and to what is left (`--bar`) on the right. Bands are the
+  `--axis` pool to each category in its colour, to savings (`--saved`) and to what is left (`--bar`) on the right. Bands are the
   part's colour at 30% (55% hovered), every part is named with its amount beside it, and its tooltip gives its share.
   Six categories at most; the rest, and any under 3% of the spending, join a grey "Other spending".
 - The trips map (Trips, above the trips side by side) is Leaflet on Esri's light or dark grey tiles (no key), as the page is:

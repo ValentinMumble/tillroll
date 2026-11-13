@@ -287,10 +287,6 @@
 }
 
 /* What was paid in, under the value in the header. */
-.savings-paid {
-  margin: -6px 0 14px;
-}
-
 .savings-years {
   display: flex;
   flex-wrap: wrap;
@@ -305,15 +301,134 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* What it grew beyond what was paid in, under its value. */
+.savings-growth {
+  margin: -4px 0 10px;
+}
+
+.savings-card .value-chart {
+  margin-bottom: 4px;
+}
+
+/* The values typed by hand, folded under a line (open while there is none yet). */
 .savings-value {
+  margin-top: 10px;
+  padding-top: 4px;
+  border-top: 1px solid var(--line);
+}
+
+/* An assurance vie as its statements tell it: a table year by year, the funds it holds, and every line, folded. */
+.statement {
   display: grid;
   gap: 10px;
+  margin-top: 14px;
   padding-top: 14px;
   border-top: 1px solid var(--line);
 }
 
-.savings-value p {
+.statement h3 {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 8px;
   margin: 0;
+  font-size: 15px;
+}
+
+.statement h3 .hint {
+  font-weight: 400;
+}
+
+.statement h4 {
+  margin: 6px 0 0;
+  color: var(--ink-soft);
+  font-size: 14px;
+}
+
+.statement p,
+.statement .fold > summary + * {
+  margin-top: 0;
+}
+
+.statement p {
+  margin-bottom: 0;
+}
+
+/* On a narrow phone the table scrolls sideways rather than squeeze its numbers. */
+.statement-table-wrap {
+  overflow-x: auto;
+}
+
+.statement-years {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.statement-years th,
+.statement-years td {
+  padding: 6px 0 6px 14px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.statement-years th:first-child {
+  padding-left: 0;
+  text-align: left;
+}
+
+.statement-years thead th {
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.statement-years tbody th {
+  font-weight: 500;
+}
+
+.statement-years tfoot th,
+.statement-years tfoot td {
+  border-top: 1px solid var(--line);
+  font-weight: 600;
+}
+
+.statement-funds,
+.statement-lines {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.statement-funds li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.statement-fund-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.statement-share,
+.statement-line-day {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.statement-lines li {
+  display: grid;
+  grid-template-columns: 8em minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 12px;
 }
 
 /* The value over time: a line through the values typed, the lowest and highest on the left, the first and last day
@@ -324,7 +439,13 @@
   margin: 0;
 }
 
+/* The title, and on its right how far back it goes. */
 .value-chart figcaption {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   color: var(--ink-soft);
   font-size: 14px;
   font-weight: 600;

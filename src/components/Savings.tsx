@@ -1,7 +1,7 @@
 import {useState} from 'react';
 import {BANK_NAMES} from '../banks';
 import {money, parseAmount} from '../format';
-import {dayLabel, periodEnd, periodLabel, shiftPeriod, shortMonth, today} from '../periods';
+import {addDays, dayLabel, periodEnd, periodLabel, shiftPeriod, shortMonth, today} from '../periods';
 import type {Row} from '../rows';
 import {
   addedAccountKey,
@@ -13,10 +13,11 @@ import {
   savingsAccounts,
   valueOn,
 } from '../savings';
-import type {Balance, SavingsRecord, SavingsValue, SavingsValues} from '../types';
+import type {Balance, SavingsRecord, SavingsStatement, SavingsStatements, SavingsValue, SavingsValues} from '../types';
 import {BankBadge} from './BankBadge';
 import {BarStrip} from './BarStrip';
 import {PutAside} from './PutAside';
+import {StatementSection} from './StatementSection';
 import {ValueChart} from './ValueChart';
 
 interface Props {
@@ -24,6 +25,8 @@ interface Props {
   rows: Row[];
   currency: string;
   values: SavingsValues;
+  /** An assurance vie's statements read from their PDFs, by account. */
+  statements: SavingsStatements;
   /** The account holders each bank names, as the bank connections give them. */
   holders: Record<string, string[]>;
   /** The bank accounts' balances at their last sync, for the net worth. */
@@ -41,21 +44,34 @@ const VALUES_SHOWN = 6;
 /** The values typed for an account, oldest first. */
 const byDate = (values: SavingsValue[]) => [...values].sort((first, second) => (first.date < second.date ? -1 : 1));
 
+/** An account's values: the ones typed, and its statements' (a value typed on the same day wins), oldest first. */
+function knownValues(typed: SavingsValue[], statement?: SavingsStatement) {
+  const fromStatements = (statement?.values ?? [])
+    .filter(item => item.value > 0 && !typed.some(other => other.date === item.date))
+    .map(item => ({date: item.date, value: item.value}));
+  return byDate([...typed, ...fromStatements]);
+}
+
 /** Its bank: the one the money moved from, or the one its name says for an account added by hand. */
 const bankOf = (account: SavingsAccount) =>
   account.bank ?? BANK_NAMES.find(bank => account.name.toLowerCase().includes(bank.toLowerCase())) ?? null;
 
-/** One account: what went in and out, month by month, and its value when typed by hand, with its growth. */
+/**
+ * One account: its value now, what it grew beyond what was paid in, what was paid in year by year, its value over
+ * time, what its statements tell (an assurance vie's), and the values typed by hand, folded.
+ */
 function AccountCard({
   account,
   currency,
   values,
+  statement,
   onValues,
   onRemove,
 }: {
   account: SavingsAccount;
   currency: string;
   values: SavingsValue[];
+  statement?: SavingsStatement;
   onValues: (values: SavingsValue[]) => void;
   /** An account added by hand can be taken off. */
   onRemove?: () => void;
@@ -63,19 +79,23 @@ function AccountCard({
   const [date, setDate] = useState(today());
   const [value, setValue] = useState('');
   const [allValues, setAllValues] = useState(false);
-  const months = account.months.slice(-24);
   const years = new Map<string, number>();
   for (const month of account.months) {
     years.set(month.month.slice(0, 4), (years.get(month.month.slice(0, 4)) ?? 0) + month.paidIn - month.takenOut);
   }
-  const sorted = byDate(values);
+  // The values typed, and its statements': the chart and the growth use both.
+  const typed = byDate(values);
+  const sorted = knownValues(typed, statement);
   const latest = sorted[sorted.length - 1];
-  const growth = sorted.length > 1 ? growthBetween(account, sorted[0], latest) : null;
+  // Statements that start at nothing saw the account open: what it grew counts from its first payment.
+  const opened = statement?.values.some(item => item.value === 0) && account.first ? account.first : null;
+  const since = opened ? {date: addDays(opened, -1), value: 0} : sorted[0];
+  const growth = latest && (opened || sorted.length > 1) ? growthBetween(account, since, latest) : null;
   const estimate = latest ? estimateNow(account, latest) : null;
   const bank = bankOf(account);
   const paidIn =
     account.first &&
-    `paid in since ${dayLabel(account.first, true)}, from the payments Tillroll has` +
+    `paid in since ${dayLabel(account.first, true)}` +
       (account.takenOut > 0
         ? ` (${money(account.paidIn, currency)} in, ${money(account.takenOut, currency)} taken out)`
         : '');
@@ -83,7 +103,7 @@ function AccountCard({
   function add() {
     const amount = parseAmount(value);
     if (amount === null || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
-    onValues([...sorted.filter(item => item.date !== date), {date, value: amount}]);
+    onValues([...typed.filter(item => item.date !== date), {date, value: amount}]);
     setValue('');
   }
 
@@ -126,23 +146,21 @@ function AccountCard({
           </button>
         )}
       </header>
-      {latest && paidIn && (
-        <p className="hint savings-paid">
-          {money(account.paidIn - account.takenOut, currency)} {paidIn}
+      {growth !== null && (
+        <p className="savings-growth">
+          <span className={growth >= 0 ? 'is-up-good' : 'is-down-bad'}>
+            {growth >= 0 ? '+' : '−'}
+            {money(Math.abs(growth), currency, true)}
+          </span>{' '}
+          grown since {dayLabel(opened ?? since.date, true)}, beyond what you paid in
         </p>
       )}
-      {months.length > 1 && (
-        <BarStrip
-          caption="Paid in, month by month"
-          values={months.map(month => Math.max(0, month.paidIn))}
-          // Every third month, counted back from the last one, so the last label never runs into another.
-          labels={months.map((month, index) => ((months.length - 1 - index) % 3 === 0 ? shortMonth(month.month) : ''))}
-          titles={months.map(month => periodLabel(month.month, 'month'))}
-          currency={currency}
-        />
-      )}
-      {years.size > 0 && (
+      {/* What was paid in, in all then year by year: the months are in Put aside. */}
+      {latest && paidIn && (
         <p className="savings-years">
+          <span>
+            <strong>{money(account.paidIn - account.takenOut, currency)}</strong> {paidIn}
+          </span>
           {[...years]
             .sort((first, second) => (first[0] < second[0] ? -1 : 1))
             .map(([year, total]) => (
@@ -152,23 +170,18 @@ function AccountCard({
             ))}
         </p>
       )}
-      <div className="savings-value">
-        {growth !== null ? (
-          <p>
-            <span className={growth >= 0 ? 'is-up-good' : 'is-down-bad'}>
-              {growth >= 0 ? '+' : '−'}
-              {money(Math.abs(growth), currency, true)}
-            </span>{' '}
-            grown since {dayLabel(sorted[0].date, true)}, beyond what you paid in
-          </p>
-        ) : (
+      <ValueChart values={sorted} currency={currency} />
+      {statement && <StatementSection statement={statement} currency={currency} />}
+      {/* The values typed by hand, folded once there are some: open while there is none to type the first. */}
+      <details className="fold savings-value" open={typed.length === 0}>
+        <summary>{typed.length ? `Values typed (${typed.length})` : 'Type its value'}</summary>
+        {growth === null && (
           <p className="muted">
             {latest
               ? 'Add an older value too, from a yearly statement: Tillroll then shows how much it grew, beyond what you paid in.'
               : 'Type its value now and then, from its app or its yearly statement: Tillroll then shows how much it grew, beyond what you paid in.'}
           </p>
         )}
-        <ValueChart values={sorted} currency={currency} />
         <form
           className="savings-form"
           onSubmit={event => {
@@ -196,10 +209,10 @@ function AccountCard({
             Add
           </button>
         </form>
-        {sorted.length > 0 && (
+        {typed.length > 0 && (
           <ul className="savings-values">
             {/* The latest values, newest first; the rest on request. */}
-            {[...sorted]
+            {[...typed]
               .reverse()
               .slice(0, allValues ? undefined : VALUES_SHOWN)
               .map(item => (
@@ -210,7 +223,7 @@ function AccountCard({
                     type="button"
                     className="link-button"
                     aria-label={`Take off the value of ${dayLabel(item.date, true)}`}
-                    onClick={() => onValues(sorted.filter(other => other.date !== item.date))}
+                    onClick={() => onValues(typed.filter(other => other.date !== item.date))}
                   >
                     ×
                   </button>
@@ -218,12 +231,12 @@ function AccountCard({
               ))}
           </ul>
         )}
-        {!allValues && sorted.length > VALUES_SHOWN && (
+        {!allValues && typed.length > VALUES_SHOWN && (
           <button type="button" className="link-button savings-more" onClick={() => setAllValues(true)}>
-            Show all {sorted.length}
+            Show all {typed.length}
           </button>
         )}
-      </div>
+      </details>
     </section>
   );
 }
@@ -232,8 +245,19 @@ function AccountCard({
  * Savings: each account money is put aside in (an assurance vie, a livret, Revolut's savings), what went in and out
  * month by month and year by year, and its value when typed by hand, with how much it grew beyond what was paid in.
  */
-export function Savings({rows, currency, values, holders, balances, onSave, chartSpan, onChartSpan}: Props) {
-  const accounts = savingsAccounts(rows, today().slice(0, 7), values, holders);
+export function Savings({
+  rows,
+  currency,
+  values,
+  statements,
+  holders,
+  balances,
+  onSave,
+  chartSpan,
+  onChartSpan,
+}: Props) {
+  const accounts = savingsAccounts(rows, today().slice(0, 7), values, holders, statements);
+  const known = (account: SavingsAccount) => knownValues(values[account.key]?.values ?? [], statements[account.key]);
   const [name, setName] = useState('');
   const [value, setValue] = useState('');
   // The total: each account's value now, estimated from its latest value typed. One with no value yet is left out,
@@ -242,11 +266,11 @@ export function Savings({rows, currency, values, holders, balances, onSave, char
   // and has no card, but its past stays in the net worth's months and in what was put aside.
   const latest = accounts
     .map(account => {
-      const typed = byDate(values[account.key]?.values ?? []).at(-1);
+      const typed = known(account).at(-1);
       return {account, typed, estimate: typed ? estimateNow(account, typed) : null};
     })
     .filter(
-      ({account, estimate}) => !(estimate && Math.abs(estimate.value) < 1 && (account.moves[0]?.amount ?? 0) > 0),
+      ({account, estimate}) => !(estimate && Math.abs(estimate.value) < 1 && (account.flows[0]?.amount ?? 0) > 0),
     );
   const open = latest.map(item => item.account);
   const valued = latest.filter(item => item.estimate !== null);
@@ -262,7 +286,7 @@ export function Savings({rows, currency, values, holders, balances, onSave, char
   const banks = bankBalances(balances, currency);
   const worthOn = (date: string) =>
     [...banks.values()].reduce((sum, balance) => sum + balanceOn(balance, rows, date), 0) +
-    accounts.reduce((sum, account) => sum + (valueOn(account, values[account.key]?.values ?? [], date) ?? 0), 0);
+    accounts.reduce((sum, account) => sum + (valueOn(account, known(account), date) ?? 0), 0);
   // At each month's end, from the first payment, over two years at most; this month's is today's.
   const thisMonth = today().slice(0, 7);
   const firstMonth = rows.at(-1)?.date.slice(0, 7) ?? thisMonth;
@@ -285,12 +309,21 @@ export function Savings({rows, currency, values, holders, balances, onSave, char
 
   return (
     <div className="savings">
-      {banks.size > 0 && (
+      {/* One card for what you have: each bank, then each savings account (≈ when estimated), and the total. */}
+      {(banks.size > 0 || valued.length > 0) && (
         <section className="card savings-total net-worth">
           <header className="card-head">
-            <h2>Net worth</h2>
+            <h2>{banks.size > 0 ? 'Net worth' : 'Total savings'}</h2>
             <span className="view-total">{money(bankTotal + total, currency, true)}</span>
-            <span className="hint">bank accounts and savings{estimated ? ', savings estimated' : ''}</span>
+            <span className="hint">
+              {banks.size > 0 && `${money(bankTotal, currency)} in the bank, `}
+              {money(total, currency)} in savings
+              {estimated
+                ? ', estimated from the values typed and the payments since (≈)'
+                : newest
+                  ? `, latest value on ${dayLabel(newest, true)}`
+                  : ''}
+            </span>
           </header>
           <p className="savings-years">
             {[...banks.values()].map(balance => (
@@ -299,36 +332,6 @@ export function Savings({rows, currency, values, holders, balances, onSave, char
                 {balance.bank} <strong>{money(balance.amount, currency, true)}</strong>
               </span>
             ))}
-            <span>
-              Savings <strong>{money(total, currency, true)}</strong>
-            </span>
-          </p>
-          {history.length > 1 && (
-            <BarStrip
-              caption="At each month's end, worked out from today's balances and the payments since"
-              values={history.map(worth => Math.max(0, worth))}
-              // Every third month, counted back from the last one, so the last label never runs into another.
-              labels={worthMonths.map((month, index) =>
-                (worthMonths.length - 1 - index) % 3 === 0 ? shortMonth(month) : '',
-              )}
-              titles={worthMonths.map(month => periodLabel(month, 'month'))}
-              currency={currency}
-            />
-          )}
-        </section>
-      )}
-      {valued.length > 0 && (
-        <section className="card savings-total">
-          <header className="card-head">
-            <h2>Total savings</h2>
-            <span className="view-total">{money(total, currency, true)}</span>
-            {estimated ? (
-              <span className="hint">estimate: the values typed, plus the payments since (≈)</span>
-            ) : (
-              newest && <span className="hint">latest value on {dayLabel(newest, true)}</span>
-            )}
-          </header>
-          <p className="savings-years">
             {valued.map(({account, estimate}) => {
               const bank = bankOf(account);
               return (
@@ -345,6 +348,18 @@ export function Savings({rows, currency, values, holders, balances, onSave, char
           </p>
           {missing.length > 0 && (
             <p className="hint">Left out, with no value typed yet: {missing.join(', ')}. Type one in its card below.</p>
+          )}
+          {history.length > 1 && (
+            <BarStrip
+              caption="At each month's end, worked out from today's balances and the payments since"
+              values={history.map(worth => Math.max(0, worth))}
+              // Every third month, counted back from the last one, so the last label never runs into another.
+              labels={worthMonths.map((month, index) =>
+                (worthMonths.length - 1 - index) % 3 === 0 ? shortMonth(month) : '',
+              )}
+              titles={worthMonths.map(month => periodLabel(month, 'month'))}
+              currency={currency}
+            />
           )}
         </section>
       )}
@@ -364,6 +379,7 @@ export function Savings({rows, currency, values, holders, balances, onSave, char
           account={account}
           currency={currency}
           values={values[account.key]?.values ?? []}
+          statement={statements[account.key]}
           onValues={list =>
             onSave(
               account.key,

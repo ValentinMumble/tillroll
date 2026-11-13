@@ -112,6 +112,45 @@ export interface SavingsRecord {
 /** By account key (see src/savings.ts): the found accounts' values, and the accounts added by hand. */
 export type SavingsValues = Record<string, SavingsRecord>;
 
+/** What a line of an assurance vie statement is: money paid in or taken out, a fee, interest, a switch between funds. */
+export type StatementKind =
+  | 'payment'
+  | 'entry-fee'
+  | 'management-fee'
+  | 'interest'
+  | 'extra-interest'
+  | 'social-charges'
+  | 'distribution'
+  | 'switch'
+  | 'withdrawal';
+
+/** One line of a statement, as the insurer lists it, with how it was split between the funds. */
+export interface StatementMovement {
+  kind: StatementKind;
+  /** The insurer's words ("Versement programmé du 05/09/2022"). */
+  label: string;
+  date: string;
+  amount: number;
+  details: {side: 'in' | 'out'; amount: number; isin?: string | null; fund?: string; unitValue?: number}[];
+}
+
+/** The account's value at a statement's end, fund by fund. */
+export interface StatementValue {
+  date: string;
+  value: number;
+  funds: {name: string; isin: string | null; quantity: number | null; amount: number}[];
+}
+
+/** An assurance vie's yearly statements, read from their PDFs (src/bpce.ts): every line, every value. */
+export interface SavingsStatement {
+  contract: string;
+  movements: StatementMovement[];
+  values: StatementValue[];
+}
+
+/** By account key, like SavingsValues. */
+export type SavingsStatements = Record<string, SavingsStatement>;
+
 /** Stores merged into another, by store key: the name of the store they are now part of. */
 export type Merges = Record<string, string>;
 

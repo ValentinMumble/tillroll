@@ -1,6 +1,6 @@
-import {shiftPeriod} from './periods';
+import {addDays, shiftPeriod} from './periods';
 import type {Row} from './rows';
-import type {Balance, SavingsValue, SavingsValues} from './types';
+import type {Balance, SavingsStatements, SavingsValue, SavingsValues} from './types';
 import {plain} from './text';
 
 /**
@@ -39,6 +39,11 @@ export interface SavingsAccount {
   name: string;
   /** The money moved to and from it, newest first. */
   moves: Row[];
+  /**
+   * What was paid in and taken out, newest first, as the current accounts see it (negative: paid in): the moves, and
+   * before the first of them what its statements list (see STATEMENT_MARGIN_DAYS).
+   */
+  flows: Flow[];
   added: boolean;
   /** The bank the money moved from (the most moves); none for an account no payment shows. */
   bank: string | null;
@@ -48,6 +53,18 @@ export interface SavingsAccount {
   takenOut: number;
   first: string | null;
 }
+
+/** Money moved to (negative) or from (positive) a savings account on a day. */
+export interface Flow {
+  date: string;
+  amount: number;
+}
+
+/**
+ * Its statements count only for the payments before the bank data, and the insurer dates a payment a few days off the
+ * bank's own day: the payments up to this many days before the first move are the statements' own.
+ */
+const STATEMENT_MARGIN_DAYS = 10;
 
 function mostCommon(items: string[]) {
   const counts = new Map<string, number>();
@@ -81,13 +98,15 @@ function namesHolder(row: Row, holders: string[]) {
 /**
  * Every savings account: the ones found from the payments (of one currency) and the ones added by hand. A found
  * account with no money moved is left out, an added one always shows. `holders` are the account holders each bank
- * names, as the bank connections give them.
+ * names, as the bank connections give them. An account with statements (an assurance vie's) also counts the payments
+ * they list before the bank data.
  */
 export function savingsAccounts(
   rows: Row[],
   thisMonth: string,
   stored: SavingsValues,
   holders: Record<string, string[]> = {},
+  statements: SavingsStatements = {},
 ): SavingsAccount[] {
   const added = Object.entries(stored)
     .filter(([key, record]) => isAddedAccount(key) && record.name)
@@ -112,16 +131,24 @@ export function savingsAccounts(
           )
         : named;
       const isAdded = isAddedAccount(key);
-      if (moves.length === 0 && !isAdded) return null;
+      const firstMove = moves.at(-1)?.date;
+      const before = firstMove ? addDays(firstMove, -STATEMENT_MARGIN_DAYS) : null;
+      const earlier: Flow[] = (statements[key]?.movements ?? [])
+        .filter(item => (item.kind === 'payment' || item.kind === 'withdrawal') && (!before || item.date < before))
+        .map(item => ({date: item.date, amount: item.kind === 'payment' ? -item.amount : item.amount}));
+      const flows = [...moves.map(row => ({date: row.date, amount: row.amount})), ...earlier].sort((first, second) =>
+        first.date < second.date ? 1 : first.date > second.date ? -1 : 0,
+      );
+      if (flows.length === 0 && !isAdded) return null;
       const byMonth = new Map<string, {paidIn: number; takenOut: number}>();
-      for (const row of moves) {
-        const month = byMonth.get(row.date.slice(0, 7)) ?? {paidIn: 0, takenOut: 0};
+      for (const flow of flows) {
+        const month = byMonth.get(flow.date.slice(0, 7)) ?? {paidIn: 0, takenOut: 0};
         // Money leaving the current account goes in; money coming back was taken out.
-        if (row.amount < 0) month.paidIn -= row.amount;
-        else month.takenOut += row.amount;
-        byMonth.set(row.date.slice(0, 7), month);
+        if (flow.amount < 0) month.paidIn -= flow.amount;
+        else month.takenOut += flow.amount;
+        byMonth.set(flow.date.slice(0, 7), month);
       }
-      const first: string | null = moves.map(row => row.date).sort()[0] ?? null;
+      const first: string | null = flows.at(-1)?.date ?? null;
       const months: SavingsAccount['months'] = [];
       if (first) {
         for (let month = first.slice(0, 7); month <= thisMonth; month = shiftPeriod(month, 'month', 1)) {
@@ -132,6 +159,7 @@ export function savingsAccounts(
         key,
         name: key === 'livret' ? livretName(moves) : name,
         moves,
+        flows,
         added: isAdded,
         bank,
         months,
@@ -148,7 +176,7 @@ export function savingsAccounts(
  * on the day of the value is in the value already. Growth since then is not: the next value typed brings it in.
  */
 export function estimateNow(account: SavingsAccount, latest: SavingsValue) {
-  const moved = account.moves.filter(row => row.date > latest.date).reduce((sum, row) => sum - row.amount, 0);
+  const moved = account.flows.filter(flow => flow.date > latest.date).reduce((sum, flow) => sum - flow.amount, 0);
   return {value: latest.value + moved, moved, isEstimate: Math.abs(moved) >= 0.005};
 }
 
@@ -160,7 +188,7 @@ export function valueOn(account: SavingsAccount, values: SavingsValue[], date: s
   const sorted = [...values].sort((first, second) => (first.date < second.date ? -1 : 1));
   if (sorted.length === 0) return null;
   const moved = (from: string, to: string) =>
-    account.moves.filter(row => row.date > from && row.date <= to).reduce((sum, row) => sum - row.amount, 0);
+    account.flows.filter(flow => flow.date > from && flow.date <= to).reduce((sum, flow) => sum - flow.amount, 0);
   const before = sorted.filter(item => item.date <= date).at(-1);
   return before ? before.value + moved(before.date, date) : sorted[0].value - moved(date, sorted[0].date);
 }
@@ -207,8 +235,8 @@ export function balanceOn(balance: Balance, rows: Row[], date: string) {
  * what was taken out) in between. It needs no history before the first value.
  */
 export function growthBetween(account: SavingsAccount, from: SavingsValue, to: SavingsValue) {
-  const moved = account.moves
-    .filter(row => row.date > from.date && row.date <= to.date)
-    .reduce((sum, row) => sum - row.amount, 0);
+  const moved = account.flows
+    .filter(flow => flow.date > from.date && flow.date <= to.date)
+    .reduce((sum, flow) => sum - flow.amount, 0);
   return to.value - from.value - moved;
 }

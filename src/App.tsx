@@ -339,7 +339,7 @@ export default function App() {
   );
   const dataActions = (
     <>
-      {hasData && <ImportButton label="Import statement" busy={busy === 'import'} onFile={importFile} />}
+      {hasData && <ImportButton label="Import statement" busy={busy === 'import'} onFile={importFile} withPdf />}
       {!isOwner && data && (
         <button type="button" className="button is-quiet" onClick={clearLocal}>
           {data.source === 'sample' ? 'Leave sample' : 'Remove data'}
@@ -645,6 +645,7 @@ export default function App() {
                 rows={currencyRows}
                 currency={currency}
                 values={data?.savingsValues ?? {}}
+                statements={data?.savingsStatements ?? {}}
                 holders={holders}
                 balances={data?.balances ?? []}
                 onSave={(account, record) => void setSavings(account, record)}

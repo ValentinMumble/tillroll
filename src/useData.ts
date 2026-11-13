@@ -15,6 +15,7 @@ import {
   savePaymentCategories,
   saveRule,
   saveRuleFrom,
+  saveSavingsStatement,
   saveSavingsValues,
   signIn,
   signOut,
@@ -24,7 +25,9 @@ import {
 import {type Category, categoriesFrom, editsFrom, newCategoryKey} from './categories';
 import type {Focus} from './components/Breakdown';
 import {findDuplicates} from './duplicates';
+import {money} from './format';
 import {withLabel, withoutLabel} from './labels';
+import {dayLabel} from './periods';
 import {forgetOwnerKey, isOwnerBrowser, keepOwnerKey, pendingOwnerKey} from './owner';
 import {forgetCachedOwnerData, loadCachedOwnerData, saveCachedOwnerData} from './ownerCache';
 import {type Row, storesToSort, toRows} from './rows';
@@ -47,6 +50,7 @@ import type {
   PaymentCategories,
   Rules,
   SavingsRecord,
+  SavingsStatements,
   SavingsValues,
   Transaction,
   Trip,
@@ -70,6 +74,8 @@ export interface Data {
   distinct: string[];
   /** Savings accounts' values typed by hand. */
   savingsValues: SavingsValues;
+  /** An assurance vie's statements read from their PDFs: the owner's only. */
+  savingsStatements?: SavingsStatements;
   budgets: Budgets;
   /** The bank accounts' balances: the owner's bank sync only. */
   balances?: Balance[];
@@ -99,6 +105,7 @@ function fromOwner(owner: OwnerData): Data {
     paybacks: owner.paybacks ?? {},
     distinct: owner.distinct ?? [],
     savingsValues: owner.savingsValues ?? {},
+    savingsStatements: owner.savingsStatements ?? {},
     budgets: owner.budgets ?? {},
     balances: owner.balances ?? [],
     connections: owner.connections ?? [],
@@ -572,9 +579,47 @@ export function useData({focus, setFocus, resetView}: View) {
     await changeCategory(storeKey, key);
   }
 
+  /**
+   * A BPCE Vie statement (a PDF) added to the assurance vie's: its lines and values join the ones kept, a statement
+   * imported twice stays once. pdf.js and the reader load only now.
+   */
+  async function importAssuranceVieStatement(file: File) {
+    if (!data) {
+      setNotice({tone: 'error', text: 'Import your payments first: the assurance vie statement adds to them.'});
+      return;
+    }
+    const [{readPdfLines}, {BPCE_ACCOUNT, mergeStatements, readBpceStatement}] = await Promise.all([
+      import('./pdfLines'),
+      import('./bpce'),
+    ]);
+    const read = readBpceStatement(await readPdfLines(file));
+    if (!read || read.movements.length + read.values.length === 0) {
+      setNotice({
+        tone: 'error',
+        text: `${file.name} is not a BPCE Vie statement ("Relevé de situation détaillé"): the only PDFs Tillroll reads.`,
+      });
+      return;
+    }
+    const statement = mergeStatements(data.savingsStatements?.[BPCE_ACCOUNT], read);
+    const savingsStatements = {...data.savingsStatements, [BPCE_ACCOUNT]: statement};
+    await change({savingsStatements}, () => saveSavingsStatement(BPCE_ACCOUNT, statement));
+    const end = read.values.at(-1);
+    setNotice({
+      tone: 'info',
+      text:
+        `${read.contract || 'Assurance vie'}: ${read.movements.length} lines read from ${file.name}` +
+        (end ? `, its value ${money(end.value, 'EUR', true)} on ${dayLabel(end.date, true)}.` : '.') +
+        ' They are in Money, on its card.',
+    });
+  }
+
   async function importFile(file: File) {
     setBusy('import');
     try {
+      if (file.type === 'application/pdf' || /\.pdf$/i.test(file.name)) {
+        await importAssuranceVieStatement(file);
+        return;
+      }
       const transactions = await readStatement(file);
       let kept = true;
       if (isOwner) {
@@ -597,6 +642,7 @@ export function useData({focus, setFocus, resetView}: View) {
               paybacks: data.paybacks,
               distinct: data.distinct,
               savingsValues: data.savingsValues,
+              savingsStatements: data.savingsStatements,
               budgets: data.budgets,
             }
           : loadLocalSorting();

@@ -11,6 +11,8 @@ import type {
   PaymentCategories,
   Rules,
   SavingsRecord,
+  SavingsStatement,
+  SavingsStatements,
   SavingsValues,
   Transaction,
   Trip,
@@ -61,6 +63,7 @@ export interface OwnerData {
   /** Pairs of stores marked "not the same". */
   distinct: string[];
   savingsValues: SavingsValues;
+  savingsStatements?: SavingsStatements;
   budgets: Budgets;
   balances: Balance[];
   connections: Connection[];
@@ -133,6 +136,14 @@ export function saveSavingsValues(account: string, record: SavingsRecord | null)
   return request<{ok: true}>('/api/sorting?part=savings-values', {
     method: 'PUT',
     body: JSON.stringify({account, ...(record ?? {values: []})}),
+  });
+}
+
+/** An assurance vie's statements read from their PDFs, all of them (null takes them off). */
+export function saveSavingsStatement(account: string, statement: SavingsStatement | null) {
+  return request<{ok: true}>('/api/sorting?part=savings-statements', {
+    method: 'PUT',
+    body: JSON.stringify({account, statement}),
   });
 }
 

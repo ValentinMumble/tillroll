@@ -8,6 +8,7 @@ import type {
   Paybacks,
   PaymentCategories,
   Rules,
+  SavingsStatements,
   SavingsValues,
   Transaction,
   Trips,
@@ -26,6 +27,7 @@ import {
   PAYMENT_CATEGORIES,
   redis,
   RULES,
+  SAVINGS_STATEMENTS,
   SAVINGS_VALUES,
   TRANSACTIONS,
   TRIPS,
@@ -35,7 +37,8 @@ import {connections, pendingByBank} from './_lib/sync.js';
 /**
  * GET /api/data: the owner's transactions (bank sync and imported statements), how they are sorted (categories per
  * store, categories changed, stores merged, money in linked to what it pays back, labels and the trips among them),
- * the savings values typed by hand, the budgets, and the bank connections with their accounts' balances.
+ * the savings values typed by hand and the statements read from PDFs, the
+ * budgets, and the bank connections with their accounts' balances.
  */
 export function GET(request: Request) {
   return handle(async () => {
@@ -54,6 +57,7 @@ export function GET(request: Request) {
       paybacks,
       distinct,
       savingsValues,
+      savingsStatements,
       budgets,
       balances,
       current,
@@ -70,6 +74,7 @@ export function GET(request: Request) {
       store.hgetall<Paybacks>(PAYBACKS),
       store.smembers(DISTINCT),
       store.hgetall<SavingsValues>(SAVINGS_VALUES),
+      store.hgetall<SavingsStatements>(SAVINGS_STATEMENTS),
       store.hgetall<Budgets>(BUDGETS),
       store.hgetall<Record<string, Balance>>(BALANCES),
       connections(),
@@ -86,6 +91,7 @@ export function GET(request: Request) {
       paybacks: paybacks ?? {},
       distinct: distinct ?? [],
       savingsValues: savingsValues ?? {},
+      savingsStatements: savingsStatements ?? {},
       budgets: budgets ?? {},
       // The balances of the banks still connected.
       balances: Object.values(balances ?? {}).filter(balance => current.some(item => item.bank === balance.bank)),

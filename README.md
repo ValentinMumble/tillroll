@@ -49,10 +49,13 @@ Overview, Payments, Categories and Stores, and the ⋯ menu opens the Calendar, 
   in), and the **possible duplicates** deck.
 - **Payments**: the total, by day like a bank statement or by amount or store, with a search and filters by category
   (one or more) and by bank.
-- **Money**: what came in, what went out and what each period kept, what went to savings, and each savings account
-  (an assurance vie, a livret, Revolut's savings): what went in and out, and, from a value typed now and then, how much
-  it grew. An account no payment shows can be added by hand; a closed one leaves the list. Open Banking only reaches
-  payment accounts, so an assurance vie or a livret cannot be connected itself.
+- **Money**: where each period's money went (a flow from what came in to each category and to savings), the net worth
+  (each bank and each savings account), what went to savings month by month, and each savings account (an assurance
+  vie, a livret, Revolut's savings): what was paid in, year by year, and, from a value typed now and then, how much it
+  grew. An assurance vie's yearly statements add every payment, fee and interest since it opened, and its funds (see
+  [Assurance vie statements](#assurance-vie-statements)). An account no payment shows can be added by hand; a closed
+  one leaves the list. Open Banking only reaches payment accounts, so an assurance vie or a livret cannot be connected
+  itself.
 - **Trips**: the labels marked as trips, on a map and side by side (what each cost, by category and by day), then the
   train tickets.
 - **Fun stats**: your year in a few numbers, an average day by weekday, spending by hour, the biggest day, the longest
@@ -179,13 +182,22 @@ overlap the bank's history, the bank's rows win.
 The access lasts as long as the bank allows (often 180 days). After that the page offers to reconnect. Banks allow a
 few background syncs a day (often 4); syncs you start from the page do not count against that.
 
+## Assurance vie statements
+
+BPCE Vie's yearly "Relevé de situation détaillé" (one PDF a year, from the insurer's site) lists every payment, fee,
+interest and switch between funds, and the value fund by fund. Import statement takes it: Tillroll reads it in the
+browser (pdf.js, loaded only then; the PDF never leaves the device), adds its lines and values to the assurance vie's,
+and keeps a statement imported twice once. The contract number is left out. Import each year's when it comes, or
+several years one after the other. The payments they list before the bank data count as paid in, and their values
+join the ones typed.
+
 ## How it works
 
 - `api/`: Vercel functions. `login` and `logout` start and end owner mode, `banks` lists the banks for the picker,
   `connect` starts the bank authorization, `callback` takes the bank's answer and runs the first sync, `sync` runs a
   sync (the daily cron or the owner's page), `data` returns the owner's transactions, `sorting` saves the owner's
   choices (categories per store and per payment, categories, merges, labels, trips, stores marked not the same,
-  savings values, budgets), `import` saves the owner's statement rows, `disconnect` ends the access.
+  savings values and statements, budgets), `import` saves the owner's statement rows, `disconnect` ends the access.
   `_lib/bank.ts` talks to Enable Banking: requests are signed with the application's key (an RS256 token made with
   `node:crypto`, no library).
 - Redis keys, all `tillroll:*`: the bank session, the booked transactions by id, the pending ones from the last sync,

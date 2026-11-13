@@ -1,4 +1,4 @@
-import type {CategoryEdit} from '../src/types';
+import type {CategoryEdit, SavingsStatement} from '../src/types';
 import {handle, HttpError, json, readJson} from './_lib/http.js';
 import {requireOwner} from './_lib/owner.js';
 import {
@@ -12,6 +12,7 @@ import {
   PAYMENT_CATEGORIES,
   redis,
   RULES,
+  SAVINGS_STATEMENTS,
   SAVINGS_VALUES,
   TRIPS,
 } from './_lib/store.js';
@@ -23,6 +24,66 @@ import {
 const isCategoryKey = (value: unknown): value is string => typeof value === 'string' && /^[a-z0-9-]{2,60}$/.test(value);
 const isStoreKey = (value: unknown): value is string =>
   typeof value === 'string' && value.length > 0 && value.length <= 200;
+
+const STATEMENT_KINDS = [
+  'payment',
+  'entry-fee',
+  'management-fee',
+  'interest',
+  'extra-interest',
+  'social-charges',
+  'distribution',
+  'switch',
+  'withdrawal',
+];
+const isDay = (value: unknown) => typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value);
+const isAmount = (value: unknown) => typeof value === 'number' && Number.isFinite(value) && Math.abs(value) < 1e9;
+const isText = (value: unknown, length: number) => typeof value === 'string' && value.length <= length;
+
+/** An assurance vie's statements as src/bpce.ts reads them from their PDFs. */
+function isStatement(value: unknown): value is SavingsStatement {
+  const statement = value as SavingsStatement;
+  return (
+    typeof statement === 'object' &&
+    statement !== null &&
+    isText(statement.contract, 120) &&
+    Array.isArray(statement.movements) &&
+    statement.movements.length <= 3000 &&
+    statement.movements.every(
+      movement =>
+        STATEMENT_KINDS.includes(movement.kind) &&
+        isText(movement.label, 300) &&
+        isDay(movement.date) &&
+        isAmount(movement.amount) &&
+        Array.isArray(movement.details) &&
+        movement.details.length <= 100 &&
+        movement.details.every(
+          detail =>
+            (detail.side === 'in' || detail.side === 'out') &&
+            isAmount(detail.amount) &&
+            (detail.isin === undefined || detail.isin === null || isText(detail.isin, 20)) &&
+            (detail.fund === undefined || isText(detail.fund, 120)) &&
+            (detail.unitValue === undefined || isAmount(detail.unitValue)),
+        ),
+    ) &&
+    Array.isArray(statement.values) &&
+    statement.values.length <= 200 &&
+    statement.values.every(
+      item =>
+        isDay(item.date) &&
+        isAmount(item.value) &&
+        Array.isArray(item.funds) &&
+        item.funds.length <= 200 &&
+        item.funds.every(
+          fund =>
+            isText(fund.name, 120) &&
+            (fund.isin === null || isText(fund.isin, 20)) &&
+            (fund.quantity === null || isAmount(fund.quantity)) &&
+            isAmount(fund.amount),
+        ),
+    )
+  );
+}
 
 function isEdit(value: unknown): value is CategoryEdit {
   const item = value as CategoryEdit;
@@ -199,6 +260,23 @@ const PARTS: Record<string, (body: Record<string, unknown>) => Promise<unknown>>
   },
 
   /**
+   * { account, statement }: an assurance vie's statements read from their PDFs (src/bpce.ts, on import), every
+   * line and every value; null takes them off.
+   */
+  async 'savings-statements'({account, statement}) {
+    if (
+      typeof account !== 'string' ||
+      !/^[a-z0-9-]{2,60}$/.test(account) ||
+      !(statement === null || isStatement(statement)) ||
+      JSON.stringify(statement).length > 500_000
+    ) {
+      throw new HttpError(400, 'Expected a savings account and its statements');
+    }
+    if (statement === null) return redis().hdel(SAVINGS_STATEMENTS, account);
+    return redis().hset(SAVINGS_STATEMENTS, {[account]: statement});
+  },
+
+  /**
    * { label, trip: {from?, to?, place?} }: marks a label as a trip, with its days when set by hand and where it went;
    * a null trip unmarks it.
    */
@@ -266,7 +344,8 @@ const PARTS: Record<string, (body: Record<string, unknown>) => Promise<unknown>>
 };
 
 /**
- * PUT /api/sorting?part=<rules|earlier-rules|categories|merges|payment-categories|labels|trips|distinct|savings-values|budgets>, with
+ * PUT /api/sorting?part=<rules|earlier-rules|categories|merges|payment-categories|labels|trips|distinct|savings-values|savings-statements|budgets>,
+ * with
  * that part's body.
  */
 export function PUT(request: Request) {

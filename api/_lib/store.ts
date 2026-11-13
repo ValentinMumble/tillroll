@@ -23,6 +23,8 @@ export const CATEGORIES = 'tillroll:categories';
 export const DISTINCT = 'tillroll:distinct';
 /** The values typed for each savings account, by account key: a list of {date, value}. */
 export const SAVINGS_VALUES = 'tillroll:savings-values';
+/** An assurance vie's statements read from their PDFs, by account key (a SavingsStatement). */
+export const SAVINGS_STATEMENTS = 'tillroll:savings-statements';
 /** A monthly budget per category, by category key. */
 export const BUDGETS = 'tillroll:budgets';
 /** Each bank account's balance at its last sync, by "<bank>|<country>|<account hash>". */

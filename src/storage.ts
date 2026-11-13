@@ -9,6 +9,7 @@ import type {
   Paybacks,
   PaymentCategories,
   Rules,
+  SavingsStatements,
   SavingsValues,
   Transaction,
   Trips,
@@ -29,6 +30,7 @@ const PAYMENT_CATEGORIES = 'tillroll.payment-categories';
 const PAYBACKS = 'tillroll.paybacks';
 const DISTINCT = 'tillroll.distinct';
 const SAVINGS_VALUES = 'tillroll.savings-values';
+const SAVINGS_STATEMENTS = 'tillroll.savings-statements';
 const BUDGETS = 'tillroll.budgets';
 const GRAIN = 'tillroll.grain';
 const CHART_SPAN = 'tillroll.chart-span';
@@ -79,6 +81,7 @@ export function loadLocalSorting() {
     paybacks: read<Paybacks>(PAYBACKS) ?? {},
     distinct: read<string[]>(DISTINCT) ?? [],
     savingsValues: read<SavingsValues>(SAVINGS_VALUES) ?? {},
+    savingsStatements: read<SavingsStatements>(SAVINGS_STATEMENTS) ?? {},
     budgets: read<Budgets>(BUDGETS) ?? {},
   };
 }
@@ -95,6 +98,7 @@ export function saveLocalSorting(
     paybacks?: Paybacks;
     distinct?: string[];
     savingsValues?: SavingsValues;
+    savingsStatements?: SavingsStatements;
     budgets?: Budgets;
   } | null,
 ) {
@@ -110,12 +114,14 @@ export function saveLocalSorting(
       PAYBACKS,
       DISTINCT,
       SAVINGS_VALUES,
+      SAVINGS_STATEMENTS,
       BUDGETS,
     ])
       write(key, null);
     return;
   }
   if (sorting.savingsValues) write(SAVINGS_VALUES, sorting.savingsValues);
+  if (sorting.savingsStatements) write(SAVINGS_STATEMENTS, sorting.savingsStatements);
   if (sorting.budgets) write(BUDGETS, sorting.budgets);
   if (sorting.distinct) write(DISTINCT, sorting.distinct);
   if (sorting.paymentCategories) write(PAYMENT_CATEGORIES, sorting.paymentCategories);

@@ -38,9 +38,9 @@
   --ring: rgba(0, 0, 0, 0.1);
   --bar: #6aa8f0;
   --bar-strong: #006ae0;
-  /* Money put in savings, stacked on spending in the period chart: a green apart from both blues for every eye (each
-     mode takes its own --cat-3). */
-  --saved: var(--cat-3);
+  /* Money put in savings (the period chart's stack, the flow, Put aside): a gold no category and neither blue comes
+     near, for every eye. Pale in light mode, where a deeper one would meet Shopping's amber. */
+  --saved: #ffe066;
   --accent: #006ae0;
   /* A filled control (a primary button, a count) under white text. */
   --accent-fill: #006ae0;
@@ -119,6 +119,7 @@
     --on-accent: #ffffff;
     --up: #ff453a;
     --down: #30d158;
+    --saved: #ffd166;
     /* On the dark surface the ramp runs the other way: a lot is the brightest. */
     --heat-1: #102a4a;
     --heat-2: #14437a;
