@@ -91,6 +91,9 @@ shows, then the actions as `.link-button`s at the right end (`.card-actions` whe
 - Money that goes both ways (what a period kept or spent beyond what came in, what a month put aside or took back
   from savings) is a bar up from a middle line or down below it. Savings' "Put aside" chart is blue both ways, and
   its tooltip splits a month by account.
+- A savings account's value over time is a smooth line through the values typed (`monotonePath`: it never swings
+  past a value nor folds back where values sit a day apart). Under it, the 6 latest values, newest first, then
+  "Show all 9".
 - Where it went (Money in and out, for a month or a year) is a flow: what came in on the left (pay in
   `--bar-strong`, other money in in `--bar`, what was taken from savings or the balance in grey) runs through one
   `--axis` pool to each category in its colour, to savings and to what is left (`--bar`) on the right. Bands are the

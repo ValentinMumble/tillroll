@@ -35,6 +35,9 @@ interface Props {
   onChartSpan: (span: number) => void;
 }
 
+/** An account lists this many of its latest values; the rest on request. */
+const VALUES_SHOWN = 6;
+
 /** The values typed for an account, oldest first. */
 const byDate = (values: SavingsValue[]) => [...values].sort((first, second) => (first.date < second.date ? -1 : 1));
 
@@ -59,6 +62,7 @@ function AccountCard({
 }) {
   const [date, setDate] = useState(today());
   const [value, setValue] = useState('');
+  const [allValues, setAllValues] = useState(false);
   const months = account.months.slice(-24);
   const years = new Map<string, number>();
   for (const month of account.months) {
@@ -194,21 +198,30 @@ function AccountCard({
         </form>
         {sorted.length > 0 && (
           <ul className="savings-values">
-            {[...sorted].reverse().map(item => (
-              <li key={item.date}>
-                <span>{dayLabel(item.date, true)}</span>
-                <span>{money(item.value, currency, true)}</span>
-                <button
-                  type="button"
-                  className="link-button"
-                  aria-label={`Take off the value of ${dayLabel(item.date, true)}`}
-                  onClick={() => onValues(sorted.filter(other => other.date !== item.date))}
-                >
-                  ×
-                </button>
-              </li>
-            ))}
+            {/* The latest values, newest first; the rest on request. */}
+            {[...sorted]
+              .reverse()
+              .slice(0, allValues ? undefined : VALUES_SHOWN)
+              .map(item => (
+                <li key={item.date}>
+                  <span>{dayLabel(item.date, true)}</span>
+                  <span>{money(item.value, currency, true)}</span>
+                  <button
+                    type="button"
+                    className="link-button"
+                    aria-label={`Take off the value of ${dayLabel(item.date, true)}`}
+                    onClick={() => onValues(sorted.filter(other => other.date !== item.date))}
+                  >
+                    ×
+                  </button>
+                </li>
+              ))}
           </ul>
+        )}
+        {!allValues && sorted.length > VALUES_SHOWN && (
+          <button type="button" className="link-button savings-more" onClick={() => setAllValues(true)}>
+            Show all {sorted.length}
+          </button>
         )}
       </div>
     </section>

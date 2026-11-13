@@ -1,4 +1,5 @@
 import {useState} from 'react';
+import {monotonePath} from '../curve';
 import {compactMoney, money} from '../format';
 import {dayLabel} from '../periods';
 import type {SavingsValue} from '../types';
@@ -11,8 +12,8 @@ interface Props {
 }
 
 /**
- * A savings account's value over time: a line through the values typed by hand, placed by their day, between its
- * lowest and highest value (not from zero, so a few percent show). Each value is a dot with a tooltip: its day, the
+ * A savings account's value over time: a smooth line through the values typed by hand, placed by their day, between
+ * its lowest and highest value (not from zero, so a few percent show). Each value is a dot with a tooltip: its day, the
  * value, and the change since the one before. None with fewer than two values.
  */
 export function ValueChart({values, currency}: Props) {
@@ -27,9 +28,7 @@ export function ValueChart({values, currency}: Props) {
   const [low, high] = [lowest - room, highest + room];
   const x = (index: number) => (last === first ? 50 : ((times[index] - first) / (last - first)) * 100);
   const y = (value: number) => ((value - low) / (high - low)) * 100;
-  const path = values
-    .map((item, index) => `${index === 0 ? 'M' : 'L'} ${x(index).toFixed(2)} ${(100 - y(item.value)).toFixed(2)}`)
-    .join(' ');
+  const path = monotonePath(values.map((item, index) => ({x: x(index), y: 100 - y(item.value)})));
   return (
     <figure className="value-chart">
       <figcaption>Value over time</figcaption>
