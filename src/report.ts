@@ -113,6 +113,22 @@ function withPayDated(rows: Row[], payers: Set<string>) {
 const moneyInBetween = (rows: Row[], from: string, to: string) =>
   rows.filter(row => isMoneyIn(row) && row.date >= from && row.date <= to).reduce((sum, row) => sum + row.amount, 0);
 
+/** What usually comes in a period: the middle of the chart's last three full periods (0 with none). */
+export function usualMoneyIn(report: Report) {
+  const full = report.series
+    .filter(item => !item.partial)
+    .slice(-3)
+    .map(item => item.moneyIn)
+    .sort((first, second) => first - second);
+  return full.length > 0 ? full[full.length >> 1] : 0;
+}
+
+/** A period still going that has not had half of what usually comes in: waiting for its pay, not spending beyond it. */
+export function waitingForPay(report: Report) {
+  const usual = usualMoneyIn(report);
+  return report.ongoing && usual >= 1 && report.current.moneyIn < usual / 2;
+}
+
 /**
  * Each value with its neighbours' (the one before and the one after, when they have one), averaged: a line that bends
  * with the ups and downs without following every spike. Null values stay null and are no one's neighbour.
@@ -177,7 +193,8 @@ export interface Report {
   ongoing: boolean;
   current: Totals;
   /** What the period is compared with: the previous one cut at the same point, or the usual period. */
-  baseline: {total: number; categories: Map<CategoryKey, number>; label: string} | null;
+  /** Its name in full ("this point last month") and short ("last month"), where a chart shows the rest. */
+  baseline: {total: number; categories: Map<CategoryKey, number>; label: string; short: string} | null;
   /** The chart's periods, with what each category cost in them (for the trend lines). */
   series: {
     period: string;
@@ -217,6 +234,8 @@ export interface Pace {
   spent: number[];
   /** The usual period (the mean of the earlier full ones) by the end of each day, all of them; none without any. */
   usual: number[] | null;
+  /** The period just before by the end of each day, all of them; none when the data does not cover it. */
+  previous: number[] | null;
 }
 
 /** How the insights name the period. */
@@ -378,7 +397,8 @@ function paceOf(rows: Row[], grain: Grain, from: string, to: string, now: string
         (_value, index) => earlierTotals.reduce((sum, totals) => sum + totals[index], 0) / earlierTotals.length,
       )
     : null;
-  return {days, spent, usual};
+  const previous = earlierTotals[earlier.indexOf(periodOf(addDays(from, -1), grain))] ?? null;
+  return {days, spent, usual, previous};
 }
 
 /**
@@ -455,10 +475,15 @@ export function buildReport(
       const cut = addDays(previousFrom, daysBetween(from, now) - 1);
       const previousTo = periodEnd(previous, grain);
       const totals = totalsOf(rowsBetween(rows, previousFrom, cut < previousTo ? cut : previousTo));
-      baseline = {total: totals.total, categories: totals.categories, label: `this point last ${word}`};
+      baseline = {
+        total: totals.total,
+        categories: totals.categories,
+        label: `this point last ${word}`,
+        short: `last ${word}`,
+      };
     }
   } else if (usual !== null) {
-    baseline = {total: usual, categories: usualCategories, label: `your usual ${word}`};
+    baseline = {total: usual, categories: usualCategories, label: `your usual ${word}`, short: `a usual ${word}`};
   }
 
   // The chart ends with the latest period unless the chosen one is older. All time shows the years.

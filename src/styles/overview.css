@@ -143,8 +143,116 @@
   line-height: 1.05;
 }
 
+/* Under what was kept: what was spent, against the period before. */
 .summary-delta {
   color: var(--ink-soft);
+}
+
+.summary-delta strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+/* The large number with what was spent on two lines under it, and on their right, as tall as them, this period day
+   by day against the one before. */
+.summary-top {
+  display: flex;
+  align-items: stretch;
+  gap: clamp(20px, 4vw, 40px);
+}
+
+.summary-figures {
+  display: grid;
+  flex: none;
+  align-content: start;
+  gap: 6px;
+  max-width: 66%;
+}
+
+/* Each of the two lines whole, when there is room. */
+.summary-figures .summary-delta {
+  font-size: 15px;
+}
+
+.summary-figures .summary-delta > span {
+  display: block;
+  white-space: nowrap;
+}
+
+/* A finger can run along it. */
+.pace-compare {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  max-width: 360px;
+  margin: 0;
+  padding: 6px 0 4px;
+}
+
+.pace-compare-plot {
+  position: relative;
+  flex: 1;
+  min-height: 48px;
+  cursor: crosshair;
+  touch-action: pan-y;
+}
+
+.pace-compare-plot svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.pace-compare-now,
+.pace-compare-before {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.pace-compare-now {
+  stroke: var(--bar-strong);
+  stroke-width: 2;
+}
+
+/* Under this period's line, a fill fading to nothing at the bottom (its gradient set on the path itself). */
+
+.pace-compare-fill-top {
+  stop-color: var(--bar-strong);
+  stop-opacity: 0.35;
+}
+
+.pace-compare-fill-bottom {
+  stop-color: var(--bar-strong);
+  stop-opacity: 0;
+}
+
+.pace-compare-before {
+  stroke: var(--muted);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 3;
+}
+
+.pace-compare-dot {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  margin: -4px 0 0 -4px;
+  border-radius: 50%;
+  background: var(--bar-strong);
+  box-shadow: 0 0 0 2px var(--surface);
+  pointer-events: none;
+}
+
+.pace-compare-cursor {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--line);
+  pointer-events: none;
 }
 
 .summary-pace {

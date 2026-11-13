@@ -7,6 +7,7 @@ import {
   addedAccountKey,
   balanceOn,
   bankBalances,
+  byBank,
   estimateNow,
   growthBetween,
   type SavingsAccount,
@@ -326,7 +327,7 @@ export function Savings({
             </span>
           </header>
           <p className="savings-years">
-            {[...banks.values()].map(balance => (
+            {[...banks.values()].sort(byBank).map(balance => (
               <span key={balance.bank} title={`Balance on ${dayLabel(balance.date, true)}`}>
                 <BankBadge bank={balance.bank} />
                 {balance.bank} <strong>{money(balance.amount, currency, true)}</strong>

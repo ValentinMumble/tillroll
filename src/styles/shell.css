@@ -681,14 +681,17 @@
     grid-column: 2;
   }
 
-  .facts,
-  .summary .facts {
+  .facts {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  /* What was kept goes under the money in it was kept of, to savings on its left. */
-  .summary .facts > .fact-kept {
-    order: 1;
+  /* The receipt's few figures in one row, each as wide as it needs, spread across. */
+  .summary .facts {
+    grid-template-columns: none;
+    grid-auto-columns: auto;
+    grid-auto-flow: column;
+    justify-content: space-between;
+    gap: 12px;
   }
 
   .receipt {

@@ -216,6 +216,10 @@ export function bankBalances(balances: Balance[], currency: string) {
   return banks;
 }
 
+/** The banks in the order the page lists them: Revolut first (the everyday account), then by balance, largest first. */
+export const byBank = (first: Balance, second: Balance) =>
+  Number(second.bank === 'Revolut') - Number(first.bank === 'Revolut') || second.amount - first.amount;
+
 export function balanceOn(balance: Balance, rows: Row[], date: string) {
   if (date >= balance.date) return balance.amount;
   return rows

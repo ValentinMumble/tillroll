@@ -189,13 +189,21 @@ shows, then the actions as `.link-button`s at the right end (`.card-actions` whe
 
 The overview answers "how is this month going?" first, above all on a phone, so its order is fixed:
 
-1. The receipt: what the period has cost so far, against last month at the same point, and time against money as two
-   rings (`PaceRings`): how much of a usual period was spent outside, how much of the period has gone inside, with what
-   is left per day beside them. The balances (owner only) fill the space on its right: their total, then each bank's
-   balance from its last sync. Under 720px they come last in the receipt, after the facts. The facts are four, in one
-   row (two columns on a phone): payments with what a day cost beside them, money in, what was kept of it with its
-   share (or what was spent beyond it), and what went to savings. On a phone what was kept sits under money in. A fifth
-   figure joins one of these, never a new tile.
+1. The receipt: what the period has kept so far (money in less what was spent, the large number; its label says only
+   "Kept so far", the period is in the bar above), under it two lines, each whole and amount first: what was spent
+   ("€1,488 spent so far") and how that compares ("▼ €1,033 vs last month"). On their right, as tall as them, the
+   period's spending day by day against the one before (`PaceCompare`: last month dashed `--muted` for all its days,
+   this one `--bar-strong` over a fill fading to nothing, up to today with a dot; no key, a day's tooltip under the
+   finger names both). Then the donut (`PaceRings`), rings outside in: how much of a usual period was spent
+   (`--bar-strong`), how much of the period has gone (`--muted`). Its key says each in a few words, percent first (the
+   amounts are above), then what is left per day. Savings are no ring: a few moves early in the month would leave it
+   still for the rest. While the period waits for its pay (less than half of what usually comes in, see `waitingForPay`)
+   or nothing came in, the large number is what was spent instead. The balances (owner only) fill the space on its
+   right: their total, then each bank's balance from its last sync, Revolut first (the everyday account), then by
+   balance. Under 720px they come last in the receipt, after the facts. The facts give only what the rest does not:
+   money in, what was kept (only while the large number is what was spent), what went to savings, and last the payments
+   with what a day cost. They sit in one row, on a phone too, each as wide as it needs. Each figure shows once in the
+   receipt.
 2. The prompts, when there is something to do: stores to sort, payments to check. Each opens its deck, one store
    or one payment at a time (the payments to check start on "This payment" for a transfer to someone, else on
    "Whole store"); the payments' deck links to the same payments in the list.

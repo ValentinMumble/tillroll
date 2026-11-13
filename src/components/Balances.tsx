@@ -1,6 +1,6 @@
 import {money} from '../format';
 import {dayLabel, today} from '../periods';
-import {bankBalances} from '../savings';
+import {bankBalances, byBank} from '../savings';
 import type {Balance} from '../types';
 import {BankBadge} from './BankBadge';
 
@@ -17,7 +17,7 @@ interface Props {
  * balance (its accounts together, in whole euros, the cents on hover), and the way to the savings.
  */
 export function Balances({balances, currency, onSavings}: Props) {
-  const banks = [...bankBalances(balances, currency).values()].sort((first, second) => second.amount - first.amount);
+  const banks = [...bankBalances(balances, currency).values()].sort(byBank);
   if (banks.length === 0) return null;
   const total = banks.reduce((sum, balance) => sum + balance.amount, 0);
   const oldest = banks.map(balance => balance.date).sort()[0];

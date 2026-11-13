@@ -105,7 +105,6 @@ export function Overview({
       <section className="receipt">
         <Summary
           report={report}
-          period={period}
           grain={grain}
           currency={currency}
           categories={categories}

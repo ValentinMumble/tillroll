@@ -85,9 +85,12 @@ export function TabIcon({path}: {path: string}) {
   );
 }
 
-/** True when a touch starts on something that takes a sideways drag itself: a field, the map, a row that scrolls. */
+/**
+ * True when a touch starts on something that takes a sideways drag itself: a field, the map, the receipt's small chart,
+ * a row that scrolls.
+ */
 function takesSidewaysDrag(target: Element) {
-  if (target.closest('input, textarea, select, .leaflet-container')) return true;
+  if (target.closest('input, textarea, select, .leaflet-container, .pace-compare-plot')) return true;
   for (let node: Element | null = target; node && node !== document.body; node = node.parentElement) {
     const {overflowX} = getComputedStyle(node);
     if ((overflowX === 'auto' || overflowX === 'scroll') && node.scrollWidth > node.clientWidth) return true;

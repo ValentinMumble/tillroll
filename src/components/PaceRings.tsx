@@ -40,19 +40,23 @@ function arc(radius: number, share: number) {
   return `${Math.min(1, Math.max(0, share)) * circumference} ${circumference}`;
 }
 
+const percent = (share: number) => `${Math.round(share * 100)}%`;
+
 /**
  * Time against money as two rings, like an activity tracker: outside, how much of a usual period was spent (blue, a
  * red arc going round again past it); inside, how much of the period has gone (grey). The outer ring further round
- * than the inner one: spending faster than the period goes.
+ * than the inner one: spending faster than the period goes. The key names each in a few words: the amounts are in the
+ * receipt above.
  */
 export function PaceRings(props: Props) {
-  const {whole, timeShare, moneyShare, time, money} = timeAndMoney(
+  const {whole, timeShare, moneyShare, left, word, time} = timeAndMoney(
     props.pace,
     props.ongoing,
     props.grain,
     props.currency,
   );
   if (!whole) return null;
+  const gone = props.pace.days - left;
   const ring = (className: string, radius: number, share: number) => (
     <circle
       className={className}
@@ -63,9 +67,12 @@ export function PaceRings(props: Props) {
       transform="rotate(-90 50 50)"
     />
   );
+  const spentWords = `${percent(moneyShare)} of a usual ${word}`;
+  // Its percent first, like the money's, to read the two side by side.
+  const timeWords = `${percent(timeShare)} · ${gone} of ${props.pace.days} days`;
   return (
     <div className="pace pace-ring">
-      <svg viewBox="0 0 100 100" role="img" aria-label={`${money.label}: ${money.value}. ${time.label}: ${time.value}`}>
+      <svg viewBox="0 0 100 100" role="img" aria-label={`Spent: ${spentWords}. ${time.label}: ${timeWords}`}>
         <circle className="pace-ring-track" cx="50" cy="50" r={MONEY_RADIUS} />
         <circle className="pace-ring-track" cx="50" cy="50" r={TIME_RADIUS} />
         {ring('pace-ring-fill', MONEY_RADIUS, moneyShare)}
@@ -75,11 +82,11 @@ export function PaceRings(props: Props) {
       <div className="pace-ring-words">
         <p className="pace-key">
           <span className={`pace-key-dot${moneyShare > 1 ? ' is-over' : ''}`} aria-hidden="true" />
-          <strong>{money.label}</strong> {money.value}
+          <strong>Spent</strong> {spentWords}
         </p>
         <p className="pace-key">
           <span className="pace-key-dot is-time" aria-hidden="true" />
-          <strong>{time.label}</strong> {time.value}
+          <strong>{time.label}</strong> {timeWords}
         </p>
         <TimeMoneyText {...props} />
       </div>

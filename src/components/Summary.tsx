@@ -1,15 +1,15 @@
 import {type ReactNode, useState} from 'react';
 import {type Categories, colourStyle} from '../categories';
 import {money} from '../format';
-import {daysBetween, type Grain, periodLabel, today} from '../periods';
-import type {Report} from '../report';
+import {daysBetween, type Grain, today} from '../periods';
+import {type Report, timeAndMoney, waitingForPay} from '../report';
 import {Delta} from './Delta';
 import {ChartTip} from './ChartTip';
+import {PaceCompare} from './PaceCompare';
 import {PaceRings} from './PaceRings';
 
 interface Props {
   report: Report;
-  period: string;
   grain: Grain;
   currency: string;
   categories: Categories;
@@ -20,12 +20,14 @@ interface Props {
 }
 
 /**
- * The receipt's total: what the period cost, against the usual period or the previous one so far, how far into the
- * period it is, time against money as two rings, and a strip of the categories' colours, each as long as its share.
- * The balances fill the space beside them. Under it, four facts: payments with what a day cost, money in, what was kept
- * of it (its share), and what went to savings.
+ * The receipt's total: what the period kept of what came in, then in one line what it cost against the usual period
+ * or the previous one so far; the donut (time against money) with a short key; and a strip of the categories'
+ * colours, each as long as its share. The balances fill the space beside them. Under it, the facts the rest does not
+ * give: payments with what a day cost, money in, and what went to savings (a few moves early in the month: a number,
+ * not a ring). While a period still waits for its pay (or nothing came in), what it kept means nothing yet: the total
+ * is what it cost, and a fact gives what was kept. Each figure shows once.
  */
-export function Summary({report, period, grain, currency, categories, toSavings, balances}: Props) {
+export function Summary({report, grain, currency, categories, toSavings, balances}: Props) {
   const {current, baseline, ongoing} = report;
   const parts = [...current.categories]
     .filter(([, value]) => value >= 0.5)
@@ -46,26 +48,73 @@ export function Summary({report, period, grain, currency, categories, toSavings,
   const left = pace ? pace.days - pace.spent.length : 0;
   // What the period kept of what came in (Money in and out's figure), or spent beyond it.
   const kept = current.moneyIn - current.total;
+  const showKept = current.moneyIn >= 0.5 && !waitingForPay(report);
+  const spentWords = ongoing ? 'Spent so far' : 'Spent';
+  const rings = Boolean(pace && timeAndMoney(pace, ongoing, grain, currency).whole);
+  // Against the period before, in short ("▼ €1,033 vs last month"): the small chart beside it shows "at this point",
+  // the arrow and its colour say less or more, and a screen reader hears the word.
+  const comparison =
+    baseline &&
+    (Math.abs(current.total - baseline.total) < 1 ? (
+      `The same as ${baseline.short}`
+    ) : (
+      <>
+        <Delta value={current.total - baseline.total} currency={currency} compact />
+        <span className="visually-hidden">{current.total > baseline.total ? ' more' : ' less'}</span> vs{' '}
+        {baseline.short}
+      </>
+    ));
+  // This period's spending day by day against the one before's, small beside the large number.
+  const compare = ongoing && pace && (
+    <PaceCompare
+      pace={pace}
+      currency={currency}
+      word={grain === 'week' ? 'week' : grain === 'year' ? 'year' : 'month'}
+    />
+  );
   return (
     <div className="summary">
       <div className="summary-main">
-        <p className="eyebrow">
-          {ongoing ? 'Spent so far' : 'Spent'} · {periodLabel(period, grain)}
-        </p>
-        <p className="hero">{money(current.total, currency)}</p>
-        {baseline && (
-          <p className="summary-delta">
-            {Math.abs(current.total - baseline.total) < 1 ? (
-              `The same as ${baseline.label}`
-            ) : (
-              <>
-                <Delta value={current.total - baseline.total} currency={currency} /> than {baseline.label}
-                <span className="muted"> ({money(baseline.total, currency)})</span>
-              </>
-            )}
-          </p>
+        {showKept ? (
+          <>
+            {/* The period is in the bar above: the eyebrow only says what the number is. */}
+            <p className="eyebrow">{kept < 0 ? 'Spent beyond money in' : ongoing ? 'Kept so far' : 'Kept'}</p>
+            {/* The number and what was spent on two lines on the left; the small chart beside them, as tall. */}
+            <div className="summary-top">
+              <div className="summary-figures">
+                <p className="hero">
+                  {kept < 0 && '−'}
+                  {money(Math.abs(kept), currency)}
+                </p>
+                <p className="summary-delta">
+                  {/* The amount first, like the line under it. */}
+                  <span>
+                    <strong>{money(current.total, currency)}</strong> {spentWords.toLowerCase()}
+                  </span>
+                  {comparison && <span>{comparison}</span>}
+                </p>
+              </div>
+              {compare}
+            </div>
+          </>
+        ) : (
+          <>
+            <p className="eyebrow">{spentWords}</p>
+            <div className="summary-top">
+              <div className="summary-figures">
+                <p className="hero">{money(current.total, currency)}</p>
+                {comparison && (
+                  <p className="summary-delta">
+                    <span>{comparison}</span>
+                  </p>
+                )}
+              </div>
+              {compare}
+            </div>
+          </>
         )}
-        {ongoing && pace && (
+        {/* The rings' key counts the days: this line only when there are no rings. */}
+        {ongoing && pace && !rings && (
           <p className="summary-pace">
             Day {pace.spent.length} of {pace.days} ·{' '}
             {left === 0 ? 'the last day' : left === 1 ? '1 day left' : `${left} days left`}
@@ -117,26 +166,30 @@ export function Summary({report, period, grain, currency, categories, toSavings,
       )}
       <dl className="facts">
         <div>
+          <dt>Money in</dt>
+          <dd>{money(current.moneyIn, currency)}</dd>
+        </div>
+        {/* What was kept, while the total is what was spent (waiting for the pay): otherwise it is the total. */}
+        {!showKept && (
+          <div className="fact-kept">
+            <dt>{kept < 0 ? 'Spent beyond money in' : 'Kept'}</dt>
+            <dd>
+              {money(Math.abs(kept), currency)}
+              {kept > 0 && <span className="muted"> · {Math.round((kept / current.moneyIn) * 100)}%</span>}
+            </dd>
+          </div>
+        )}
+        <div>
+          <dt>{toSavings < 0 ? 'Taken from savings' : 'To savings'}</dt>
+          <dd>{money(Math.abs(toSavings), currency)}</dd>
+        </div>
+        {/* Last: the money first, then how many payments it took. */}
+        <div>
           <dt>Payments</dt>
           <dd>
             {current.payments}
             <span className="muted"> · {money(current.total / days, currency)} a day</span>
           </dd>
-        </div>
-        <div>
-          <dt>Money in</dt>
-          <dd>{money(current.moneyIn, currency)}</dd>
-        </div>
-        <div className="fact-kept">
-          <dt>{kept < 0 ? 'Spent beyond money in' : 'Kept'}</dt>
-          <dd>
-            {money(Math.abs(kept), currency)}
-            {kept > 0 && <span className="muted"> · {Math.round((kept / current.moneyIn) * 100)}%</span>}
-          </dd>
-        </div>
-        <div>
-          <dt>{toSavings < 0 ? 'Taken from savings' : 'To savings'}</dt>
-          <dd>{money(Math.abs(toSavings), currency)}</dd>
         </div>
       </dl>
     </div>

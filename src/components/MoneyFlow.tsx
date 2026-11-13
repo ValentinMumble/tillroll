@@ -2,7 +2,7 @@ import {useState} from 'react';
 import type {Categories} from '../categories';
 import {money} from '../format';
 import {compactPeriodLabel, type Grain, periodLabel} from '../periods';
-import {type Report, rollingAverage, trendOf} from '../report';
+import {type Report, rollingAverage, trendOf, usualMoneyIn, waitingForPay} from '../report';
 import {ChartSpan} from './ChartSpan';
 import {ChartTip} from './ChartTip';
 import {FlowChart} from './FlowChart';
@@ -38,15 +38,8 @@ export function MoneyFlow({report, grain, currency, categories, toSavings, span,
   // Where it went, for a month or a year that had money in.
   const showFlow = grain !== 'all' && moneyIn >= 0.5;
   const top = Math.max(1, ...columns.map(item => Math.abs(item.kept)));
-  // What usually comes in (the middle of the last three full periods): a period still going that has not had half
-  // of it yet is waiting for its pay, not spending beyond it.
-  const full = columns
-    .filter(item => !item.partial)
-    .slice(-3)
-    .map(item => item.moneyIn)
-    .sort((first, second) => first - second);
-  const usualIn = full.length > 0 ? full[full.length >> 1] : 0;
-  const waiting = report.ongoing && usualIn >= 1 && moneyIn < usualIn / 2;
+  const usualIn = usualMoneyIn(report);
+  const waiting = waitingForPay(report);
   const words = grain === 'year' ? 'this year' : grain === 'all' ? 'over all time' : 'this month';
   // Pay in each period, under the same columns: its trend over the full periods from the first one paid.
   const firstPaid = columns.findIndex(item => item.pay >= 0.5);
