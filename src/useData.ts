@@ -25,6 +25,7 @@ import {
 import {type Category, categoriesFrom, editsFrom, newCategoryKey} from './categories';
 import type {Focus} from './components/Breakdown';
 import {findDuplicates} from './duplicates';
+import {freshPayments} from './freshPayments';
 import {money} from './format';
 import {withLabel, withoutLabel} from './labels';
 import {dayLabel} from './periods';
@@ -86,6 +87,9 @@ export interface Notice {
   tone: 'info' | 'error';
   text: string;
 }
+
+/** How long the payments a fetch brings in stay new: long enough for their rows to slide in. */
+const FRESH_MS = 6000;
 
 /** A sync older than this runs again when the owner opens the page. */
 const SYNC_AFTER = 6 * 3_600_000;
@@ -171,6 +175,22 @@ export function useData({focus, setFocus, resetView}: View) {
   // Changes being saved: a load that overlaps one starts again, since its answer may not have it (see change).
   const edits = useRef(0);
 
+  // The payments the page shows, to tell the ones a fetch brings in (none on the first load: all would be new).
+  const shown = useRef<Transaction[] | null>(null);
+  const [fresh, setFresh] = useState<Set<string>>(() => new Set());
+  const noteFetched = useCallback((transactions: Transaction[]) => {
+    // A fetch that brings nothing (the sync right after the first load) leaves the rows still sliding in alone.
+    const found = shown.current ? freshPayments(shown.current, transactions) : new Set<string>();
+    if (found.size > 0) setFresh(found);
+    shown.current = transactions;
+  }, []);
+  // A fresh row slides in once: after a few seconds it is an ordinary one, so a view opened later shows it still.
+  useEffect(() => {
+    if (fresh.size === 0) return;
+    const timer = window.setTimeout(() => setFresh(new Set()), FRESH_MS);
+    return () => window.clearTimeout(timer);
+  }, [fresh]);
+
   const loadOwner = useCallback(async () => {
     try {
       let owner: OwnerData;
@@ -179,6 +199,7 @@ export function useData({focus, setFocus, resetView}: View) {
         before = edits.current;
         owner = await fetchOwnerData();
       } while (edits.current !== before);
+      noteFetched(owner.transactions);
       setData(fromOwner(owner));
       void saveCachedOwnerData(owner);
       return owner;
@@ -190,7 +211,7 @@ export function useData({focus, setFocus, resetView}: View) {
     } finally {
       setLoading(false);
     }
-  }, [leaveOwnerMode]);
+  }, [leaveOwnerMode, noteFetched]);
 
   const sync = useCallback(async () => {
     setBusy('sync');
@@ -216,6 +237,7 @@ export function useData({focus, setFocus, resetView}: View) {
         // The data kept on this device from the last visit shows at once; the fresh data replaces it when it comes.
         const cached = await loadCachedOwnerData();
         if (cached) {
+          noteFetched(cached.transactions);
           setData(fromOwner(cached));
           setLoading(false);
         }
@@ -243,7 +265,7 @@ export function useData({focus, setFocus, resetView}: View) {
       }
     };
     void start();
-  }, [isOwner, leaveOwnerMode, loadOwner, sync]);
+  }, [isOwner, leaveOwnerMode, loadOwner, noteFetched, sync]);
 
   const categories = useMemo(() => categoriesFrom(data?.categories ?? []), [data?.categories]);
   const rows = useMemo(() => {
@@ -725,6 +747,8 @@ export function useData({focus, setFocus, resetView}: View) {
     loading,
     /** New payments are on their way: the first load or a sync. */
     fetching: starting || busy === 'sync',
+    /** The payments the last fetch brought in, for a few seconds (see FreshPayments). */
+    fresh,
     notice,
     setNotice,
     busy,

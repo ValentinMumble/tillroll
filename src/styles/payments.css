@@ -56,6 +56,42 @@
   vertical-align: middle;
 }
 
+/* A payment the last fetch brought in (a table row cannot open from nothing): it fades in while what it says drops a
+   little, then its highlight fades (see .latest li.is-new, and why the category button itself never moves). */
+.payments tr.is-new td {
+  animation:
+    payment-fade 600ms cubic-bezier(0.2, 0.8, 0.2, 1) calc(var(--order, 0) * 90ms) backwards,
+    payment-glow 2.4s ease-out calc(var(--order, 0) * 90ms) backwards;
+}
+
+.payments tr.is-new td > :not(.category-button),
+.payments tr.is-new .category-button > * {
+  animation: payment-nudge 600ms cubic-bezier(0.2, 0.8, 0.2, 1) calc(var(--order, 0) * 90ms) backwards;
+}
+
+@keyframes payment-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes payment-nudge {
+  from {
+    translate: 0 -12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .payments tr.is-new td {
+    animation: payment-glow 2.4s ease-out;
+  }
+
+  .payments tr.is-new td > :not(.category-button),
+  .payments tr.is-new .category-button > * {
+    animation: none;
+  }
+}
+
 .payments tr.is-muted td {
   color: var(--muted);
 }

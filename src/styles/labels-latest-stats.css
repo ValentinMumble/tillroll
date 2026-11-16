@@ -94,6 +94,69 @@
   border-top: 1px solid var(--line);
 }
 
+/* A payment the last fetch brought in slides down into the top of the list: its slot opens, pushing the list down,
+   while what it says drops in from above; then a soft highlight fades. When several came in, each a little after the
+   one above (--order). */
+.latest li.is-new {
+  overflow: hidden;
+  animation:
+    payment-open 700ms cubic-bezier(0.2, 0.8, 0.2, 1) calc(var(--order, 0) * 120ms) backwards,
+    payment-glow 2.4s ease-out calc(var(--order, 0) * 120ms) backwards;
+}
+
+/* What it says drops in with `translate`, which adds to an element's own transform (the phone's category circle is
+   centred with one). Never the category button itself: moved, it would become the frame its circle is pinned to, and
+   the circle would jump from the row's edge until the slide ends. */
+.latest li.is-new > :not(.category-button),
+.latest li.is-new .category-button > * {
+  animation: payment-drop 700ms cubic-bezier(0.2, 0.8, 0.2, 1) calc(var(--order, 0) * 120ms) backwards;
+}
+
+/* From nothing, its least height too (a phone's row has one), to about a row's height: aiming higher, the slot would
+   be open long before the slide ends. */
+@keyframes payment-open {
+  from {
+    min-height: 0;
+    max-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+
+  to {
+    max-height: 4em;
+  }
+}
+
+@keyframes payment-drop {
+  from {
+    opacity: 0;
+    translate: 0 -2.6em;
+  }
+}
+
+@keyframes payment-glow {
+  from {
+    background-color: color-mix(in srgb, var(--accent) 16%, transparent);
+  }
+
+  to {
+    background-color: transparent;
+  }
+}
+
+/* Reduce motion: no opening, only the highlight fading. */
+@media (prefers-reduced-motion: reduce) {
+  .latest li.is-new {
+    overflow: visible;
+    animation: payment-glow 2.4s ease-out;
+  }
+
+  .latest li.is-new > :not(.category-button),
+  .latest li.is-new .category-button > * {
+    animation: none;
+  }
+}
+
 .latest li.is-muted .latest-store,
 .latest li.is-muted .payment-amount {
   color: var(--muted);

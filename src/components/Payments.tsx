@@ -1,4 +1,4 @@
-import {useContext, useEffect, useRef, useState} from 'react';
+import {type CSSProperties, useContext, useEffect, useRef, useState} from 'react';
 import {type Categories, colourStyle} from '../categories';
 import {money} from '../format';
 import {tidyLabel, withLabel} from '../labels';
@@ -34,6 +34,7 @@ import {PaidBackBy, PaybackPicker} from './PaybackPicker';
 import {RefundTags} from './RefundTags';
 import {WebSearch} from './WebSearch';
 import {paymentCount, plain} from '../text';
+import {FreshPayments} from '../freshPayments';
 import {TripLabels} from '../tripLabels';
 import {opensCategory} from '../device';
 
@@ -139,6 +140,7 @@ export function Payments({
   // The payments the category sheet is open for.
   const [sheet, setSheet] = useState<Row[] | null>(null);
   const tripLabels = useContext(TripLabels);
+  const fresh = useContext(FreshPayments);
   // Categories picked on top of a label or a store (a trip's eating out): kept for that filter only, a new one drops
   // them. With no label or store, a category picked is the list's filter itself (focus).
   const [narrowed, setNarrowed] = useState<{focus: Focus; keys: CategoryKey[]} | null>(null);
@@ -249,6 +251,8 @@ export function Payments({
     : 0;
   const start = Math.max(0, anchor - (around?.newer ?? 0));
   const page = visible.slice(start, anchor + limit);
+  // The payments the last fetch brought in, in the table's order: each fades in a little after the one above.
+  const freshOrder = new Map(page.filter(row => fresh.has(row.id)).map((row, index) => [row.id, index]));
   // The next payments come in as the end of the list nears (a screen ahead), so a long period stays quick to draw.
   const moreRef = useRef<HTMLDivElement>(null);
   const hasMore = visible.length > anchor + limit;
@@ -667,7 +671,8 @@ export function Payments({
                   ),
                   <tr
                     key={row.id}
-                    className={`${(row.counts && row.spend !== 0) || isIncoming(row) ? '' : 'is-muted'}${picked.has(row.id) ? ' is-picked' : ''}${around?.matches.has(row.id) ? ' is-match' : ''}${row.pending ? ' is-pending' : ''}`}
+                    className={`${(row.counts && row.spend !== 0) || isIncoming(row) ? '' : 'is-muted'}${picked.has(row.id) ? ' is-picked' : ''}${around?.matches.has(row.id) ? ' is-match' : ''}${row.pending ? ' is-pending' : ''}${freshOrder.has(row.id) ? ' is-new' : ''}`}
+                    style={freshOrder.has(row.id) ? ({'--order': freshOrder.get(row.id)} as CSSProperties) : undefined}
                     onClick={event => {
                       if (opensCategory(event)) setSheet([row]);
                     }}

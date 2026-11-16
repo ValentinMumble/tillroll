@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {type CSSProperties, useContext, useState} from 'react';
 import {type Categories, colourStyle} from '../categories';
 import {money} from '../format';
 import {dayLabel, recentDayLabel} from '../periods';
@@ -10,6 +10,7 @@ import {PaymentLabels} from './PaymentLabels';
 import {PaidBackBy, PaybackPicker} from './PaybackPicker';
 import {RefundTags} from './RefundTags';
 import {opensCategory} from '../device';
+import {FreshPayments} from '../freshPayments';
 
 interface Props {
   /** The period's payments, newest first. */
@@ -58,6 +59,7 @@ export function LatestPayments({
   const shown = rows.filter(row => isListed(row, {moneyIn: true, own: true}));
   // Newest first, a day at a time, until there are enough days and enough payments.
   const given = givenBack(allRows);
+  const fresh = useContext(FreshPayments);
   const latest: Row[] = [];
   const days = new Set<string>();
   for (const row of shown) {
@@ -65,6 +67,8 @@ export function LatestPayments({
     latest.push(row);
     days.add(row.date);
   }
+  // The payments the last fetch brought in, in the list's order: each slides in a little after the one above.
+  const freshOrder = new Map(latest.filter(row => fresh.has(row.id)).map((row, index) => [row.id, index]));
   // What went out each day, over every listed payment of the day, not only the ones shown.
   const dayTotals = new Map<string, number>();
   const dayCounts = new Map<string, number>();
@@ -105,9 +109,11 @@ export function LatestPayments({
                 key={row.id}
                 // Faded like in the payment list: not spending, or nothing spent in the end (€0, refunded in full).
                 className={
-                  `${(row.counts && row.spend !== 0) || isIncoming(row) ? '' : 'is-muted'}${row.pending ? ' is-pending' : ''}` ||
-                  undefined
+                  `${(row.counts && row.spend !== 0) || isIncoming(row) ? '' : 'is-muted'}${row.pending ? ' is-pending' : ''}${
+                    freshOrder.has(row.id) ? ' is-new' : ''
+                  }` || undefined
                 }
+                style={freshOrder.has(row.id) ? ({'--order': freshOrder.get(row.id)} as CSSProperties) : undefined}
                 onClick={event => {
                   if (opensCategory(event)) setSheet(row);
                 }}

@@ -36,8 +36,8 @@ Eight views, under a period bar that stays at the top: in a sidebar on wide scre
 Overview, Payments, Categories and Stores, and the ⋯ menu opens the Calendar, Money, Trips and Fun stats:
 
 - **Overview**: what you kept and what you spent (day by day against last month), the chart (spending, with what
-  went to savings on top), the top categories and stores, the latest payments (each with its category to change) and a
-  few quiet notes on what stands out.
+  went to savings on top), the top categories and stores, the latest payments (each with its category to change, new
+  ones sliding in as a sync brings them) and a few quiet notes on what stands out.
 - **Calendar**: a whole year, one square per day, darker the more was spent, any year with data. A day lists its
   payments beside the months (at the bottom on a phone); a shift-click, or "Extend to another day", picks a run of
   days, like a trip, and its payments can get one label together, unticking the ones that do not belong. A month's
