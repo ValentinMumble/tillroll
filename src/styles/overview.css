@@ -153,8 +153,8 @@
   font-weight: 600;
 }
 
-/* The large number with what was spent on two lines under it, and on their right, as tall as them, this period day
-   by day against the one before. */
+/* The large number with its lines under it (what is left after savings, what was spent, against the period before),
+   and on their right, as tall as them, this period day by day against the one before. */
 .summary-top {
   display: flex;
   align-items: stretch;
@@ -169,7 +169,7 @@
   max-width: 66%;
 }
 
-/* Each of the two lines whole, when there is room. */
+/* Each line whole, when there is room. */
 .summary-figures .summary-delta {
   font-size: 15px;
 }

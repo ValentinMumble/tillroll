@@ -20,9 +20,9 @@ interface Props {
 }
 
 /**
- * The receipt's total: what the period kept of what came in, then in one line what it cost against the usual period
- * or the previous one so far; the donut (time against money) with a short key; and a strip of the categories'
- * colours, each as long as its share. The balances fill the space beside them. Under it, the facts the rest does not
+ * The receipt's total: what the period kept of what came in, what that leaves once the moves to savings are out, then
+ * what it cost against the usual period or the previous one so far; the donut (time against money) with a short key;
+ * and a strip of the categories' colours, each as long as its share. The balances fill the space beside them. Under it, the facts the rest does not
  * give: payments with what a day cost, money in, and what went to savings (a few moves early in the month: a number,
  * not a ring). While a period still waits for its pay (or nothing came in), what it kept means nothing yet: the total
  * is what it cost, and a fact gives what was kept. Each figure shows once.
@@ -49,6 +49,9 @@ export function Summary({report, grain, currency, categories, toSavings, balance
   // What the period kept of what came in (Money in and out's figure), or spent beyond it.
   const kept = current.moneyIn - current.total;
   const showKept = current.moneyIn >= 0.5 && !waitingForPay(report);
+  // Moves to savings are not spending, so what was kept holds them: what it leaves on the current accounts (less than
+  // nothing when more went to savings than was kept). The amount sent stays in the facts.
+  const afterSavings = kept > 0 && toSavings >= 0.5 ? kept - toSavings : null;
   const spentWords = ongoing ? 'Spent so far' : 'Spent';
   const rings = Boolean(pace && timeAndMoney(pace, ongoing, grain, currency).whole);
   // Against the period before, in short ("▼ €1,033 vs last month"): the small chart beside it shows "at this point",
@@ -79,7 +82,7 @@ export function Summary({report, grain, currency, categories, toSavings, balance
           <>
             {/* The period is in the bar above: the eyebrow only says what the number is. */}
             <p className="eyebrow">{kept < 0 ? 'Spent beyond money in' : ongoing ? 'Kept so far' : 'Kept'}</p>
-            {/* The number and what was spent on two lines on the left; the small chart beside them, as tall. */}
+            {/* The number and its lines on the left; the small chart beside them, as tall. */}
             <div className="summary-top">
               <div className="summary-figures">
                 <p className="hero">
@@ -87,7 +90,13 @@ export function Summary({report, grain, currency, categories, toSavings, balance
                   {money(Math.abs(kept), currency)}
                 </p>
                 <p className="summary-delta">
-                  {/* The amount first, like the line under it. */}
+                  {/* Each line amount first. */}
+                  {afterSavings !== null && (
+                    <span>
+                      <strong>{money(Math.abs(afterSavings), currency)}</strong> {afterSavings < 0 ? 'short' : 'left'}{' '}
+                      after savings
+                    </span>
+                  )}
                   <span>
                     <strong>{money(current.total, currency)}</strong> {spentWords.toLowerCase()}
                   </span>

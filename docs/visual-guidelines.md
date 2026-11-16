@@ -190,9 +190,11 @@ shows, then the actions as `.link-button`s at the right end (`.card-actions` whe
 The overview answers "how is this month going?" first, above all on a phone, so its order is fixed:
 
 1. The receipt: what the period has kept so far (money in less what was spent, the large number; its label says only
-   "Kept so far", the period is in the bar above), under it two lines, each whole and amount first: what was spent
-   ("€1,488 spent so far") and how that compares ("▼ €1,033 vs last month"). On their right, as tall as them, the
-   period's spending day by day against the one before (`PaceCompare`: last month dashed `--muted` for all its days,
+   "Kept so far", the period is in the bar above), under it its lines, each whole and amount first: what is left once
+   the moves to savings are out, which Kept holds since they are not spending ("€1,362 left after savings", or "short"
+   when more went to savings than was kept; only when something went to savings, whose amount stays in the facts), what
+   was spent ("€1,488 spent so far") and how that compares ("▼ €1,033 vs last month"). On their right, as tall as them,
+   the period's spending day by day against the one before (`PaceCompare`: last month dashed `--muted` for all its days,
    this one `--bar-strong` over a fill fading to nothing, up to today with a dot; no key, a day's tooltip under the
    finger names both). Then the donut (`PaceRings`), rings outside in: how much of a usual period was spent
    (`--bar-strong`), how much of the period has gone (`--muted`). Its key says each in a few words, percent first (the
