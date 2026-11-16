@@ -1,6 +1,7 @@
 import type {Balance, Connection, Transaction} from '../../src/types';
 import {BankError, fetchBalance, fetchTransactions, psuHeaders, toTransaction, type Session} from './bank.js';
 import {HttpError} from './http.js';
+import {matchBooked} from './pending.js';
 import {
   BALANCES,
   LABELS,
@@ -28,13 +29,11 @@ function dayBefore(date: string, days: number) {
   return new Date(Date.parse(date) - days * 86_400_000).toISOString().slice(0, 10);
 }
 
-/** A pending payment and the payment the bank books for it are this many days apart at most. */
-const BOOKING_DAYS = 10;
-
 /**
  * A pending payment gets a new id once the bank books it (or when its text changes). The labels and the category
  * picked for it, and its payback links (as the money in or as the payment paid back), move to the payment that took
- * its place: same account, amount and currency, a few days apart at most.
+ * its place (see matchBooked): the same amount, or the same store for a hold or a tip. Labels join the ones the booked
+ * payment has already.
  */
 async function carryOver(before: Transaction[], pending: Transaction[], booked: Transaction[]) {
   const pendingIds = new Set(pending.map(item => item.id));
@@ -48,34 +47,26 @@ async function carryOver(before: Transaction[], pending: Transaction[], booked: 
     store.hgetall<Record<string, string>>(PAYBACKS),
   ]);
   const paidBack = new Set(Object.values(paybacks ?? {}));
+  // Only the ones with something to carry: a label, a category picked, a payback link.
+  const carried = gone.filter(
+    old => labels?.[old.id]?.length || categories?.[old.id] || paybacks?.[old.id] || paidBack.has(old.id),
+  );
+  if (carried.length === 0) return;
   const beforeIds = new Set(before.map(item => item.id));
-  const candidates = [...booked, ...pending.filter(item => !beforeIds.has(item.id))];
-  const account = (id: string) => id.split(':').slice(0, 2).join(':');
-  const days = (first: string, second: string) => Math.abs(Date.parse(first) - Date.parse(second)) / 86_400_000;
+  const matches = matchBooked(carried, [...booked, ...pending.filter(item => !beforeIds.has(item.id))]);
+  const nextIds = [...matches.values()].map(item => item.id);
+  const kept = nextIds.length ? await store.hmget<Record<string, string[] | null>>(LABELS, ...nextIds) : null;
   const movedLabels: Record<string, string[]> = {};
   const movedCategories: Record<string, string> = {};
   const dropped: string[] = [];
   const moved = new Map<string, string>();
-  for (const old of gone) {
-    const label = labels?.[old.id];
-    const category = categories?.[old.id];
-    const linked = Boolean(paybacks?.[old.id]) || paidBack.has(old.id);
-    if (!label?.length && !category && !linked) continue;
-    const next = candidates
-      .filter(
-        item =>
-          account(item.id) === account(old.id) &&
-          item.amount === old.amount &&
-          item.currency === old.currency &&
-          days(item.date, old.date) <= BOOKING_DAYS,
-      )
-      .sort((first, second) => days(first.date, old.date) - days(second.date, old.date))[0];
-    if (!next) continue;
-    candidates.splice(candidates.indexOf(next), 1);
-    if (label?.length) movedLabels[next.id] = label;
+  for (const [oldId, next] of matches) {
+    const label = labels?.[oldId];
+    const category = categories?.[oldId];
+    if (label?.length) movedLabels[next.id] = [...new Set([...(kept?.[next.id] ?? []), ...label])];
     if (category) movedCategories[next.id] = category;
-    moved.set(old.id, next.id);
-    dropped.push(old.id);
+    moved.set(oldId, next.id);
+    dropped.push(oldId);
   }
   // Each payback link with its money in and its payment under their new ids.
   const movedPaybacks: Record<string, string> = {};
