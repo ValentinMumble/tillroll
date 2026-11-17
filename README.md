@@ -90,8 +90,9 @@ amount first), and that payment then costs what is left, in its own week and mon
 March cheaper, not April. Payments shows "refund of 12 Mar" on the refund and "refunded" on the payment. A refund with
 no payment found lowers the spending of the week it came in.
 
-**Paybacks** are money in that pays a payment back (a friend's share, something sold later): link it by hand, and the
-payment costs that much less in its own month. A pending payment can be picked too: the link follows it once booked.
+**Paybacks** are money in that pays a payment back (a friend's share, something sold later): link it by hand from the
+money in's sheet, or tick both in Payments and press Link as payback, and the payment costs that much less in its own
+month. A pending payment can be picked too: the link follows it once booked.
 
 **Left out of every total**, spending and money in or out alike:
 

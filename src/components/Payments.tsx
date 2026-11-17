@@ -302,6 +302,13 @@ export function Payments({
   const selection = visible.filter(row => picked.has(row.id));
   const allIgnored = selection.length > 0 && selection.every(row => row.category === 'ignored');
   const allPicked = visible.length > 0 && selection.length === visible.length;
+  // One money in and one payment with something left to pay back ticked: the money in can pay it back in one tap (as
+  // the money in's sheet links it, see PaybackPicker).
+  const credit = selection.length === 2 ? selection.find(row => row.amount > 0) : undefined;
+  const repaid =
+    credit && !credit.refundOf?.byHand
+      ? selection.find(row => row.amount < 0 && row.counts && -row.amount - row.refunded >= 0.005)
+      : undefined;
 
   /** A new sort starts its own way; the same one again turns it around. */
   function sortBy(key: PaymentSort['key']) {
@@ -774,6 +781,19 @@ export function Payments({
               true,
             )}
           </span>
+          {credit && repaid && (
+            <button
+              type="button"
+              className="button"
+              title={`${credit.store}, ${money(credit.amount, credit.currency, true)}, pays back ${repaid.store}`}
+              onClick={() => {
+                onPayback(credit, repaid.id);
+                setPicked(new Set());
+              }}
+            >
+              Link as payback
+            </button>
+          )}
           <button type="button" className="button" onClick={() => setSheet(selection)}>
             Set category
           </button>
