@@ -103,9 +103,9 @@ payment costs that much less in its own month. A pending payment can be picked t
 - **Ignored**: tick payments in Payments and press Ignore (Count again undoes it), or pick Ignored as a category, for
   a store or one payment: a deposit, a purchase made for someone who paid it back.
 
-**Labels** go on single payments: the # next to a booked payment adds one (the labels already in use show as chips
-to tap). A pending payment gets a new id once the bank books it, so it has no #. The owner's choices are kept in the
-site store, so they follow to every device; a visitor's stay in their browser. The owner's page opens at once on the
+**Labels** go on single payments: the # next to a payment adds one (the labels already in use show as chips to tap).
+A pending payment's labels and category follow it once the bank books it. The owner's choices are kept in the site
+store, so they follow to every device; a visitor's stay in their browser. The owner's page opens at once on the
 copy kept on the device, and the logo's bars move while the new payments come in.
 
 ## On the iPhone

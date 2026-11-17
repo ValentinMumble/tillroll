@@ -17,6 +17,20 @@ const merchant = (description: string) =>
     .replace(/[^a-z0-9]/g, '');
 
 /**
+ * The pending payments of the last sync that are gone, and the payments that may have taken their place. A payment the
+ * bank books under the id it had while pending (Revolut's do) is neither: it keeps its labels, category and paybacks
+ * where they are.
+ */
+export function replaced(before: Transaction[], pending: Transaction[], booked: Transaction[]) {
+  const beforeIds = new Set(before.map(item => item.id));
+  const nowIds = new Set([...pending, ...booked].map(item => item.id));
+  return {
+    gone: before.filter(item => !nowIds.has(item.id)),
+    candidates: [...booked, ...pending].filter(item => !beforeIds.has(item.id)),
+  };
+}
+
+/**
  * The payment that took each pending one's place, by id: of the same currency, a few days apart at most, never two
  * pending ones on the same. The same amount first (the nearest day wins); else the same store for an amount from half
  * to twice it, as a hold or a tip leaves it (the nearest amount wins). The account is not compared: Enable Banking's

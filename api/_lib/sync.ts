@@ -1,7 +1,7 @@
 import type {Balance, Connection, Transaction} from '../../src/types';
 import {BankError, fetchBalance, fetchTransactions, psuHeaders, toTransaction, type Session} from './bank.js';
 import {HttpError} from './http.js';
-import {matchBooked} from './pending.js';
+import {matchBooked, replaced} from './pending.js';
 import {
   BALANCES,
   LABELS,
@@ -30,14 +30,14 @@ function dayBefore(date: string, days: number) {
 }
 
 /**
- * A pending payment gets a new id once the bank books it (or when its text changes). The labels and the category
+ * A pending payment may get a new id once the bank books it (or when its text changes); Revolut keeps the id, so
+ * there is nothing to move (see replaced). The labels and the category
  * picked for it, and its payback links (as the money in or as the payment paid back), move to the payment that took
  * its place (see matchBooked): the same amount, or the same store for a hold or a tip. Labels join the ones the booked
  * payment has already.
  */
 async function carryOver(before: Transaction[], pending: Transaction[], booked: Transaction[]) {
-  const pendingIds = new Set(pending.map(item => item.id));
-  const gone = before.filter(item => !pendingIds.has(item.id));
+  const {gone, candidates} = replaced(before, pending, booked);
   if (gone.length === 0) return;
   const store = redis();
   const ids = gone.map(item => item.id);
@@ -52,8 +52,7 @@ async function carryOver(before: Transaction[], pending: Transaction[], booked: 
     old => labels?.[old.id]?.length || categories?.[old.id] || paybacks?.[old.id] || paidBack.has(old.id),
   );
   if (carried.length === 0) return;
-  const beforeIds = new Set(before.map(item => item.id));
-  const matches = matchBooked(carried, [...booked, ...pending.filter(item => !beforeIds.has(item.id))]);
+  const matches = matchBooked(carried, candidates);
   const nextIds = [...matches.values()].map(item => item.id);
   const kept = nextIds.length ? await store.hmget<Record<string, string[] | null>>(LABELS, ...nextIds) : null;
   const movedLabels: Record<string, string[]> = {};

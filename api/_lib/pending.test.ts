@@ -1,6 +1,6 @@
 import {describe, expect, it} from 'vitest';
 import type {Transaction} from '../../src/types';
-import {matchBooked} from './pending';
+import {matchBooked, replaced} from './pending';
 
 let lastId = 0;
 
@@ -21,6 +21,32 @@ function payment(date: string, amount: number, description: string, fields: Part
     ...fields,
   };
 }
+
+describe('the pending payments a sync replaces', () => {
+  it('leave out one booked under the id it had while pending, as Revolut books them', () => {
+    const pending = payment('2026-11-14', -110.69, 'Aliexpress.com', {pending: true});
+    const booked = {...pending, pending: false};
+    expect(replaced([pending], [], [booked])).toEqual({gone: [], candidates: []});
+  });
+
+  it('never give a payment that kept its id to another pending one of the same amount', () => {
+    const kept = payment('2026-11-14', -20, 'Cafe Diem', {pending: true});
+    const renamed = payment('2026-11-14', -20, 'Cafe Diem', {pending: true});
+    const bookedKept = {...kept, pending: false};
+    const bookedRenamed = payment('2026-11-15', -20, 'Cafe Diem');
+    const {gone, candidates} = replaced([kept, renamed], [], [bookedKept, bookedRenamed]);
+    expect(gone).toEqual([renamed]);
+    expect(candidates).toEqual([bookedRenamed]);
+  });
+
+  it('are the ones gone, with what the sync brought', () => {
+    const still = payment('2026-11-14', -5, 'Boulangerie', {pending: true});
+    const old = payment('2026-11-14', -9, 'Sncf', {pending: true});
+    const next = payment('2026-11-15', -9, 'Sncf');
+    const fresh = payment('2026-11-16', -3, 'Kiosque', {pending: true});
+    expect(replaced([still, old], [still, fresh], [next])).toEqual({gone: [old], candidates: [next, fresh]});
+  });
+});
 
 describe('the booked payment that takes a pending one’s place', () => {
   it('is the one of the same amount, the nearest day first', () => {
