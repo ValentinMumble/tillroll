@@ -48,8 +48,8 @@ Overview, Payments, Categories and Stores, and the ⋯ menu opens the Calendar, 
   month by month, its average and where the money went over the last twelve months.
 - **Stores**: with a search, a pencil on each store (name and category, the stores merged into it, look-alikes to merge
   in), and the **possible duplicates** deck.
-- **Payments**: the total, by day like a bank statement or by amount or store, with a search and filters by category
-  (one or more) and by bank.
+- **Payments**: the total, by day like a bank statement or by amount or store, with a search ("lidl or aldi" finds
+  either) and filters by category (one or more) and by bank.
 - **Money**: where each period's money went (a flow from what came in to each category and to savings), the net worth
   (each bank and each savings account), what went to savings month by month, and each savings account (an assurance
   vie, a livret, Revolut's savings): what was paid in, year by year, and, from a value typed now and then, how much it

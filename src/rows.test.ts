@@ -1,6 +1,6 @@
 import {describe, expect, it} from 'vitest';
 import {categoriesFrom} from './categories';
-import {bankMergeKey, type Row, toRows} from './rows';
+import {bankMergeKey, matchesSearch, type Row, searchTerms, toRows} from './rows';
 import type {Transaction} from './types';
 
 let lastId = 0;
@@ -342,5 +342,32 @@ describe('A store category from one payment on', () => {
     const row = sorted([old, later], {[key]: 'health'}, {[key]: [{until: '2026-11-05', category: null}]});
     expect(row(old).category).toBe('transfers');
     expect(row(later).category).toBe('health');
+  });
+});
+
+describe('search', () => {
+  const lidl = payment({description: 'LIDL 1234', amount: -23.4, date: '2026-11-10'});
+  const aldi = payment({description: 'ALDI MARCHE', amount: -448.8, date: '2026-11-11'});
+  const cafe = payment({description: 'Café Diem', amount: -4.5, date: '2026-11-12'});
+  const row = rowsOf([lidl, aldi, cafe]);
+  const found = (query: string) =>
+    [lidl, aldi, cafe].filter(item => matchesSearch(row(item), searchTerms(query))).map(item => item.description);
+
+  it('finds every word of one search, an amount with its sign or currency', () => {
+    expect(found('aldi marche')).toEqual(['ALDI MARCHE']);
+    expect(found('-448,80 €')).toEqual(['ALDI MARCHE']);
+    expect(found('cafe')).toEqual(['Café Diem']);
+  });
+
+  it('finds either side of an or, or of a |', () => {
+    expect(found('lidl or aldi')).toEqual(['LIDL 1234', 'ALDI MARCHE']);
+    expect(found('lidl OR cafe diem')).toEqual(['LIDL 1234', 'Café Diem']);
+    expect(found('lidl|aldi')).toEqual(['LIDL 1234', 'ALDI MARCHE']);
+  });
+
+  it('is no search when empty, and ignores an or left alone while typing', () => {
+    expect(searchTerms('  ')).toEqual([]);
+    expect(found('')).toHaveLength(3);
+    expect(searchTerms('lidl or')).toEqual([['lidl']]);
   });
 });

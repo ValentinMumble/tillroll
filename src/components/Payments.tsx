@@ -11,7 +11,8 @@ import {
   isIncoming,
   isUnsure,
   type Row,
-  searchText,
+  matchesSearch,
+  searchTerms,
   topCategories,
 } from '../rows';
 import {
@@ -33,7 +34,7 @@ import {PaymentLabels} from './PaymentLabels';
 import {PaidBackBy, PaybackPicker} from './PaybackPicker';
 import {RefundTags} from './RefundTags';
 import {WebSearch} from './WebSearch';
-import {paymentCount, plain} from '../text';
+import {paymentCount} from '../text';
 import {FreshPayments} from '../freshPayments';
 import {TripLabels} from '../tripLabels';
 import {opensCategory} from '../device';
@@ -164,15 +165,10 @@ export function Payments({
   const toCheck = focus?.type === 'check';
   const unsure = rows.filter(isUnsure).length;
 
-  // An amount searched for can carry its sign or its currency ("-448,80 €").
-  const words = plain(query)
-    .split(/\s+/)
-    .map(word => word.replace(/^[-+−]|€/g, ''))
-    .filter(Boolean);
-  const matches = (row: Row) => {
-    const text = searchText(row);
-    return words.every(word => text.includes(word));
-  };
+  // "lidl or aldi" finds either (see searchTerms).
+  const terms = searchTerms(query);
+  const searching = terms.length > 0;
+  const matches = (row: Row) => matchesSearch(row, terms);
   // The label or store picked, alone: what the category filter counts in.
   const inLabelOrStore = (row: Row) => {
     if (focus?.type === 'label' && !row.labels.some(label => label.toLowerCase() === focus.key.toLowerCase())) {
@@ -199,9 +195,9 @@ export function Payments({
     : rows
         .filter(row => inFocus(row) && switchedOn(row) && matches(row))
         .sort((first, second) => compare(first, second, sort));
-  const filtered = !around && (words.length > 0 || focus !== null || bank !== null);
+  const filtered = !around && (searching || focus !== null || bank !== null);
   // A search also counts the matches the switches, the category filter and the period leave out.
-  const found = words.length && !around ? rows.filter(matches) : [];
+  const found = searching && !around ? rows.filter(matches) : [];
   const hiddenBySwitch = found.filter(row => inFocus(row) && !switchedOn(row));
   const hidden = {
     moneyIn: hiddenBySwitch.filter(row => row.category !== 'own').length,
@@ -213,7 +209,7 @@ export function Payments({
       : 0,
     period: 0,
   };
-  if (words.length && !around) {
+  if (searching && !around) {
     const here = new Set(rows.map(row => row.id));
     hidden.period = allRows.filter(
       row => !here.has(row.id) && inFocus(row) && isListed(row, {moneyIn, own}) && matches(row),
@@ -458,10 +454,10 @@ export function Payments({
         <div className="payments-context">
           <span>
             Every payment around <strong>{dayLabel(around.date, true)}</strong>, the ones{' '}
-            {words.length ? 'your search' : 'your filter'} found marked
+            {searching ? 'your search' : 'your filter'} found marked
           </span>
           <button type="button" className="button is-quiet" onClick={closeContext}>
-            ← Back to the {words.length ? 'search' : 'filtered list'}
+            ← Back to the {searching ? 'search' : 'filtered list'}
           </button>
         </div>
       )}
@@ -602,7 +598,7 @@ export function Payments({
       )}
       {visible.length === 0 ? (
         <p className="empty">
-          {toCheck ? 'Nothing left to check here.' : words.length ? 'No payment matches.' : 'No payments here.'}
+          {toCheck ? 'Nothing left to check here.' : searching ? 'No payment matches.' : 'No payments here.'}
         </p>
       ) : (
         <>

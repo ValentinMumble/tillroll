@@ -1,8 +1,7 @@
 import {useState} from 'react';
 import {money} from '../format';
 import {addDays, dayLabel, today} from '../periods';
-import {type Row, searchText} from '../rows';
-import {plain} from '../text';
+import {matchesSearch, type Row, searchTerms} from '../rows';
 
 interface Props {
   /** The money in. */
@@ -57,10 +56,7 @@ export function PaybackPicker({row, rows, onLink}: Props) {
   }
   const from = addDays(row.date, -DAYS_BEFORE);
   const to = addDays(row.date, DAYS_AFTER);
-  const words = plain(query)
-    .split(/\s+/)
-    .map(word => word.replace(/^[-+−]|€/g, ''))
-    .filter(Boolean);
+  const terms = searchTerms(query);
   // Spending with something left to pay back, pending too (a friend may pay their share before the bank books it: the
   // link moves to the booked payment at the next sync). A search looks at any of it, at any date. Without one, the
   // likely ones in the months around it: about as much as the money in or more (a friend may round up or add a little:
@@ -69,7 +65,7 @@ export function PaybackPicker({row, rows, onLink}: Props) {
     .filter(payment => {
       const left = -payment.amount - payment.refunded;
       if (payment.amount >= 0 || !payment.counts || left < 0.005) return false;
-      if (words.length > 0) return words.every(word => searchText(payment).includes(word));
+      if (terms.length > 0) return matchesSearch(payment, terms);
       return payment.date >= from && payment.date <= to && row.amount <= left + Math.max(1, left / 5);
     })
     .sort((first, second) => second.date.localeCompare(first.date));
@@ -86,7 +82,7 @@ export function PaybackPicker({row, rows, onLink}: Props) {
       />
       {options.length === 0 ? (
         <p className="hint">
-          {words.length > 0
+          {terms.length > 0
             ? 'No payment with something left to pay back matches, at any date.'
             : `No payment of about ${money(row.amount, row.currency)} or more in the months before: search to look further back.`}
         </p>

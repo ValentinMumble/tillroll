@@ -83,6 +83,31 @@ export function searchText(row: Row) {
 }
 
 /**
+ * A search as typed, split into its choices: "lidl or aldi" (or "lidl | aldi") finds either, and the words of one
+ * choice must all be there. An amount searched for can carry its sign or its currency ("-448,80 €"). None for an empty
+ * search.
+ */
+export function searchTerms(query: string) {
+  const choices: string[][] = [[]];
+  for (const word of plain(query).replace(/\|/g, ' | ').split(/\s+/)) {
+    if (word === 'or' || word === '|') {
+      choices.push([]);
+      continue;
+    }
+    const term = word.replace(/^[-+−]|€/g, '');
+    if (term) choices[choices.length - 1].push(term);
+  }
+  return choices.filter(choice => choice.length > 0);
+}
+
+/** Whether a row matches a search (see searchTerms): any row for an empty one. */
+export function matchesSearch(row: Row, terms: string[][]) {
+  if (terms.length === 0) return true;
+  const text = searchText(row);
+  return terms.some(choice => choice.every(word => text.includes(word)));
+}
+
+/**
  * The money in that gave each payment back, by the payment's id, oldest first: refunds, and paybacks linked by hand
  * (see linkPaybacks), which make it paid back rather than refunded.
  */
