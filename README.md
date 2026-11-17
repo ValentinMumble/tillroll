@@ -106,7 +106,8 @@ payment costs that much less in its own month. A pending payment can be picked t
 **Labels** go on single payments: the # next to a payment adds one (the labels already in use show as chips to tap).
 A pending payment's labels and category follow it once the bank books it. The owner's choices are kept in the site
 store, so they follow to every device; a visitor's stay in their browser. The owner's page opens at once on the
-copy kept on the device, and the logo's bars move while the new payments come in.
+copy kept on the device, and the logo's bars move while the new payments come in. Back at the front after a minute or
+more away, the page fetches again (and syncs the banks when their last sync is over 6 hours old), as on opening.
 
 ## On the iPhone
 

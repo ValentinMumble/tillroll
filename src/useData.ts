@@ -93,6 +93,8 @@ const FRESH_MS = 6000;
 
 /** A sync older than this runs again when the owner opens the page. */
 const SYNC_AFTER = 6 * 3_600_000;
+/** Back at the front after this long away, the page fetches again (iOS keeps a home-screen app as it was). */
+const BACK_AFTER = 60_000;
 
 /** The owner's data as the page holds it: fields an older server (or an older kept copy) may not have start empty. */
 function fromOwner(owner: OwnerData): Data {
@@ -227,6 +229,22 @@ export function useData({focus, setFocus, resetView}: View) {
     }
   }, [loadOwner]);
 
+  // The fresh data, then a sync when a bank with access was last synced more than 6 hours ago. One at a time.
+  const refreshing = useRef(false);
+  const refresh = useCallback(async () => {
+    if (refreshing.current) return;
+    refreshing.current = true;
+    try {
+      const owner = await loadOwner();
+      const stale = (owner?.connections ?? []).some(
+        item => !item.expired && (!item.syncedAt || Date.now() - Date.parse(item.syncedAt) > SYNC_AFTER),
+      );
+      if (stale) await sync();
+    } finally {
+      refreshing.current = false;
+    }
+  }, [loadOwner, sync]);
+
   // Once, when the page opens (StrictMode runs effects twice in development: one sync is enough).
   const started = useRef(false);
   useEffect(() => {
@@ -254,18 +272,31 @@ export function useData({focus, setFocus, resetView}: View) {
             }
           }
         }
-        const owner = await loadOwner();
-        // A sync when a bank with access was last synced more than 6 hours ago.
-        const stale = (owner?.connections ?? []).some(
-          item => !item.expired && (!item.syncedAt || Date.now() - Date.parse(item.syncedAt) > SYNC_AFTER),
-        );
-        if (stale) await sync();
+        await refresh();
       } finally {
         setStarting(false);
       }
     };
     void start();
-  }, [isOwner, leaveOwnerMode, loadOwner, noteFetched, sync]);
+  }, [isOwner, leaveOwnerMode, noteFetched, refresh]);
+
+  // Back at the front after a minute or more away, the same as on opening: iOS often keeps a home-screen app in
+  // memory, and shows it again as it was.
+  const hiddenAt = useRef<number | null>(null);
+  useEffect(() => {
+    if (!isOwner) return;
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') {
+        hiddenAt.current = Date.now();
+        return;
+      }
+      const away = hiddenAt.current === null ? 0 : Date.now() - hiddenAt.current;
+      hiddenAt.current = null;
+      if (away >= BACK_AFTER && !starting) void refresh();
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => document.removeEventListener('visibilitychange', onVisibility);
+  }, [isOwner, refresh, starting]);
 
   const categories = useMemo(() => categoriesFrom(data?.categories ?? []), [data?.categories]);
   const rows = useMemo(() => {
