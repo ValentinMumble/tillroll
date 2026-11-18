@@ -13,6 +13,7 @@ import {
   SESSION,
   SESSIONS,
   SYNCED_AT,
+  TRANSACTIONS,
 } from './store.js';
 
 /** Error codes that mean the owner has to authorize the access again. */
@@ -127,20 +128,39 @@ export async function connections(): Promise<Connection[]> {
 }
 
 /**
+ * Each payment with when the sync first saw it (see Transaction.seenAt): kept from the payment stored or the pending
+ * one of the last sync, now for a new one. Payments stored before this was kept stay without.
+ */
+async function withSeenAt(items: Transaction[], before: Transaction[]) {
+  const now = new Date().toISOString();
+  const known = new Map(before.map(item => [item.id, item]));
+  for (let start = 0; start < items.length; start += 500) {
+    const ids = items.slice(start, start + 500).map(item => item.id);
+    const stored = await redis().hmget<Record<string, Transaction | null>>(TRANSACTIONS, ...ids);
+    for (const [id, item] of Object.entries(stored ?? {})) if (item) known.set(id, item);
+  }
+  return items.map(item => {
+    const old = known.get(item.id);
+    if (!old) return {...item, seenAt: now};
+    return old.seenAt ? {...item, seenAt: old.seenAt} : item;
+  });
+}
+
+/**
  * Fetches the transactions of every account of one session. The first sync after a connection fetches as far back
  * as the bank allows (many banks give the full history only in the first hour). Later ones start ten days before
- * the last sync, since a payment can be booked days after it happens.
+ * the last sync, since a payment can be booked days after it happens. `before` is the bank's pending payments of the
+ * last sync.
  */
-async function syncSession(session: Session, request: Request | null) {
+async function syncSession(session: Session, request: Request | null, before: Transaction[]) {
   const since = session.syncedAt ? dayBefore(session.syncedAt, 10) : null;
   const headers = request ? psuHeaders(request, session.requiredHeaders) : {};
-  const booked: Transaction[] = [];
-  const pending: Transaction[] = [];
+  const fetched: Transaction[] = [];
   try {
     for (const account of session.accounts) {
       for (const item of await fetchTransactions(account.uid, since, headers)) {
         const transaction = toTransaction(item, account.hash, session.bank.name);
-        if (transaction) (transaction.pending ? pending : booked).push(transaction);
+        if (transaction) fetched.push(transaction);
       }
     }
   } catch (error) {
@@ -153,6 +173,9 @@ async function syncSession(session: Session, request: Request | null) {
     }
     throw error;
   }
+  const seen = await withSeenAt(fetched, before);
+  const booked = seen.filter(item => !item.pending);
+  const pending = seen.filter(item => item.pending);
   await saveTransactions(booked);
   await saveSession({...session, syncedAt: new Date().toISOString()});
   // The balances come last and never fail a sync: a bank may give none, or allow too few calls a day.
@@ -190,7 +213,7 @@ export async function sync(request: Request | null, only?: string) {
   let synced = 0;
   for (const session of live) {
     try {
-      const result = await syncSession(session, request);
+      const result = await syncSession(session, request, pending[bankKey(session.bank)] ?? []);
       await carryOver(pending[bankKey(session.bank)] ?? [], result.pending, result.booked);
       pending[bankKey(session.bank)] = result.pending;
       booked += result.booked.length;

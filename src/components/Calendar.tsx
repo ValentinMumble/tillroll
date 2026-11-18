@@ -3,7 +3,7 @@ import type {Categories} from '../categories';
 import {money} from '../format';
 import {tidyLabel, withLabel} from '../labels';
 import {dayLabel, periodEnd, today, weekdayLabel, weekdayOf} from '../periods';
-import type {Row} from '../rows';
+import {momentOf, type Row} from '../rows';
 import type {CategoryKey, Labels} from '../types';
 import {paymentCount} from '../text';
 
@@ -101,7 +101,7 @@ export function Calendar({rows, categories, currency, initialYear, onOpenMonth, 
   const picked = range
     ? rows
         .filter(row => row.counts && row.date >= range.from && row.date <= range.to)
-        .sort((first, second) => (`${first.date} ${first.time ?? ''}` < `${second.date} ${second.time ?? ''}` ? -1 : 1))
+        .sort((first, second) => (momentOf(first) < momentOf(second) ? -1 : 1))
     : [];
   const ticked = picked.filter(row => !unticked.has(row.id));
   const pickedTotal = picked.reduce((sum, row) => sum + row.spend, 0);

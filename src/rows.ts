@@ -1,5 +1,5 @@
 import {type Basis, type Categories, categoryOf, guessCategory, LEFT_OUT, namesMe, UNSURE} from './categories';
-import {addDays, shiftPeriod} from './periods';
+import {addDays, localDay, localTime, shiftPeriod} from './periods';
 import {storeKey, storeName} from './stores';
 import {plain} from './text';
 import type {CategoryKey, EarlierRules, Labels, Merges, Paybacks, PaymentCategories, Rules, Transaction} from './types';
@@ -146,11 +146,39 @@ function paidOn({date, description}: Transaction) {
 }
 const cents = (amount: number) => Math.round(Math.abs(amount) * 100);
 
+/**
+ * A payment's time, HH:MM in the browser's time zone: the statement's, or for a Revolut payment the one its id holds
+ * (the first part of its UUID counts the seconds since 1970). Revolut dates payments in UTC, so one paid just after
+ * midnight in Paris has its time under the day before.
+ */
+export function timeOf(transaction: Transaction) {
+  if (transaction.time || (transaction.bank ?? 'Revolut') !== 'Revolut') return transaction.time;
+  const head = /^bank:[^:]+:([0-9a-f]{8})-[0-9a-f]{4}-/.exec(transaction.id);
+  if (!head) return undefined;
+  const at = parseInt(head[1], 16) * 1000;
+  // Only a moment near its day: an id of another shape never gives a time.
+  if (Math.abs(at - Date.parse(transaction.date)) > 2 * 86_400_000) return undefined;
+  return localTime(new Date(at));
+}
+
+/**
+ * Where a payment sits in its day, "YYYY-MM-DD HH:MM": its time, else when the bank sync first saw it (after the day's
+ * other payments when that was on a later day). One with neither comes first in its day.
+ */
+export function momentOf({date, time, seenAt}: Pick<Transaction, 'date' | 'time' | 'seenAt'>) {
+  if (time) return `${date} ${time}`;
+  if (!seenAt) return date;
+  const seen = new Date(seenAt);
+  const day = localDay(seen);
+  return day > date ? `${date} 24:00` : day === date ? `${date} ${localTime(seen)}` : date;
+}
+
 /** Oldest first, by day, then time, then id: one order for the same payments, however they were loaded. */
 const chronological = (first: Row, second: Row) => {
-  const firstKey = `${first.date} ${first.time ?? ''} ${first.id}`;
-  const secondKey = `${second.date} ${second.time ?? ''} ${second.id}`;
-  return firstKey < secondKey ? -1 : firstKey > secondKey ? 1 : 0;
+  const firstMoment = momentOf(first);
+  const secondMoment = momentOf(second);
+  if (firstMoment !== secondMoment) return firstMoment < secondMoment ? -1 : 1;
+  return first.id < second.id ? -1 : first.id > second.id ? 1 : 0;
 };
 
 /**
@@ -496,6 +524,7 @@ export function toRows(
     return {
       ...transaction,
       date: day,
+      time: timeOf(transaction),
       store,
       storeKey: key,
       ownStore,
@@ -532,7 +561,8 @@ export function toRows(
     // "0 -" keeps a payback with nothing beyond at 0, not -0.
     row.spend = !row.counts ? 0 : row.refundOf ? 0 - row.beyond : -row.amount - row.refunded;
   }
-  return rows.sort((first, second) => (first.date < second.date ? 1 : first.date > second.date ? -1 : 0));
+  // Newest first, each day's too: a payment the last fetch brought in lands at the top of its day.
+  return rows.sort((first, second) => chronological(second, first));
 }
 
 /**

@@ -17,7 +17,7 @@ export interface FunStats {
   to: string;
   /** Average spent on each weekday (Monday first), and in all. */
   weekdays: {average: number; total: number}[];
-  /** Spent per hour of the day, when the payments have times (statements do, the bank sync does not). */
+  /** Spent per hour of the day, when the payments have times (statements and Revolut do, other banks do not). */
   hours: number[] | null;
   /** An average month by month of the year (January first), from full months; none before a whole year. */
   seasons: number[] | null;

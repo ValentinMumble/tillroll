@@ -1,5 +1,6 @@
 import {describe, expect, it} from 'vitest';
 import {categoriesFrom} from './categories';
+import {localTime} from './periods';
 import {bankMergeKey, matchesSearch, type Row, searchTerms, toRows} from './rows';
 import type {Transaction} from './types';
 
@@ -369,5 +370,58 @@ describe('search', () => {
     expect(searchTerms('  ')).toEqual([]);
     expect(found('')).toHaveLength(3);
     expect(searchTerms('lidl or')).toEqual([['lidl']]);
+  });
+});
+
+describe('a day’s payments', () => {
+  const sorting = {rules: {}, categories: categoriesFrom([]), merges: {}, labels: {}, paymentCategories: {}};
+  // A Revolut id, whose UUID starts with the seconds since 1970.
+  const revolutId = (at: string) =>
+    `bank:WwpbCiJhY2Nv:${Math.floor(Date.parse(at) / 1000).toString(16)}-b652-a674-a3d4-808c82218fd0`;
+
+  it('take a Revolut payment’s time from its id', () => {
+    const westport = payment({
+      id: revolutId('2026-11-17T19:58:19Z'),
+      bank: 'Revolut',
+      description: 'Westport',
+      amount: -19.9,
+      date: '2026-11-17',
+    });
+    const row = rowsOf([westport]);
+    expect(row(westport).time).toBe(localTime(new Date('2026-11-17T19:58:19Z')));
+  });
+
+  it('take no time from another bank’s id, or from one far from its day', () => {
+    const other = payment({
+      id: revolutId('2026-11-17T19:58:19Z'),
+      bank: 'Crédit Coopératif',
+      description: 'Leclerc',
+      amount: -49.83,
+      date: '2026-11-17',
+    });
+    const far = payment({id: revolutId('2026-10-01T10:00:00Z'), description: 'Amazon', amount: -9, date: '2026-11-17'});
+    const row = rowsOf([other, far]);
+    expect(row(other).time).toBeUndefined();
+    expect(row(far).time).toBeUndefined();
+  });
+
+  it('come newest first: by time, then by when the sync first saw them, one seen a day later on top', () => {
+    const day = '2026-11-17';
+    const list = [
+      payment({description: 'Morning', amount: -1, date: day, time: '09:00'}),
+      payment({description: 'Evening', amount: -2, date: day, time: '19:00'}),
+      payment({description: 'Seen next day', amount: -3, date: day, seenAt: '2026-11-18T08:00:00Z'}),
+      payment({description: 'Seen at noon', amount: -4, date: day, seenAt: new Date(`${day}T12:00:00`).toISOString()}),
+      payment({description: 'Never seen', amount: -5, date: day}),
+      payment({description: 'Next day', amount: -6, date: '2026-11-18'}),
+    ];
+    expect(toRows(list, sorting).map(row => row.description)).toEqual([
+      'Next day',
+      'Seen next day',
+      'Evening',
+      'Seen at noon',
+      'Morning',
+      'Never seen',
+    ]);
   });
 });

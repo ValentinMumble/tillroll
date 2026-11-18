@@ -6,8 +6,13 @@ export interface Transaction {
   id: string;
   /** The day of the payment, YYYY-MM-DD. */
   date: string;
-  /** The time of the payment, HH:MM, when the source gives it: statements do, the bank sync only gives the day. */
+  /**
+   * The time of the payment, HH:MM, when the source gives it: statements do. The bank sync only gives the day, but a
+   * Revolut payment's id holds its time (see timeOf).
+   */
   time?: string;
+  /** When the bank sync first saw it (an ISO date and time), to order a day's payments when there is no time. */
+  seenAt?: string;
   /** Negative when money goes out. */
   amount: number;
   currency: string;

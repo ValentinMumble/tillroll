@@ -213,7 +213,8 @@ The overview answers "how is this month going?" first, above all on a phone, so 
    payments), under day headings like the payment list's ("Today", "Yesterday", "Mon 12 Oct"), with what
    went out that day on the right when it had more than one payment. They show everything that moved, money in
    and moves between my accounts too, with no switches: those are the payment list's. Payments a fetch brings in (a
-   sync, or the refresh after the cached copy) slide down into the top: their slot opens, pushing the list down,
+   sync, or the refresh after the cached copy) slide down into the top of their day, since each day lists its
+   payments newest first (by time, else by when the sync first saw them): their slot opens, pushing the list down,
    while what they say drops in from above (700ms, 120ms apart), then a soft `--accent` highlight fades over 2.4s; in
    the payment list, whose rows cannot open, they drop a little as they fade in. A booked payment taking a pending
    one's place is no news. Reduce motion: the highlight only.

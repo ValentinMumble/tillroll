@@ -12,6 +12,7 @@ import {
   isUnsure,
   type Row,
   matchesSearch,
+  momentOf,
   searchTerms,
   topCategories,
 } from '../rows';
@@ -85,9 +86,9 @@ const SORTS: {key: PaymentSort['key']; label: string; descending: boolean}[] = [
 const NEWEST: PaymentSort = {key: 'date', descending: true};
 
 function compare(first: Row, second: Row, {key, descending}: PaymentSort) {
-  // The day, then the time when both have one (statements give it, the bank sync does not).
-  const firstMoment = `${first.date} ${first.time ?? ''}`;
-  const secondMoment = `${second.date} ${second.time ?? ''}`;
+  // The day, then where it sits in the day (see momentOf).
+  const firstMoment = momentOf(first);
+  const secondMoment = momentOf(second);
   const byDate = firstMoment < secondMoment ? -1 : firstMoment > secondMoment ? 1 : 0;
   const order =
     key === 'amount'
@@ -269,7 +270,7 @@ export function Payments({
     observer.observe(end);
     return () => observer.disconnect();
   }, [hasMore, limit]);
-  // A time column only when some payments listed have a time (statements give one, the bank sync does not): over the
+  // A time column only when some payments listed have a time (statements and Revolut give one, see timeOf): over the
   // whole list, not only the rows drawn, so it never appears while the list scrolls.
   const withTimes = visible.some(row => row.time);
   // Dates carry their year when the list covers more than one (all time, a label, the context of a day): the period's

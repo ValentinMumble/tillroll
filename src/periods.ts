@@ -20,10 +20,15 @@ export function daysBetween(from: string, to: string) {
   return Math.round((timeOf(to) - timeOf(from)) / DAY) + 1;
 }
 
+/** A moment's day in the browser's time zone, "YYYY-MM-DD". */
+export const localDay = (at: Date) => `${at.getFullYear()}-${pad(at.getMonth() + 1)}-${pad(at.getDate())}`;
+
+/** A moment's time in the browser's time zone, "HH:MM". */
+export const localTime = (at: Date) => `${pad(at.getHours())}:${pad(at.getMinutes())}`;
+
 /** Today in the browser's time zone. */
 export function today() {
-  const now = new Date();
-  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+  return localDay(new Date());
 }
 
 /** 0 for Monday to 6 for Sunday. */
