@@ -33,6 +33,8 @@ interface Props {
   allRows: Row[];
   /** Money in linked to the payment it pays back; null takes the link off. */
   onPayback: (row: Row, paymentId: string | null) => void;
+  /** Opens the payment list around the payment a money in pays back or refunds. */
+  onShowPaid: (row: Row) => void;
 }
 
 /** The overview shows whole days: at least this many payments, and at least this many days. */
@@ -53,6 +55,7 @@ export function LatestPayments({
   onOpenStore,
   allRows,
   onPayback,
+  onShowPaid,
 }: Props) {
   const [sheet, setSheet] = useState<Row | null>(null);
   // Everything that moved, money in and moves between one's own accounts too: the payment list has the switches.
@@ -139,7 +142,12 @@ export function LatestPayments({
                         via PayPal
                       </span>
                     )}
-                    <RefundTags row={row} givenBack={given} onOpen={() => setSheet(row)} />
+                    <RefundTags
+                      row={row}
+                      givenBack={given}
+                      onOpen={() => setSheet(row)}
+                      onShowPaid={() => onShowPaid(row)}
+                    />
                     <PaymentLabels row={row} names={labelNames} onLabels={onLabels} onFocusLabel={onFocusLabel} />
                   </span>
                 </span>

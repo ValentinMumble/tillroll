@@ -34,7 +34,7 @@ import {timeAgo} from './format';
 import {type Grain, periodEnd, periodOf, periodStart, shiftPeriod, today} from './periods';
 import {savingsAccounts} from './savings';
 import {buildReport} from './report';
-import {isUnsure, rowsBetween, type StoreToSort, storesToSort} from './rows';
+import {isUnsure, type Row, rowsBetween, type StoreToSort, storesToSort} from './rows';
 import {loadChartSpan, loadGrain, saveChartSpan, saveGrain, savePaymentSort} from './storage';
 import {FreshPayments} from './freshPayments';
 import {TripLabels} from './tripLabels';
@@ -102,6 +102,8 @@ export default function App() {
   const [tab, setTab] = useState<Tab>(() => placeFromHistory().tab);
   // Bumped to start the payment list over: a new key gives it a fresh search and no ticks.
   const [paymentsRun, setPaymentsRun] = useState(0);
+  // Money in whose paid-back payment the payment list opens around, from the overview's tag (see Payments' openAt).
+  const [paidOf, setPaidOf] = useState<Row | null>(null);
   /** The latest period and no filter, once other data comes in. */
   const resetView = useCallback(() => {
     setChosenPeriod(null);
@@ -592,6 +594,11 @@ export default function App() {
                   }
                   onLabels={changes => void setLabels(changes)}
                   onPayback={(row, paymentId) => void setPayback(row, paymentId)}
+                  onShowPaid={row => {
+                    setFocus(null);
+                    setPaidOf(row);
+                    setTab('payments');
+                  }}
                   toSavings={toSavings}
                   chartSaved={chartSaved}
                   chartSpan={chartSpan}
@@ -720,6 +727,8 @@ export default function App() {
                   onFocusCheck={() => setFocus({type: 'check'})}
                   onPayback={(row, paymentId) => void setPayback(row, paymentId)}
                   showBanks={showBanks}
+                  openAt={paidOf}
+                  onOpenedAt={() => setPaidOf(null)}
                 />
               )}
             </FreshPayments.Provider>

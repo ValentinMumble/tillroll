@@ -49,6 +49,8 @@ interface Props {
   onCreateCategory: (rows: Row[], label: string, icon: string, scope: string) => void;
   onLabels: (changes: Labels) => void;
   onPayback: (row: Row, paymentId: string | null) => void;
+  /** Opens the payment list around the payment a money in pays back or refunds. */
+  onShowPaid: (row: Row) => void;
   /** What the period put in savings accounts, less what it took back (a negative amount when it took back more). */
   toSavings: number;
   /** The same for each of the period chart's columns. */
@@ -93,6 +95,7 @@ export function Overview({
   onCreateCategory,
   onLabels,
   onPayback,
+  onShowPaid,
   toSavings,
   chartSaved,
   chartSpan,
@@ -146,6 +149,7 @@ export function Overview({
         onSeeAll={onSeeAllPayments}
         allRows={allRows}
         onPayback={onPayback}
+        onShowPaid={onShowPaid}
       />
       {grain === 'year' && (
         <YourYear

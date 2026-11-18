@@ -71,6 +71,26 @@ interface Props {
   showBanks: boolean;
   /** The payments that put money in a savings account or take it back, by id (see savingsAccounts). */
   savingsMoves: Set<string>;
+  /** Money in whose payment (the one it pays back or refunds) the list opens around, from the overview's tag. */
+  openAt?: Row | null;
+  /** The list has opened around it: it is not for the next time the list opens. */
+  onOpenedAt?: () => void;
+}
+
+/**
+ * "See in context": every payment around a day, some marked (the filtered list's matches, or the payment a money in
+ * pays back, which `marked` then names). It keeps what to go back to: the filter it came from (a new filter closes
+ * it), how far that list was drawn and the day to bring into view (the context's, or the money in's); and how many
+ * newer payments show above the day.
+ */
+interface InContext {
+  date: string;
+  matches: Set<string>;
+  focus: Focus | null;
+  back: number;
+  newer: number;
+  marked?: string;
+  backTo?: string;
 }
 
 const PAGE = 60;
@@ -125,6 +145,8 @@ export function Payments({
   onPayback,
   showBanks,
   savingsMoves,
+  openAt,
+  onOpenedAt,
 }: Props) {
   const [moneyIn, setMoneyIn] = useState(loadPaymentsEverything);
   const [own, setOwn] = useState(loadPaymentsOwn);
@@ -149,19 +171,24 @@ export function Payments({
   const narrows = focus?.type === 'label' || focus?.type === 'store';
   const pickedCategories =
     focus?.type === 'category' ? focus.keys : narrows && narrowed?.focus === focus ? narrowed.keys : [];
-  // "See in context": every payment around a day of the filtered list, the filter's matches marked. It keeps what to
-  // go back to (the filter it came from, which a new filter closes it for, and how far that list was drawn), and how
-  // many newer payments show above the day.
-  const [context, setContext] = useState<{
-    date: string;
-    matches: Set<string>;
-    focus: Focus | null;
-    back: number;
-    newer: number;
-  } | null>(null);
+  // Every payment around the one a money in pays back or refunds, that one marked; back, the money in's day.
+  const paidContext = (credit: Row, back: number): InContext | null =>
+    credit.refundOf && {
+      date: credit.refundOf.date,
+      matches: new Set([credit.refundOf.id]),
+      focus,
+      back,
+      newer: 8,
+      marked: credit.refundOf.store,
+      backTo: credit.date,
+    };
+  const [context, setContext] = useState<InContext | null>(() => (openAt ? paidContext(openAt, PAGE) : null));
   const around = context && context.focus === focus ? context : null;
   // The day heading to bring into view once the list is drawn, on opening or closing the context.
-  const jumpTo = useRef<string | null>(null);
+  const jumpTo = useRef<string | null>(openAt?.refundOf?.date ?? null);
+  useEffect(() => {
+    if (openAt) onOpenedAt?.();
+  }, [openAt, onOpenedAt]);
   // Only the payments to check; one fixed leaves the list.
   const toCheck = focus?.type === 'check';
   const unsure = rows.filter(isUnsure).length;
@@ -343,9 +370,18 @@ export function Payments({
     setLimit(PAGE);
   }
 
+  /** Shows every payment around the one a money in pays back or refunds, that one marked. */
+  function openPaid(credit: Row) {
+    const next = paidContext(credit, limit);
+    if (!next) return;
+    jumpTo.current = next.date;
+    setContext(next);
+    setLimit(PAGE);
+  }
+
   function closeContext() {
     if (!around) return;
-    jumpTo.current = around.date;
+    jumpTo.current = around.backTo ?? around.date;
     setLimit(around.back);
     setContext(null);
   }
@@ -461,11 +497,13 @@ export function Payments({
       {around && (
         <div className="payments-context">
           <span>
-            Every payment around <strong>{dayLabel(around.date, true)}</strong>, the ones{' '}
-            {searching ? 'your search' : 'your filter'} found marked
+            Every payment around <strong>{dayLabel(around.date, true)}</strong>,{' '}
+            {around.marked
+              ? `the one at ${around.marked} marked`
+              : `the ones ${searching ? 'your search' : 'your filter'} found marked`}
           </span>
           <button type="button" className="button is-quiet" onClick={closeContext}>
-            ← Back to the {searching ? 'search' : 'filtered list'}
+            ← Back to the {around.marked ? 'list' : searching ? 'search' : 'filtered list'}
           </button>
         </div>
       )}
@@ -732,7 +770,12 @@ export function Payments({
                           </span>
                         )}
                         {isUnsure(row) && <span className="tag is-check">to check</span>}
-                        <RefundTags row={row} givenBack={given} onOpen={() => setSheet([row])} />
+                        <RefundTags
+                          row={row}
+                          givenBack={given}
+                          onOpen={() => setSheet([row])}
+                          onShowPaid={() => openPaid(row)}
+                        />
                         <PaymentLabels row={row} names={labelNames} onLabels={onLabels} onFocusLabel={onFocusLabel} />
                       </span>
                     </td>
