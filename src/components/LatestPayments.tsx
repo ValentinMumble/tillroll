@@ -2,7 +2,7 @@ import {type CSSProperties, useContext, useState} from 'react';
 import {type Categories, colourStyle} from '../categories';
 import {money} from '../format';
 import {dayLabel, recentDayLabel} from '../periods';
-import {givenBack, givenTitle, isListed, isIncoming, isUnsure, type Row, topCategories} from '../rows';
+import {givenBack, givenTitle, isListed, isIncoming, isUnsure, partlyGivenBack, type Row, topCategories} from '../rows';
 import type {CategoryKey, Labels} from '../types';
 import {BankBadge} from './BankBadge';
 import {CategorySheet, MOST_USED} from './CategorySheet';
@@ -114,7 +114,7 @@ export function LatestPayments({
                 className={
                   `${(row.counts && row.spend !== 0) || isIncoming(row) ? '' : 'is-muted'}${row.pending ? ' is-pending' : ''}${
                     freshOrder.has(row.id) ? ' is-new' : ''
-                  }` || undefined
+                  }${partlyGivenBack(row) ? ' has-net' : ''}` || undefined
                 }
                 style={freshOrder.has(row.id) ? ({'--order': freshOrder.get(row.id)} as CSSProperties) : undefined}
                 onClick={event => {
@@ -175,6 +175,9 @@ export function LatestPayments({
                 </button>
                 <span className={`payment-amount${row.amount > 0 ? ' is-in' : ''}`}>
                   {money(row.amount, row.currency, true)}
+                  {partlyGivenBack(row) && (
+                    <span className="payment-net">{money(row.spend, row.currency, true)} net</span>
+                  )}
                 </span>
               </li>,
             ];

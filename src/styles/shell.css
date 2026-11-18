@@ -911,6 +911,22 @@
     width: auto;
   }
 
+  /* A payment partly paid back: its amount takes both lines, with what it still costs on the second, in the time's
+     place (its sheet has the time). So the row stays two lines. */
+  .payments tr.has-net .payment-amount,
+  .latest li.has-net .payment-amount {
+    display: grid;
+    grid-row: 1 / span 2;
+    grid-template-rows: subgrid;
+    align-items: center;
+    justify-items: end;
+  }
+
+  .payments tr.has-net .payment-day,
+  .latest li.has-net .latest-day {
+    display: none;
+  }
+
   .payments .payment-category {
     grid-area: category;
     width: auto;

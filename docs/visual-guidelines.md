@@ -122,7 +122,9 @@ shows, then the actions as `.link-button`s at the right end (`.card-actions` whe
 
 - Refund and payback tags (`RefundTags`) look the same wherever a payment shows: the payment list and the overview's
   latest payments. A payment's "paid back" or "refunded" tag names what gave it back on hover and opens its sheet,
-  which lists them ("Paid back by", with Unlink).
+  which lists them ("Paid back by", with Unlink). What a payment partly paid back or refunded still costs shows in
+  small grey text under its amount ("€186.25 net"), not in the tag; on a phone it takes the time's place, so the
+  row stays two lines.
 - A label marked as a trip wears a light orange tint (`.label-chip.is-trip`, the `--trip` token at 26% with the text
   in `--ink`) wherever its chip shows, apart from the other labels' accent, and drops the # (its colour says it is a
   trip); in the Labels card its name has a light orange dot instead of the #, like the "Trips" switch.

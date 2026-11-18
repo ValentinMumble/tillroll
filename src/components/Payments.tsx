@@ -13,6 +13,7 @@ import {
   type Row,
   matchesSearch,
   momentOf,
+  partlyGivenBack,
   searchTerms,
   topCategories,
 } from '../rows';
@@ -713,7 +714,7 @@ export function Payments({
                   ),
                   <tr
                     key={row.id}
-                    className={`${(row.counts && row.spend !== 0) || isIncoming(row) ? '' : 'is-muted'}${picked.has(row.id) ? ' is-picked' : ''}${around?.matches.has(row.id) ? ' is-match' : ''}${row.pending ? ' is-pending' : ''}${freshOrder.has(row.id) ? ' is-new' : ''}`}
+                    className={`${(row.counts && row.spend !== 0) || isIncoming(row) ? '' : 'is-muted'}${picked.has(row.id) ? ' is-picked' : ''}${around?.matches.has(row.id) ? ' is-match' : ''}${row.pending ? ' is-pending' : ''}${freshOrder.has(row.id) ? ' is-new' : ''}${partlyGivenBack(row) ? ' has-net' : ''}`}
                     style={freshOrder.has(row.id) ? ({'--order': freshOrder.get(row.id)} as CSSProperties) : undefined}
                     onClick={event => {
                       if (opensCategory(event)) setSheet([row]);
@@ -806,6 +807,9 @@ export function Payments({
                     </td>
                     <td className={`payment-amount${row.amount > 0 ? ' is-in' : ''}`}>
                       {money(row.amount, row.currency, true)}
+                      {partlyGivenBack(row) && (
+                        <span className="payment-net">{money(row.spend, row.currency, true)} net</span>
+                      )}
                     </td>
                   </tr>,
                 ];

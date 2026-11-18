@@ -120,6 +120,9 @@ export function givenBack(rows: Row[]) {
   return map;
 }
 
+/** A payment partly refunded or paid back: what it still costs shows under its amount. */
+export const partlyGivenBack = (row: Row) => row.amount < 0 && row.refunded > 0 && row.spend >= 0.005;
+
 /** What gave a payment back, as a heading: paid back when a payback was linked by hand to it, refunded otherwise. */
 export const givenTitle = (credits: Row[] = []) =>
   credits.some(credit => credit.refundOf?.byHand) ? 'Paid back by' : 'Refunded by';

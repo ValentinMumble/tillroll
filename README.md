@@ -93,7 +93,7 @@ no payment found lowers the spending of the week it came in.
 
 **Paybacks** are money in that pays a payment back (a friend's share, something sold later): link it by hand from the
 money in's sheet, or tick both in Payments and press Link as payback, and the payment costs that much less in its own
-month. A pending payment can be picked too: the link follows it once booked. The money in's tag ("pays back Airbnb,
+month (what it still costs shows under its amount). A pending payment can be picked too: the link follows it once booked. The money in's tag ("pays back Airbnb,
 14 Jun", or "refund of") shows that payment among the ones around it.
 
 **Left out of every total**, spending and money in or out alike:
