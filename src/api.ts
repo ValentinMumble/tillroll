@@ -32,12 +32,17 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const headers = new Headers(init.headers);
   if (init.body) headers.set('Content-Type', 'application/json');
   // Owner mode rides on the session cookie the server set (see signIn).
-  const response = await fetch(path, {...init, headers, credentials: 'same-origin'});
-  const data: unknown = await response.json().catch(() => ({}));
+  // Offline (the app opens with no network, see public/sw.js): a plain message rather than the browser's own.
+  const response = await fetch(path, {...init, headers, credentials: 'same-origin'}).catch(() => {
+    throw new RequestError(0, 'No connection to Tillroll');
+  });
+  const data: unknown = await response.json().catch(() => undefined);
   if (!response.ok) {
-    const message = (data as {error?: string}).error;
+    const message = (data as {error?: string} | undefined)?.error;
     throw new RequestError(response.status, message ?? `The server answered ${response.status}`);
   }
+  // A page instead of data (a café's or a hotel's Wi-Fi login): an error, never empty data shown or kept on this device.
+  if (data === undefined) throw new RequestError(response.status, 'No answer from Tillroll: check the connection');
   return data as T;
 }
 
@@ -84,11 +89,21 @@ export async function fetchBanks(country: string) {
   return (await request<{banks: string[]}>(`/api/banks?country=${encodeURIComponent(country)}`)).banks;
 }
 
-export function syncBank() {
-  return request<{syncedAt: string; booked: number; pending: number; errors: string[]}>('/api/sync', {
-    method: 'POST',
-    body: '{}',
-  });
+/** What a sync answers: its counts when it ran, and the owner's data after it either way. */
+export interface SyncResult {
+  synced: boolean;
+  syncedAt?: string;
+  booked?: number;
+  pending?: number;
+  errors?: string[];
+  /** Why the sync failed, when the page asked for one only if due (the data still comes). */
+  error?: string;
+  data: OwnerData;
+}
+
+/** Syncs the banks, or with `due` only those last synced more than 6 hours ago, and answers with the data. */
+export function syncBank(due = false) {
+  return request<SyncResult>('/api/sync', {method: 'POST', body: JSON.stringify(due ? {due} : {})});
 }
 
 /** Ends the access to one bank, by its connection id. */

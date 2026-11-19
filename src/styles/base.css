@@ -74,7 +74,7 @@
   /* The system's own type, San Francisco on Apple devices, as in an iPhone or Mac app; its monospaced cousin for
      what the bank wrote. */
   --font-body: -apple-system, BlinkMacSystemFont, system-ui, 'Segoe UI', Roboto, sans-serif;
-  --font-mono: ui-monospace, 'IBM Plex Mono', Menlo, monospace;
+  --font-mono: ui-monospace, Menlo, monospace;
   --radius: 20px;
 }
 

@@ -115,6 +115,14 @@ export async function pendingByBank(): Promise<Record<string, Transaction[]>> {
   return (await redis().get<Record<string, Transaction[]>>(PENDING)) ?? {};
 }
 
+/** A sync older than this runs again when the owner opens the page (the page has the same rule, see useData). */
+const SYNC_AFTER = 6 * 3_600_000;
+
+/** Whether a bank with access was last synced more than 6 hours ago. */
+export function syncDue(list: Connection[]) {
+  return list.some(item => !item.expired && (!item.syncedAt || Date.now() - Date.parse(item.syncedAt) > SYNC_AFTER));
+}
+
 /** The bank connections as the page shows them. */
 export async function connections(): Promise<Connection[]> {
   return (await sessions()).map(session => ({

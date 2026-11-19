@@ -45,8 +45,9 @@ live in `src/styles/`, one file per area, imported in order by `src/index.css` (
 - Dialog titles: 18px.
 - Amounts in tables and lists: `font-variant-numeric: tabular-nums`. Always format money with `money()` from
   `src/format.ts`.
-- What the bank wrote (a payment's raw text): the system's monospaced type (SF Mono, IBM Plex Mono elsewhere,
-  `--font-mono`). Amounts, days and times stay in the body type with even-width digits.
+- What the bank wrote (a payment's raw text): the system's monospaced type (SF Mono on Apple devices,
+  `--font-mono`), never a web font: one would hold up the first screen. Amounts, days and times stay in the body type
+  with even-width digits.
 - The wordmark is the system's type too, bold and lowercase: tillroll. The phone's large titles match its type:
   tillroll on the overview, the view's name with its capital on the others (Payments, Categories).
 - In the app the logo is three bars in `--cat-1`, `--cat-2` and `--cat-3` beside the full name

@@ -91,8 +91,13 @@ export interface Notice {
 /** How long the payments a fetch brings in stay new: long enough for their rows to slide in. */
 const FRESH_MS = 6000;
 
-/** A sync older than this runs again when the owner opens the page. */
+/** A sync older than this runs again when the owner opens the page (the server has the same rule, see api/sync.ts). */
 const SYNC_AFTER = 6 * 3_600_000;
+
+/** Whether a bank with access was last synced more than 6 hours ago. */
+const syncDue = (connections: Connection[]) =>
+  connections.some(item => !item.expired && (!item.syncedAt || Date.now() - Date.parse(item.syncedAt) > SYNC_AFTER));
+
 /** Back at the front after this long away, the page fetches again (iOS keeps a home-screen app as it was). */
 const BACK_AFTER = 60_000;
 
@@ -193,6 +198,27 @@ export function useData({focus, setFocus, resetView}: View) {
     return () => window.clearTimeout(timer);
   }, [fresh]);
 
+  // The bank connections the page shows, to tell whether opening it will sync (see sync).
+  const shownConnections = useRef<Connection[]>([]);
+  /** Shows the owner's data, from the server or the copy kept on this device. */
+  const showOwner = useCallback(
+    (owner: OwnerData) => {
+      noteFetched(owner.transactions);
+      shownConnections.current = owner.connections ?? [];
+      setData(fromOwner(owner));
+    },
+    [noteFetched],
+  );
+
+  const ownerFailed = useCallback(
+    (error: unknown) => {
+      if (error instanceof RequestError && error.status === 403)
+        leaveOwnerMode('This owner key is not valid: you see the public version.');
+      else setNotice({tone: 'error', text: messageOf(error)});
+    },
+    [leaveOwnerMode],
+  );
+
   const loadOwner = useCallback(async () => {
     try {
       let owner: OwnerData;
@@ -201,45 +227,57 @@ export function useData({focus, setFocus, resetView}: View) {
         before = edits.current;
         owner = await fetchOwnerData();
       } while (edits.current !== before);
-      noteFetched(owner.transactions);
-      setData(fromOwner(owner));
+      showOwner(owner);
       void saveCachedOwnerData(owner);
       return owner;
     } catch (error) {
-      if (error instanceof RequestError && error.status === 403)
-        leaveOwnerMode('This owner key is not valid: you see the public version.');
-      else setNotice({tone: 'error', text: messageOf(error)});
+      ownerFailed(error);
       return null;
     } finally {
       setLoading(false);
     }
-  }, [leaveOwnerMode, noteFetched]);
+  }, [ownerFailed, showOwner]);
 
-  const sync = useCallback(async () => {
-    setBusy('sync');
-    try {
-      const result = await syncBank();
-      await loadOwner();
-      return result;
-    } catch (error) {
-      setNotice({tone: 'error', text: messageOf(error)});
-      return null;
-    } finally {
-      setBusy(null);
-    }
-  }, [loadOwner]);
+  // A sync answers with the data after it, so a slow connection downloads it once. A change saved meanwhile may be
+  // missing from it: the data comes again then (see loadOwner). With `due`, the server syncs only when a bank was last
+  // synced more than 6 hours ago, and "Syncing…" shows only when the data on screen says so.
+  const sync = useCallback(
+    async (due = false) => {
+      const marked = !due || syncDue(shownConnections.current);
+      if (marked) setBusy('sync');
+      try {
+        const before = edits.current;
+        const result = await syncBank(due);
+        if (edits.current === before) {
+          showOwner(result.data);
+          void saveCachedOwnerData(result.data);
+        } else await loadOwner();
+        if (result.error) setNotice({tone: 'error', text: result.error});
+        return result;
+      } catch (error) {
+        if (due) ownerFailed(error);
+        else setNotice({tone: 'error', text: messageOf(error)});
+        return null;
+      } finally {
+        if (marked) setBusy(null);
+      }
+    },
+    [loadOwner, ownerFailed, showOwner],
+  );
 
-  // The fresh data, then a sync when a bank with access was last synced more than 6 hours ago. One at a time.
+  // The fresh data, after a sync when a bank with access was last synced more than 6 hours ago: one call when data is
+  // on screen already. With nothing to show yet, the data comes first and the sync after, so a sync never holds up the
+  // first screen. One at a time.
   const refreshing = useRef(false);
   const refresh = useCallback(async () => {
     if (refreshing.current) return;
     refreshing.current = true;
     try {
-      const owner = await loadOwner();
-      const stale = (owner?.connections ?? []).some(
-        item => !item.expired && (!item.syncedAt || Date.now() - Date.parse(item.syncedAt) > SYNC_AFTER),
-      );
-      if (stale) await sync();
+      if (shown.current) await sync(true);
+      else {
+        const owner = await loadOwner();
+        if (owner && syncDue(owner.connections ?? [])) await sync(true);
+      }
     } finally {
       refreshing.current = false;
     }
@@ -255,8 +293,7 @@ export function useData({focus, setFocus, resetView}: View) {
         // The data kept on this device from the last visit shows at once; the fresh data replaces it when it comes.
         const cached = await loadCachedOwnerData();
         if (cached) {
-          noteFetched(cached.transactions);
-          setData(fromOwner(cached));
+          showOwner(cached);
           setLoading(false);
         }
         // A key from a #owner= address or the footer becomes the year-long cookie, then leaves the page's storage.
@@ -278,7 +315,7 @@ export function useData({focus, setFocus, resetView}: View) {
       }
     };
     void start();
-  }, [isOwner, leaveOwnerMode, noteFetched, refresh]);
+  }, [isOwner, leaveOwnerMode, refresh, showOwner]);
 
   // Back at the front after a minute or more away, the same as on opening: iOS often keeps a home-screen app in
   // memory, and shows it again as it was.

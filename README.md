@@ -109,8 +109,10 @@ month (what it still costs shows under its amount). A pending payment can be pic
 **Labels** go on single payments: the # next to a payment adds one (the labels already in use show as chips to tap).
 A pending payment's labels and category follow it once the bank books it. The owner's choices are kept in the site
 store, so they follow to every device; a visitor's stay in their browser. The owner's page opens at once on the
-copy kept on the device, and the logo's bars move while the new payments come in. Back at the front after a minute or
-more away, the page fetches again (and syncs the banks when their last sync is over 6 hours old), as on opening.
+copy kept on the device, even with no network (a service worker keeps the page and its files, `public/sw.js`), and the
+logo's bars move while the new payments come in. On opening, and back at the front after a minute or more away, one
+call syncs the banks when their last sync is over 6 hours old and brings the data, so a slow connection downloads it
+once.
 
 ## On the iPhone
 
@@ -119,8 +121,8 @@ sections (Overview, Payments, Categories, Stores), and a swipe sideways slides b
 iOS app on every screen (the system's type, colours and controls); on a phone it also has large titles, and sheets
 that rise from the bottom and close with a swipe down anywhere on them. A home-screen app keeps its own cookies,
 apart from Safari's: the owner enters their key once there, through the Owner key link at the bottom of the page.
-Coming back to the front, it reloads itself when a newer deploy is out (checked at most once a minute), so it never
-sits on an old version.
+On opening (until something is tapped) and coming back to the front (at most once a minute), it reloads itself when
+a newer deploy is out, so it never sits on an old version.
 
 ## Several banks
 
@@ -200,9 +202,10 @@ join the ones typed.
 
 - `api/`: Vercel functions. `login` and `logout` start and end owner mode, `banks` lists the banks for the picker,
   `connect` starts the bank authorization, `callback` takes the bank's answer and runs the first sync, `sync` runs a
-  sync (the daily cron or the owner's page), `data` returns the owner's transactions, `sorting` saves the owner's
-  choices (categories per store and per payment, categories, merges, labels, trips, stores marked not the same,
-  savings values and statements, budgets), `import` saves the owner's statement rows, `disconnect` ends the access.
+  sync (the daily cron, or the owner's page, which gets the data back with it), `data` returns the owner's
+  transactions, `sorting` saves the owner's choices (categories per store and per payment, categories, merges, labels,
+  trips, stores marked not the same, savings values and statements, budgets), `import` saves the owner's statement
+  rows, `disconnect` ends the access.
   `_lib/bank.ts` talks to Enable Banking: requests are signed with the application's key (an RS256 token made with
   `node:crypto`, no library).
 - Redis keys, all `tillroll:*`: the bank session, the booked transactions by id, the pending ones from the last sync,

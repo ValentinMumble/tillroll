@@ -31,18 +31,39 @@ window.addEventListener('vite:preloadError', event => {
 const RUNNING_BUILD = import.meta.url.match(/\/assets\/index-[^/]+\.js/)?.[0] ?? null;
 const BUILD_CHECK_GAP_MS = 60_000;
 let checkedBuildAt = 0;
-document.addEventListener('visibilitychange', async () => {
-  if (RUNNING_BUILD === null || document.visibilityState !== 'visible') return;
-  if (Date.now() - checkedBuildAt < BUILD_CHECK_GAP_MS) return;
+
+/** Whether the live page names another build than the one running (false offline, or when working locally). */
+async function newBuildLive() {
+  if (RUNNING_BUILD === null) return false;
   checkedBuildAt = Date.now();
   try {
     const page = await (await fetch('/', {cache: 'no-store'})).text();
     const live = page.match(/\/assets\/index-[^"']+\.js/)?.[0];
-    if (live && live !== RUNNING_BUILD) reloadForDeploy();
+    return Boolean(live && live !== RUNNING_BUILD);
   } catch {
     // Offline: the next return to the front tries again.
+    return false;
   }
+}
+
+document.addEventListener('visibilitychange', async () => {
+  if (document.visibilityState !== 'visible' || Date.now() - checkedBuildAt < BUILD_CHECK_GAP_MS) return;
+  if (await newBuildLive()) reloadForDeploy();
 });
+
+// The service worker keeps the page and its files on this device, so the app opens with no network (see public/sw.js).
+// The page it gives may be of a build before the live one: checked once at the start, the new build replaces it at
+// once while nothing was tapped yet, else at the next open.
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  let tapped = false;
+  window.addEventListener('pointerdown', () => (tapped = true), {capture: true, once: true});
+  if (navigator.serviceWorker.controller) {
+    void (async () => {
+      if ((await newBuildLive()) && !tapped) reloadForDeploy();
+    })();
+  }
+  window.addEventListener('load', () => void navigator.serviceWorker.register('/sw.js').catch(() => undefined));
+}
 
 // Before the app reads its data: #owner=... switches this browser to the owner's synced account.
 captureOwnerKey();
