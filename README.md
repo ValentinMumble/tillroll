@@ -111,8 +111,8 @@ A pending payment's labels and category follow it once the bank books it. The ow
 store, so they follow to every device; a visitor's stay in their browser. The owner's page opens at once on the
 copy kept on the device, even with no network (a service worker keeps the page and its files, `public/sw.js`), and the
 logo's bars move while the new payments come in. On opening, and back at the front after a minute or more away, one
-call syncs the banks when their last sync is over 6 hours old and brings the data, so a slow connection downloads it
-once.
+call syncs the banks when their last sync is over 6 hours old and brings the data, or only "unchanged" when the copy
+on screen is still current, so a slow connection downloads it once at most.
 
 ## On the iPhone
 
@@ -122,7 +122,8 @@ iOS app on every screen (the system's type, colours and controls); on a phone it
 that rise from the bottom and close with a swipe down anywhere on them. A home-screen app keeps its own cookies,
 apart from Safari's: the owner enters their key once there, through the Owner key link at the bottom of the page.
 On opening (until something is tapped) and coming back to the front (at most once a minute), it reloads itself when
-a newer deploy is out, so it never sits on an old version.
+a newer deploy is out, so it never sits on an old version. While iOS starts it, an iPhone 16 Pro shows the logo
+rather than a blank screen (other screen sizes would need their own image).
 
 ## Several banks
 
@@ -202,7 +203,8 @@ join the ones typed.
 
 - `api/`: Vercel functions. `login` and `logout` start and end owner mode, `banks` lists the banks for the picker,
   `connect` starts the bank authorization, `callback` takes the bank's answer and runs the first sync, `sync` runs a
-  sync (the daily cron, or the owner's page, which gets the data back with it), `data` returns the owner's
+  sync (the daily cron, or the owner's page, which gets the data back with it, or "unchanged" when the version of
+  the data it sent is still the latest), `data` returns the owner's
   transactions, `sorting` saves the owner's choices (categories per store and per payment, categories, merges, labels,
   trips, stores marked not the same, savings values and statements, budgets), `import` saves the owner's statement
   rows, `disconnect` ends the access.

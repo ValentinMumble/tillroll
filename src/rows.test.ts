@@ -70,6 +70,21 @@ describe('PayPal', () => {
     expect(row(card).category).toBe('own');
     expect(row(shop).spend).toBe(23.45);
   });
+
+  it('pairs a purchase in another currency on the shop’s first word, the closest in time', () => {
+    const shop = payment({
+      bank: 'PayPal',
+      description: 'VeloViewer Ltd',
+      currency: 'GBP',
+      amount: -10,
+      date: '2026-10-10',
+    });
+    const far = payment({description: 'Paypal *veloviewer', amount: -11.7, date: '2026-10-07'});
+    const near = payment({description: 'Paypal *veloviewer', amount: -11.8, date: '2026-10-11'});
+    const row = rowsOf([shop, far, near]);
+    expect(row(near).viaPayPal).toBe(true);
+    expect(row(far).viaPayPal).toBe(false);
+  });
 });
 
 describe('refunds', () => {
@@ -223,6 +238,23 @@ describe('card refunds named after the holder', () => {
     const row = (transaction: Transaction) => rows.find(item => item.id === transaction.id) as Row;
     expect(row(refund).refundOf).toMatchObject({id: order.id, store: 'Amazon', byHand: false});
     expect(row(order).spend).toBe(0);
+  });
+
+  it('gives back the latest such payment of the 120 days before, never a later or an older one', () => {
+    const old = payment({description: 'Decathlon', amount: -30, date: '2026-05-01'});
+    const latest = payment({description: 'Fnac', amount: -30, date: '2026-09-20'});
+    const earlier = payment({description: 'Amazon', amount: -30, date: '2026-09-02'});
+    const after = payment({description: 'Zalando', amount: -30, date: '2026-10-29'});
+    const refund = payment({description: 'Valentin Jan Dijkstra', kind: 'income', amount: 30, date: '2026-10-28'});
+    const rows = toRows([old, latest, earlier, after, refund], sorting);
+    expect(rows.find(item => item.id === refund.id)?.refundOf?.id).toBe(latest.id);
+  });
+
+  it('leaves it unmatched when the only such payment is more than 120 days older', () => {
+    const old = payment({description: 'Decathlon', amount: -30, date: '2026-05-01'});
+    const refund = payment({description: 'Valentin Jan Dijkstra', kind: 'income', amount: 30, date: '2026-10-28'});
+    const rows = toRows([old, refund], sorting);
+    expect(rows.find(item => item.id === refund.id)?.refundOf).toBeNull();
   });
 
   it('still gives it back when its store is renamed into one filed under moves between my accounts', () => {

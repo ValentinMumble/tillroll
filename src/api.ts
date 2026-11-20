@@ -72,6 +72,8 @@ export interface OwnerData {
   budgets: Budgets;
   balances: Balance[];
   connections: Connection[];
+  /** A fingerprint of the data (see api/_lib/data.ts): a sync answers "unchanged" when the page has this one. */
+  version?: string;
 }
 
 /** Owner only, like every call below. */
@@ -98,12 +100,17 @@ export interface SyncResult {
   errors?: string[];
   /** Why the sync failed, when the page asked for one only if due (the data still comes). */
   error?: string;
-  data: OwnerData;
+  /** The data, unless it is still the version the page sent: then `unchanged`. */
+  data?: OwnerData;
+  unchanged?: boolean;
 }
 
-/** Syncs the banks, or with `due` only those last synced more than 6 hours ago, and answers with the data. */
-export function syncBank(due = false) {
-  return request<SyncResult>('/api/sync', {method: 'POST', body: JSON.stringify(due ? {due} : {})});
+/**
+ * Syncs the banks, or with `due` only those last synced more than 6 hours ago, and answers with the data, or only
+ * that it is unchanged when it is still `version`.
+ */
+export function syncBank(due = false, version?: string) {
+  return request<SyncResult>('/api/sync', {method: 'POST', body: JSON.stringify({due, version})});
 }
 
 /** Ends the access to one bank, by its connection id. */

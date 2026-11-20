@@ -17,18 +17,23 @@ export function GET(request: Request) {
 /**
  * POST /api/sync: the owner's page, on Sync, and when it opens with `{"due": true}`: then only when a bank with access
  * was last synced more than 6 hours ago. The owner is there, so the banks limit less. The answer carries the owner's
- * data (see ownerData), so the page downloads it once; when it opens, a sync that fails still sends it, with the error.
+ * data (see ownerData), so the page downloads it once, or `unchanged` when the `version` the page sent is the data's
+ * still. When the page opens, a sync that fails still sends it, with the error.
  */
 export function POST(request: Request) {
   return handle(async () => {
     requireOwner(request);
-    const {due} = ((await request.json().catch(() => ({}))) ?? {}) as {due?: boolean};
-    if (due && !syncDue(await connections())) return json({synced: false, data: await ownerData()});
+    const {due, version} = ((await request.json().catch(() => ({}))) ?? {}) as {due?: boolean; version?: string};
+    const latest = async () => {
+      const data = await ownerData();
+      return data.version === version ? {unchanged: true} : {data};
+    };
+    if (due && !syncDue(await connections())) return json({synced: false, ...(await latest())});
     try {
-      return json({synced: true, ...(await sync(request)), data: await ownerData()});
+      return json({synced: true, ...(await sync(request)), ...(await latest())});
     } catch (error) {
       if (!due || !(error instanceof HttpError)) throw error;
-      return json({synced: false, error: error.message, data: await ownerData()});
+      return json({synced: false, error: error.message, ...(await latest())});
     }
   });
 }

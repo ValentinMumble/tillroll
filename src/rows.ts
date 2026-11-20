@@ -150,6 +150,21 @@ function paidOn({date, description}: Transaction) {
 const cents = (amount: number) => Math.round(Math.abs(amount) * 100);
 
 /**
+ * Rows grouped by a key, each group in the rows' order. The pairings below look for a match among the rows that may
+ * fit (the same amount, say) rather than all of them: tens of thousands of payments made the page slow to open.
+ */
+function groupBy<Key>(rows: Row[], keyOf: (row: Row) => Key) {
+  const groups = new Map<Key, Row[]>();
+  for (const row of rows) {
+    const key = keyOf(row);
+    const group = groups.get(key);
+    if (group) group.push(row);
+    else groups.set(key, [row]);
+  }
+  return groups;
+}
+
+/**
  * A payment's time, HH:MM in the browser's time zone: the statement's, or for a Revolut payment the one its id holds
  * (the first part of its UUID counts the seconds since 1970). Revolut dates payments in UTC, so one paid just after
  * midnight in Paris has its time under the day before.
@@ -257,6 +272,11 @@ function linkPayPal(rows: Row[]) {
   const open = rows.filter(row => row.bank !== 'PayPal' && /paypal/i.test(row.description) && !row.ownCategory);
   const linked = new Set<Row>();
   const firstWord = (row: Row) => row.storeKey.split(' ')[0];
+  // The bank's lines that may fit a PayPal payment: of the same amount, or naming the same shop. Each pairs once.
+  const place = new Map(open.map((row, index) => [row, index]));
+  const byAmount = groupBy(open, row => cents(row.amount));
+  const byWord = groupBy(open, firstWord);
+  const paired = new Set<Row>();
   const near = (row: Row, payment: Row) =>
     Math.abs(Date.parse(row.date) - Date.parse(payment.date)) <= PAYPAL_DAYS * 86_400_000;
   const isWithdrawal = (payment: Row) =>
@@ -264,22 +284,22 @@ function linkPayPal(rows: Row[]) {
   const withdrawals = paypal.filter(isWithdrawal);
   // The bank sync names the money a card puts in for a purchase after the shop, like the purchase itself: that money
   // in pairs with the card's debit before the purchase can, or it would read as a refund of the purchase.
-  const isFunding = (row: Row) =>
-    row.amount > 0 &&
-    paypal.some(
-      other =>
-        other.amount < 0 &&
-        other.storeKey === row.storeKey &&
-        other.currency === row.currency &&
-        other.date === row.date &&
-        cents(other.amount) === cents(row.amount),
-    );
+  const purchase = (row: Row) => [row.storeKey, row.currency, row.date, cents(row.amount)].join('\u0000');
+  const purchases = new Set(paypal.filter(other => other.amount < 0).map(purchase));
+  const isFunding = (row: Row) => row.amount > 0 && purchases.has(purchase(row));
   const fundings = paypal.filter(isFunding);
   const others = paypal.filter(row => !isWithdrawal(row) && !isFunding(row));
   for (const payment of [...withdrawals, ...fundings, ...others]) {
     const gap = (row: Row) => Math.abs(Date.parse(row.date) - Date.parse(payment.date));
+    const word = firstWord(payment);
+    const fits = new Set([
+      ...(byAmount.get(cents(payment.amount)) ?? []),
+      ...(word.length >= 4 ? (byWord.get(word) ?? []) : []),
+    ]);
     // The closest in time of the bank's lines that fit.
-    const twin = open
+    const twin = [...fits]
+      .filter(row => !paired.has(row))
+      .sort((first, second) => (place.get(first) ?? 0) - (place.get(second) ?? 0))
       .filter(row => {
         if (!near(row, payment)) return false;
         if (isWithdrawal(payment)) {
@@ -310,7 +330,7 @@ function linkPayPal(rows: Row[]) {
     twin.basis = 'kind';
     twin.viaPayPal = twin.amount < 0;
     if (Math.sign(twin.amount) !== Math.sign(payment.amount) && !keepsPick) toOwn();
-    open.splice(open.indexOf(twin), 1);
+    paired.add(twin);
     linked.add(payment);
   }
   // Then the card payments naming the shop, for the PayPal purchases left.
@@ -323,20 +343,24 @@ function linkPayPal(rows: Row[]) {
       row.category !== 'own' &&
       !/paypal/i.test(row.description),
   );
+  const chargesByAmount = groupBy(charges, row => cents(row.amount));
   for (const payment of paypal) {
     if (linked.has(payment) || payment.amount >= 0 || isWithdrawal(payment) || start(payment).length < 3) continue;
-    const twin = charges.find(
-      row =>
-        row.currency === payment.currency &&
-        cents(row.amount) === cents(payment.amount) &&
-        Math.abs(Date.parse(row.date) - Date.parse(payment.date)) <= 86_400_000 &&
-        start(row) === start(payment),
-    );
+    const twin = chargesByAmount
+      .get(cents(payment.amount))
+      ?.find(
+        row =>
+          !paired.has(row) &&
+          row.currency === payment.currency &&
+          cents(row.amount) === cents(payment.amount) &&
+          Math.abs(Date.parse(row.date) - Date.parse(payment.date)) <= 86_400_000 &&
+          start(row) === start(payment),
+      );
     if (!twin) continue;
     twin.category = 'own';
     twin.basis = 'kind';
     twin.viaPayPal = true;
-    charges.splice(charges.indexOf(twin), 1);
+    paired.add(twin);
   }
 }
 
@@ -391,19 +415,36 @@ const HOLDER_REFUND_DAYS = 120;
 function matchHolderRefunds(rows: Row[], me: string[]) {
   if (me.length === 0) return;
   const days = (first: string, second: string) => Math.abs(Date.parse(first) - Date.parse(second)) / 86_400_000;
+  // The money out of each amount, and each bank's card payments in each currency, oldest first like the rows.
+  const outByAmount = groupBy(
+    rows.filter(row => row.amount < 0),
+    row => cents(row.amount),
+  );
+  const cards = groupBy(
+    rows.filter(row => row.kind === 'card' && row.amount < 0),
+    row => `${bankOf(row)}\u0000${row.currency}`,
+  );
   for (const credit of rows) {
     if (credit.source !== 'bank' || credit.amount <= 0 || credit.refundOf || credit.ownCategory) continue;
     if ((credit.basis === 'picked' && credit.category !== 'own') || !namesMe(credit.description, me)) continue;
-    const moved = rows.some(
-      row =>
-        row.amount < 0 &&
-        bankOf(row) !== bankOf(credit) &&
-        cents(row.amount) === cents(credit.amount) &&
-        days(row.date, credit.date) <= TRANSFER_DAYS,
-    );
+    const moved = outByAmount
+      .get(cents(credit.amount))
+      ?.some(row => bankOf(row) !== bankOf(credit) && days(row.date, credit.date) <= TRANSFER_DAYS);
     if (moved) continue;
     const since = addDays(credit.date, -HOLDER_REFUND_DAYS);
-    const payment = rows
+    // The bank's card payments of the 120 days before.
+    const list = cards.get(`${bankOf(credit)}\u0000${credit.currency}`) ?? [];
+    let first = 0;
+    let last = list.length;
+    while (first < last) {
+      const middle = (first + last) >> 1;
+      if (list[middle].date < since) first = middle + 1;
+      else last = middle;
+    }
+    let end = first;
+    while (end < list.length && list[end].date <= credit.date) end++;
+    const payment = list
+      .slice(first, end)
       .filter(
         row =>
           row.kind === 'card' &&

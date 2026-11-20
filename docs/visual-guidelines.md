@@ -56,6 +56,9 @@ live in `src/styles/`, one file per area, imported in order by `src/index.css` (
   lowercase t in San Francisco Bold, white, beside the three coloured bars, on black, full bleed (iOS rounds it). Only
   the icon uses the t. It is drawn in `design/app-icon.svg`: change that, then run `sh design/render-icons.sh`
   (headless Chrome) on a Mac, where the system type is San Francisco, to render both PNGs.
+- While iOS starts the home-screen app it shows the launch image: the logo, bars and name, centred on `--page`, light
+  or dark (`public/launch-light.png` and `public/launch-dark.png`, linked in `index.html`). iOS wants one per screen
+  size, and only the iPhone 16 Pro's is there. It is drawn in `design/launch.html`, rendered by the same script.
 
 ## Shape and space
 

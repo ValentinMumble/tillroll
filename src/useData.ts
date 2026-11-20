@@ -200,11 +200,15 @@ export function useData({focus, setFocus, resetView}: View) {
 
   // The bank connections the page shows, to tell whether opening it will sync (see sync).
   const shownConnections = useRef<Connection[]>([]);
+  // The version of the data on screen, as the server sent it: a sync then answers "unchanged" rather than all of it
+  // again. None once the page changes it (see change).
+  const shownVersion = useRef<string | undefined>(undefined);
   /** Shows the owner's data, from the server or the copy kept on this device. */
   const showOwner = useCallback(
     (owner: OwnerData) => {
       noteFetched(owner.transactions);
       shownConnections.current = owner.connections ?? [];
+      shownVersion.current = owner.version;
       setData(fromOwner(owner));
     },
     [noteFetched],
@@ -238,20 +242,22 @@ export function useData({focus, setFocus, resetView}: View) {
     }
   }, [ownerFailed, showOwner]);
 
-  // A sync answers with the data after it, so a slow connection downloads it once. A change saved meanwhile may be
-  // missing from it: the data comes again then (see loadOwner). With `due`, the server syncs only when a bank was last
-  // synced more than 6 hours ago, and "Syncing…" shows only when the data on screen says so.
+  // A sync answers with the data after it, so a slow connection downloads it once, and not at all when it is still
+  // the version on screen. A change saved meanwhile may be missing from it: the data comes again then (see loadOwner).
+  // With `due`, the server syncs only when a bank was last synced more than 6 hours ago, and "Syncing…" shows only
+  // when the data on screen says so.
   const sync = useCallback(
     async (due = false) => {
       const marked = !due || syncDue(shownConnections.current);
       if (marked) setBusy('sync');
       try {
         const before = edits.current;
-        const result = await syncBank(due);
-        if (edits.current === before) {
+        const result = await syncBank(due, shownVersion.current);
+        if (edits.current !== before) await loadOwner();
+        else if (result.data) {
           showOwner(result.data);
           void saveCachedOwnerData(result.data);
-        } else await loadOwner();
+        }
         if (result.error) setNotice({tone: 'error', text: result.error});
         return result;
       } catch (error) {
@@ -389,6 +395,9 @@ export function useData({focus, setFocus, resetView}: View) {
       saveLocalSorting(update);
       return;
     }
+    // The data on screen is no longer a version the server sent: the next sync brings all of it, so a change that
+    // failed to save does not stay on screen.
+    shownVersion.current = undefined;
     edits.current += 1;
     try {
       await saveOnServer();

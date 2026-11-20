@@ -1,0 +1,69 @@
+<!doctype html>
+<!-- The iOS launch image (see index.html): the logo on the page colour, light or dark after the # in the address.
+     Rendered by design/render-icons.sh at the iPhone 16 Pro's size, 402 x 874 points at 3x. -->
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <style>
+      :root {
+        --page: #f2f2f7;
+        --ink: #000000;
+        --cat-1: #2a78d6;
+        --cat-2: #eb6834;
+        --cat-3: #1baf7a;
+      }
+      :root.is-dark {
+        --page: #000000;
+        --ink: #ffffff;
+        --cat-1: #3987e5;
+        --cat-2: #d95926;
+        --cat-3: #199e70;
+      }
+      /* The screen's size in points, set here: headless Chrome keeps a window at least about 500 wide. */
+      body {
+        margin: 0;
+        width: 402px;
+        height: 874px;
+        display: grid;
+        place-items: center;
+        background: var(--page);
+      }
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 15px;
+        margin-top: -40px;
+        color: var(--ink);
+        font:
+          700 36px -apple-system,
+          BlinkMacSystemFont,
+          system-ui,
+          sans-serif;
+        letter-spacing: -0.02em;
+      }
+      svg {
+        flex: none;
+        width: 42px;
+        height: 42px;
+      }
+      path {
+        fill: none;
+        stroke-width: 5;
+        stroke-linecap: round;
+      }
+    </style>
+    <script>
+      if (location.hash === '#dark') document.documentElement.classList.add('is-dark');
+    </script>
+  </head>
+  <body>
+    <div class="brand">
+      <svg viewBox="0 0 32 32" aria-hidden="true">
+        <path d="M5 8h22" stroke="var(--cat-1)" />
+        <path d="M5 16h14" stroke="var(--cat-2)" />
+        <path d="M5 24h18" stroke="var(--cat-3)" />
+      </svg>
+      tillroll
+    </div>
+  </body>
+</html>

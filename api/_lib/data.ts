@@ -30,15 +30,29 @@ import {
   TRANSACTIONS,
   TRIPS,
 } from './store.js';
+import {createHash} from 'node:crypto';
 import {connections, pendingByBank} from './sync.js';
 
 /**
  * The owner's data, for GET /api/data and the answer to a sync: the transactions (bank sync and imported
  * statements), how they are sorted (categories per store, categories changed, stores merged, money in linked to what
  * it pays back, labels and the trips among them), the savings values typed by hand and the statements read from PDFs,
- * the budgets, and the bank connections with their accounts' balances.
+ * the budgets, and the bank connections with their accounts' balances. Its `version` is a fingerprint of all that:
+ * the page sends the one it has, and a sync answers "unchanged" instead of the same few megabytes again.
  */
 export async function ownerData() {
+  const data = await readOwnerData();
+  return {...data, version: createHash('sha1').update(JSON.stringify(data)).digest('base64url')};
+}
+
+const byText = (first: string, second: string) => (first < second ? -1 : first > second ? 1 : 0);
+
+/** A hash's fields in key order. */
+function inKeyOrder<Hash extends object>(hash: Hash | null) {
+  return Object.fromEntries(Object.entries(hash ?? {}).sort(([first], [second]) => byText(first, second))) as Hash;
+}
+
+async function readOwnerData() {
   const store = redis();
   const [
     booked,
@@ -75,22 +89,24 @@ export async function ownerData() {
     store.hgetall<Record<string, Balance>>(BALANCES),
     connections(),
   ]);
+  // In a fixed order: Redis hands a hash's fields and a set's members in any order, and the same data must read the
+  // same, for its version.
   return {
-    transactions: [...booked, ...Object.values(pending).flat()],
-    rules: rules ?? {},
-    earlierRules: earlierRules ?? {},
+    transactions: [...booked.sort((first, second) => byText(first.id, second.id)), ...Object.values(pending).flat()],
+    rules: inKeyOrder(rules),
+    earlierRules: inKeyOrder(earlierRules),
     categories: categories ?? [],
-    merges: merges ?? {},
-    labels: labels ?? {},
-    trips: trips ?? {},
-    paymentCategories: paymentCategories ?? {},
-    paybacks: paybacks ?? {},
-    distinct: distinct ?? [],
-    savingsValues: savingsValues ?? {},
-    savingsStatements: savingsStatements ?? {},
-    budgets: budgets ?? {},
+    merges: inKeyOrder(merges),
+    labels: inKeyOrder(labels),
+    trips: inKeyOrder(trips),
+    paymentCategories: inKeyOrder(paymentCategories),
+    paybacks: inKeyOrder(paybacks),
+    distinct: (distinct ?? []).sort(byText),
+    savingsValues: inKeyOrder(savingsValues),
+    savingsStatements: inKeyOrder(savingsStatements),
+    budgets: inKeyOrder(budgets),
     // The balances of the banks still connected.
-    balances: Object.values(balances ?? {}).filter(balance => current.some(item => item.bank === balance.bank)),
-    connections: current,
+    balances: Object.values(inKeyOrder(balances)).filter(balance => current.some(item => item.bank === balance.bank)),
+    connections: current.sort((first, second) => byText(first.id, second.id)),
   };
 }
