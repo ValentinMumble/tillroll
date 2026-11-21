@@ -33,6 +33,20 @@
   </head>
   <body>
     <div id="root"></div>
+    <!-- An owner's page opens on its loading screen before the app's script has run, so nothing blank shows between
+         the launch image and the app; React replaces it once it runs. The markup is the app's own, kept in
+         src/loading-frame.html by design/render-launch.mjs and put here by vite.config.ts. -->
+    <template id="loading-frame"><!-- loading frame --></template>
+    <script>
+      // Owner mode, as isOwnerBrowser in src/owner.ts tells it: a visitor's page opens on the first screen instead.
+      try {
+        if (document.cookie.split(/;\s*/).includes('tillroll_owner=1') || localStorage.getItem('tillroll.owner')) {
+          document.getElementById('root').append(document.getElementById('loading-frame').content.cloneNode(true));
+        }
+      } catch {
+        // No storage: the app's own loading screen shows once its script runs.
+      }
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

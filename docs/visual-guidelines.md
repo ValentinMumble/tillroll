@@ -59,8 +59,9 @@ live in `src/styles/`, one file per area, imported in order by `src/index.css` (
 - While iOS starts the home-screen app it shows the launch image: a screenshot of the app's own loading screen (header,
   tab bar, the overview's grey outline), light or dark (`public/launch-light.png` and `public/launch-dark.png`, linked
   in `index.html`), so the app takes over without a jump. iOS wants one per screen size, and only the iPhone 16 Pro's
-  is there. After a change to the header, the tab bar or the skeleton, run `npm run build`, then
-  `node design/render-launch.mjs`.
+  is there. The page itself opens on the same screen before its script runs (the markup in `src/loading-frame.html`,
+  shown to an owner by `index.html`), so nothing blank shows between the image and the app. After a change to the
+  header, the tab bar or the skeleton, run `npm run build`, then `node design/render-launch.mjs` (it renders both).
 
 ## Shape and space
 

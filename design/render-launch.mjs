@@ -1,7 +1,9 @@
 // Renders the iOS launch images, public/launch-light.png and public/launch-dark.png: the app's own loading screen (its
 // header, tab bar and grey outline, see OverviewSkeleton) as the iPhone 16 Pro shows it from the home screen, so the
-// app takes over from the image without a jump. Run it after `npm run build`, with Google Chrome installed (macOS):
-// `node design/render-launch.mjs`. It serves dist/ with the owner's data never coming, and screenshots the page.
+// app takes over from the image without a jump. It also keeps that screen's markup in src/loading-frame.html, which
+// the page shows before its script runs (see index.html). Run it after `npm run build`, with Google Chrome installed
+// (macOS): `node design/render-launch.mjs`, then build again. It serves dist/ with the owner's data never coming, and
+// screenshots the page.
 import {spawn} from 'node:child_process';
 import {mkdtempSync, readFileSync, rmSync, statSync, writeFileSync} from 'node:fs';
 import {createServer} from 'node:http';
@@ -111,7 +113,7 @@ async function until(tab, expression) {
   throw new Error(`Never true: ${expression}`);
 }
 
-/** The loading screen in light or dark, as a PNG in base64, with the page colour around it. */
+/** The loading screen in light or dark, as a PNG in base64, with the page colour around it and its markup. */
 async function loadingScreen(theme) {
   const {tab, close} = await openTab(SCREEN.width, SCREEN.height - STATUS_BAR);
   await tab('Emulation.setSafeAreaInsetsOverride', {insets: {bottom: HOME_BAR}});
@@ -128,14 +130,19 @@ async function loadingScreen(theme) {
     source: "Object.defineProperty(navigator, 'standalone', {value: true});",
   });
   await tab('Page.navigate', {url: origin});
-  await until(tab, "document.querySelector('.skeleton-view') !== null && document.fonts.ready.then(() => true)");
+  // React's own loading screen, not the copy the page opens on (which may be out of date): React's nodes hold its fiber.
+  await until(
+    tab,
+    "[...document.querySelectorAll('.skeleton-view')].some(view => Object.keys(view).some(key => key.startsWith('__reactFiber'))) && document.fonts.ready.then(() => true)",
+  );
   const {data} = await tab('Page.captureScreenshot', {format: 'png'});
   const {result} = await tab('Runtime.evaluate', {
-    expression: 'getComputedStyle(document.body).backgroundColor',
+    expression: "[getComputedStyle(document.body).backgroundColor, document.getElementById('root').innerHTML]",
     returnByValue: true,
   });
   await close();
-  return {screen: data, page: result.value};
+  const [page, frame] = result.value;
+  return {screen: data, page, frame};
 }
 
 /** The whole screen: the status bar's band in the page colour, then the page. */
@@ -154,9 +161,15 @@ async function launchImage({screen, page}) {
 
 try {
   for (const theme of ['light', 'dark']) {
-    const image = await launchImage(await loadingScreen(theme));
+    const screen = await loadingScreen(theme);
+    const image = await launchImage(screen);
     writeFileSync(join(root, 'public', `launch-${theme}.png`), Buffer.from(image, 'base64'));
     console.log(`public/launch-${theme}.png`);
+    // The same markup in both: the stylesheet picks the colours.
+    if (theme === 'light') {
+      writeFileSync(join(root, 'src', 'loading-frame.html'), `${screen.frame}\n`);
+      console.log('src/loading-frame.html');
+    }
   }
 } finally {
   // Its profile goes once it has quit, not while it still writes there.
