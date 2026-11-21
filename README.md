@@ -106,7 +106,7 @@ month (what it still costs shows under its amount). A pending payment can be pic
 - **Ignored**: tick payments in Payments and press Ignore (Count again undoes it), or pick Ignored as a category, for
   a store or one payment: a deposit, a purchase made for someone who paid it back.
 
-**Labels** go on single payments: the # next to a payment adds one (the labels already in use show as chips to tap).
+**Labels** go on single payments: the # next to a payment adds one (the labels already in use show as chips to tap, found by their words in any order).
 A pending payment's labels and category follow it once the bank books it. The owner's choices are kept in the site
 store, so they follow to every device; a visitor's stay in their browser. The owner's page opens at once on the
 copy kept on the device, even with no network (a service worker keeps the page and its files, `public/sw.js`), and the

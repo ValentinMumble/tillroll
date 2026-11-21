@@ -1,7 +1,7 @@
 import {useContext, useState} from 'react';
 import {tidyLabel, withLabel, withoutLabel} from '../labels';
 import type {Row} from '../rows';
-import {plain} from '../text';
+import {hasWords, plain} from '../text';
 import {TripLabels} from '../tripLabels';
 import type {Labels} from '../types';
 
@@ -32,15 +32,17 @@ export function PaymentLabels({row, names, onLabels, onFocusLabel}: Props) {
     setText(null);
   }
 
-  // The labels in use this payment has not got, matching what is typed: the ones starting with it first.
+  // The labels in use this payment has not got, holding every word typed in any order: the ones starting with the
+  // first word first.
   const typed = plain(tidyLabel(text ?? ''));
+  const first = typed.split(/\s+/)[0];
   const suggestions =
     text === null
       ? []
       : names
           .filter(label => !row.labels.some(item => item.toLowerCase() === label.toLowerCase()))
-          .filter(label => plain(label).includes(typed) && plain(label) !== typed)
-          .sort((first, second) => Number(!plain(first).startsWith(typed)) - Number(!plain(second).startsWith(typed)))
+          .filter(label => hasWords(label, typed) && plain(label) !== typed)
+          .sort((one, other) => Number(!plain(one).startsWith(first)) - Number(!plain(other).startsWith(first)))
           .slice(0, SUGGESTIONS);
 
   return (
