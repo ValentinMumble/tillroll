@@ -221,7 +221,10 @@ join the ones typed.
 
 ## Develop
 
+Node 24, as on Vercel (`.nvmrc`, `engines` in `package.json`).
+
 ```sh
+nvm use
 npm install
 npm run dev   # http://127.0.0.1:5192, serves api/ too (local-api.ts)
 ```
