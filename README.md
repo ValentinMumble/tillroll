@@ -122,9 +122,8 @@ iOS app on every screen (the system's type, colours and controls); on a phone it
 that rise from the bottom and close with a swipe down anywhere on them. A home-screen app keeps its own cookies,
 apart from Safari's: the owner enters their key once there, through the Owner key link at the bottom of the page.
 On opening (until something is tapped) and coming back to the front (at most once a minute), it reloads itself when
-a newer deploy is out, so it never sits on an old version. While iOS starts it, an iPhone 16 Pro shows the app's
-loading screen rather than a blank one (other screen sizes would need their own image), and the page opens on that
-same screen before its script runs.
+a newer deploy is out, so it never sits on an old version. It opens straight on its loading screen, drawn before its
+script runs (there is no iOS launch image: iOS swapped it for the page with a white flash).
 
 ## Several banks
 

@@ -4,8 +4,6 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <!-- Light and dark from the first byte, before the stylesheet says so. -->
-    <meta name="color-scheme" content="light dark" />
     <meta
       name="description"
       content="Tillroll: your Revolut spending week by week and month by month, by store and by category."
@@ -19,26 +17,15 @@
     <meta name="apple-mobile-web-app-title" content="Tillroll" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <!-- While iOS starts the home-screen app: the app's own loading screen, not a blank one. iOS wants one image per
-         screen size: this is the iPhone 16 Pro's (402 x 874 points at 3x), rendered by design/render-launch.mjs. -->
-    <link
-      rel="apple-touch-startup-image"
-      href="/launch-light.png"
-      media="(device-width: 402px) and (device-height: 874px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: light)"
-    />
-    <link
-      rel="apple-touch-startup-image"
-      href="/launch-dark.png"
-      media="(device-width: 402px) and (device-height: 874px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: dark)"
-    />
+    <!-- No launch image (apple-touch-startup-image): iOS takes it away on its own clock, and when the page has not
+         painted yet, the empty web view under it flashes white. Without one, iOS starts on black. -->
     <title>Tillroll</title>
   </head>
   <body>
     <div id="root"></div>
-    <!-- An owner's page opens on its loading screen before the app's script has run, so nothing blank shows between
-         the launch image and the app; React replaces it once it runs. The markup is the app's own, kept in
-         src/loading-frame.html by design/render-launch.mjs and put here by vite.config.ts, which also builds the
-         stylesheet into the page: that first paint waits for no other file. -->
+    <!-- An owner's page opens on its loading screen before the app's script has run, so nothing blank shows while it
+         starts; React replaces it once it runs. The markup is the app's own, kept in src/loading-frame.html by
+         design/render-loading-frame.mjs and put here by vite.config.ts. -->
     <template id="loading-frame"><!-- loading frame --></template>
     <script>
       // Owner mode, as isOwnerBrowser in src/owner.ts tells it: a visitor's page opens on the first screen instead.

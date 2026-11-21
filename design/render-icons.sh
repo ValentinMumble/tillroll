@@ -1,7 +1,6 @@
 #!/bin/sh
 # Renders design/app-icon.svg to the app icons in public/ with headless Chrome (macOS): the iPhone home screen icon
-# (180px) and the web app one (512px). Run it after changing the SVG. The iOS launch images come from
-# design/render-launch.mjs.
+# (180px) and the web app one (512px). Run it after changing the SVG.
 set -e
 here=$(cd "$(dirname "$0")" && pwd)
 chrome="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"

@@ -56,14 +56,11 @@ live in `src/styles/`, one file per area, imported in order by `src/index.css` (
   lowercase t in San Francisco Bold, white, beside the three coloured bars, on black, full bleed (iOS rounds it). Only
   the icon uses the t. It is drawn in `design/app-icon.svg`: change that, then run `sh design/render-icons.sh`
   (headless Chrome) on a Mac, where the system type is San Francisco, to render both PNGs.
-- While iOS starts the home-screen app it shows the launch image: a screenshot of the app's own loading screen (header,
-  tab bar, the overview's grey outline), light or dark (`public/launch-light.png` and `public/launch-dark.png`, linked
-  in `index.html`), so the app takes over without a jump. iOS wants one per screen size, and only the iPhone 16 Pro's
-  is there. The page itself opens on the same screen before its script runs (the markup in `src/loading-frame.html`,
-  shown to an owner by `index.html`), so nothing blank shows between the image and the app. The build puts the
-  stylesheet inside the page, so that first paint waits for no other file: iOS takes the image away on its own clock,
-  and a page not painted yet shows white. After a change to the
-  header, the tab bar or the skeleton, run `npm run build`, then `node design/render-launch.mjs` (it renders both).
+- The home-screen app has no launch image (`apple-touch-startup-image`): iOS takes one away on its own clock, and when
+  the page has not painted yet, the empty web view under it flashes white. So iOS starts on black, and the page opens
+  on the app's own loading screen (header, tab bar, the overview's grey outline) before its script runs: the markup in
+  `src/loading-frame.html`, shown to an owner by `index.html`. After a change to the header, the tab bar or the
+  skeleton, run `npm run build`, then `node design/render-loading-frame.mjs`, then build again.
 
 ## Shape and space
 
