@@ -60,7 +60,9 @@ live in `src/styles/`, one file per area, imported in order by `src/index.css` (
   tab bar, the overview's grey outline), light or dark (`public/launch-light.png` and `public/launch-dark.png`, linked
   in `index.html`), so the app takes over without a jump. iOS wants one per screen size, and only the iPhone 16 Pro's
   is there. The page itself opens on the same screen before its script runs (the markup in `src/loading-frame.html`,
-  shown to an owner by `index.html`), so nothing blank shows between the image and the app. After a change to the
+  shown to an owner by `index.html`), so nothing blank shows between the image and the app. The build puts the
+  stylesheet inside the page, so that first paint waits for no other file: iOS takes the image away on its own clock,
+  and a page not painted yet shows white. After a change to the
   header, the tab bar or the skeleton, run `npm run build`, then `node design/render-launch.mjs` (it renders both).
 
 ## Shape and space
