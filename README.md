@@ -63,9 +63,9 @@ Overview, Payments, Categories and Stores, and the ⋯ menu opens the Calendar, 
   runs with and without spending, the most loyal store, coffees, hobbies, the payday effect.
 
 A payment shows its time when the source gives one: statements do, and a synced Revolut payment carries it in its id
-(its day is in UTC, so a payment just after midnight shows under the day before). Other banks only give the day: there
-the sync notes when it first saw each payment. Each day lists its payments newest first, so new ones arrive at the top.
-A small search link beside a store's name looks it up on Google, for names that say nothing.
+(its day comes from there too, as Revolut's own date is in UTC). Other banks only give the day: there the sync notes
+when it first saw each payment. Each day lists its payments newest first, so new ones arrive at the top. A small search
+link beside a store's name looks it up on Google, for names that say nothing.
 
 **Categorizing.** A payment's category is a button: it asks whether the choice is for its store (every payment there,
 past and future), for its store from this payment on (the earlier ones keep theirs), or for this payment only (an

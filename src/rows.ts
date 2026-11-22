@@ -165,18 +165,18 @@ function groupBy<Key>(rows: Row[], keyOf: (row: Row) => Key) {
 }
 
 /**
- * A payment's time, HH:MM in the browser's time zone: the statement's, or for a Revolut payment the one its id holds
- * (the first part of its UUID counts the seconds since 1970). Revolut dates payments in UTC, so one paid just after
- * midnight in Paris has its time under the day before.
+ * When a synced Revolut payment was made, from its id (the first part of its UUID counts the seconds since 1970). Its
+ * day and time in the browser's time zone come from there: Revolut dates payments in UTC, so one paid just after
+ * midnight in Paris would otherwise sit under the day before.
  */
-export function timeOf(transaction: Transaction) {
-  if (transaction.time || (transaction.bank ?? 'Revolut') !== 'Revolut') return transaction.time;
+function revolutMoment(transaction: Transaction) {
+  if (transaction.time || (transaction.bank ?? 'Revolut') !== 'Revolut') return undefined;
   const head = /^bank:[^:]+:([0-9a-f]{8})-[0-9a-f]{4}-/.exec(transaction.id);
   if (!head) return undefined;
   const at = parseInt(head[1], 16) * 1000;
   // Only a moment near its day: an id of another shape never gives a time.
   if (Math.abs(at - Date.parse(transaction.date)) > 2 * 86_400_000) return undefined;
-  return localTime(new Date(at));
+  return new Date(at);
 }
 
 /**
@@ -560,7 +560,8 @@ export function toRows(
     // A category picked for this payment wins over its store's, the one the store had on its day.
     const own = paymentCategories[transaction.id];
     const ownCategory = Boolean(own && categories.byKey[own]);
-    const day = paidOn(transaction);
+    const madeAt = revolutMoment(transaction);
+    const day = madeAt ? localDay(madeAt) : paidOn(transaction);
     const earlier = earlierRules[key]?.find(item => day < item.until);
     const {category, basis} = ownCategory
       ? {category: own, basis: 'picked' as const}
@@ -568,7 +569,7 @@ export function toRows(
     return {
       ...transaction,
       date: day,
-      time: timeOf(transaction),
+      time: madeAt ? localTime(madeAt) : transaction.time,
       store,
       storeKey: key,
       ownStore,

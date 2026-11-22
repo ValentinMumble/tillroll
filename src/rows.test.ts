@@ -1,6 +1,6 @@
 import {describe, expect, it} from 'vitest';
 import {categoriesFrom} from './categories';
-import {localTime} from './periods';
+import {localDay, localTime} from './periods';
 import {bankMergeKey, matchesSearch, type Row, searchTerms, toRows} from './rows';
 import type {Transaction} from './types';
 
@@ -421,6 +421,21 @@ describe('a day’s payments', () => {
     });
     const row = rowsOf([westport]);
     expect(row(westport).time).toBe(localTime(new Date('2026-11-17T19:58:19Z')));
+  });
+
+  it('put a Revolut payment under its own day, not the UTC day Revolut gives', () => {
+    // 00:58 in Paris, a day after Revolut's date.
+    const madeAt = new Date('2026-11-21T23:58:58Z');
+    const kebab = payment({
+      id: revolutId(madeAt.toISOString()),
+      bank: 'Revolut',
+      description: 'Kebab',
+      amount: -9.5,
+      date: '2026-11-21',
+    });
+    const row = rowsOf([kebab]);
+    expect(row(kebab).date).toBe(localDay(madeAt));
+    expect(row(kebab).time).toBe(localTime(madeAt));
   });
 
   it('take no time from another bank’s id, or from one far from its day', () => {

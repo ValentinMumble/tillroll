@@ -298,8 +298,8 @@ export function Payments({
     observer.observe(end);
     return () => observer.disconnect();
   }, [hasMore, limit]);
-  // A time column only when some payments listed have a time (statements and Revolut give one, see timeOf): over the
-  // whole list, not only the rows drawn, so it never appears while the list scrolls.
+  // A time column only when some payments listed have a time (statements and Revolut give one, see revolutMoment):
+  // over the whole list, not only the rows drawn, so it never appears while the list scrolls.
   const withTimes = visible.some(row => row.time);
   // Dates carry their year when the list covers more than one (all time, a label, the context of a day): the period's
   // years, not only the ones a search or a filter leaves, so one match over all time still says its year. A week, a
