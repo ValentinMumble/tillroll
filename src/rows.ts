@@ -38,8 +38,11 @@ export interface Row extends Transaction {
   leftOut: boolean;
   /** Money back from a store, matched with a payment or not. */
   refund: boolean;
-  /** For a matched refund, or money in linked by hand to the payment it pays back: that payment. */
-  refundOf: {id: string; date: string; store: string; byHand: boolean} | null;
+  /**
+   * For a matched refund, or money in linked by hand to the payment it pays back: that payment. Its name is its first
+   * label, else its store.
+   */
+  refundOf: {id: string; date: string; store: string; name: string; byHand: boolean} | null;
   /** For a payment: how much of it came back in refunds. */
   refunded: number;
   /** For money in linked by hand to a payment: what it brought beyond what was left of that payment to pay back. */
@@ -364,6 +367,15 @@ function linkPayPal(rows: Row[]) {
   }
 }
 
+/** The payment a money in gives back, as the money in names it: by its first label, else its store. */
+const paidPayment = (payment: Row, byHand: boolean) => ({
+  id: payment.id,
+  date: payment.date,
+  store: payment.store,
+  name: payment.labels[0] ?? payment.store,
+  byHand,
+});
+
 /**
  * Refunds: money back from a store. The bank says it is one, or a category that counts as spending was picked for
  * it; money in of exactly what a card payment at the same store cost counts too. Money in by transfer filed under a
@@ -393,7 +405,7 @@ function linkPaybacks(rows: Row[], paybacks: Paybacks) {
     // Rounding up by less than €1 (€18 for €17.99) is nothing.
     credit.beyond = credit.amount - left >= 1 ? credit.amount - left : 0;
     credit.refund = true;
-    credit.refundOf = {id: payment.id, date: payment.date, store: payment.store, byHand: true};
+    credit.refundOf = paidPayment(payment, true);
     if (!credit.ownCategory) {
       credit.category = payment.category;
       credit.basis = 'picked';
@@ -460,7 +472,7 @@ function matchHolderRefunds(rows: Row[], me: string[]) {
     if (!payment) continue;
     payment.refunded += credit.amount;
     credit.refund = true;
-    credit.refundOf = {id: payment.id, date: payment.date, store: payment.store, byHand: false};
+    credit.refundOf = paidPayment(payment, false);
     credit.category = payment.category;
     credit.basis = 'kind';
   }
@@ -514,7 +526,7 @@ function matchRefunds(rows: Row[], categories: Categories) {
     }
     payment.refunded += credit.amount;
     credit.refund = true;
-    credit.refundOf = {id: payment.id, date: payment.date, store: payment.store, byHand: false};
+    credit.refundOf = paidPayment(payment, false);
     if (!credit.ownCategory) {
       credit.category = payment.category;
       credit.basis = payment.basis === 'picked' ? 'picked' : 'kind';

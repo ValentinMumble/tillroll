@@ -13,8 +13,9 @@ interface Props {
 }
 
 /**
- * What refunds and paybacks change, as tags after the store: money in names the payment it gives back ("refund of
- * 3 Aug", "refund of Amazon, 19 Oct", "pays back Airbnb, 22 Sept"), and shows that payment among the ones around it,
+ * What refunds and paybacks change, as tags after the store: money in names the payment it gives back, by its label
+ * when it has one ("refund of 3 Aug", "refund of Amazon, 19 Oct", "pays back Lisbon, 22 Sept"), and shows that
+ * payment among the ones around it,
  * or says none was found ("refund"); a payment says how much came back ("€286 paid back", "refunded"), names who gave
  * it back on hover, and opens its sheet, which lists them. The payment list and the overview's latest payments show
  * the same tags.
@@ -41,9 +42,9 @@ export function RefundTags({row, givenBack, onOpen, onShowPaid}: Props) {
           }}
         >
           {row.refundOf.byHand
-            ? `pays back ${row.refundOf.store}, ${day(row.refundOf.date)}`
+            ? `pays back ${row.refundOf.name}, ${day(row.refundOf.date)}`
             : // A refund that does not name its shop (a card refund named after the holder) says which it is.
-              `refund of ${row.refundOf.store === row.store ? '' : `${row.refundOf.store}, `}${day(row.refundOf.date)}`}
+              `refund of ${row.refundOf.name === row.store ? '' : `${row.refundOf.name}, `}${day(row.refundOf.date)}`}
         </button>
       )}
       {row.refund && !row.refundOf && (

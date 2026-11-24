@@ -124,7 +124,14 @@ describe('paybacks', () => {
     expect(row(flat).spend).toBeCloseTo(579.82);
     expect(row(share).spend).toBe(0);
     expect(row(share).category).toBe(row(flat).category);
-    expect(row(share).refundOf).toMatchObject({id: flat.id, store: 'Airbnb', byHand: true});
+    expect(row(share).refundOf).toMatchObject({id: flat.id, store: 'Airbnb', name: 'Airbnb', byHand: true});
+  });
+
+  it('names the payment a payback gives back by its label, when it has one', () => {
+    const flat = payment({description: 'Airbnb', amount: -865.82, date: '2026-09-22', mcc: '7011'});
+    const share = payment({description: 'Alexandre Mazure', kind: 'income', amount: 286, date: '2026-10-03'});
+    const rows = toRows([flat, share], {...sorting({[share.id]: flat.id}), labels: {[flat.id]: ['Lisbon']}});
+    expect(rows.find(item => item.id === share.id)?.refundOf).toMatchObject({store: 'Airbnb', name: 'Lisbon'});
   });
 
   it('lets a payback round a payment up, which then costs nothing', () => {
